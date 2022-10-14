@@ -1,0 +1,170 @@
+{
+  "python_class": "CMA_ES",
+  "state_variables": [
+    {
+      "code": "sigma",
+      "symbol": "\\sigma",
+      "variation_enabled": false,
+      "bottom_bias": false,
+      "fields": {
+        "field_1": {
+          "default": 1,
+          "validation": "required|numeric|gt:0"
+        },
+        "field_2": {
+          "default": 10,
+          "validation": "required|numeric|gt:0"
+        },
+        "quantity": {
+          "default": 10,
+          "validation": "required|numeric|gt:0"
+        }
+      },
+      "defaults": {
+        "distribution": "uniform",
+        "scale": "linear"
+      }
+    },
+    {
+      "code": "Sigma_11",
+      "symbol": "\\Sigma_{11}",
+      "variation_enabled": false,
+      "bottom_bias": true,
+      "fields": {
+        "field_1": {
+          "default": 1,
+          "validation": "required|numeric|gt:0"
+        },
+        "field_2": {
+          "default": 10,
+          "validation": "required|numeric|gt:0"
+        },
+        "quantity": {
+          "default": 10,
+          "validation": "required|numeric|gt:0"
+        }
+      },
+      "defaults": {
+        "distribution": "uniform",
+        "scale": "linear"
+      }
+    },
+    {
+      "code": "Sigma_12|21",
+      "symbol": "\\Sigma_{12|21}",
+      "variation_enabled": false,
+      "bottom_bias": true,
+      "fields": {
+        "field_1": {
+          "default": 1,
+          "validation": "required|numeric|gt:0"
+        },
+        "field_2": {
+          "default": 10,
+          "validation": "required|numeric|gt:0"
+        },
+        "quantity": {
+          "default": 10,
+          "validation": "required|numeric|gt:0"
+        }
+      },
+      "defaults": {
+        "distribution": "uniform",
+        "scale": "linear"
+      }
+    },
+    {
+      "code": "Sigma_22",
+      "symbol": "\\Sigma_{22}",
+      "variation_enabled": true,
+      "bottom_bias": true,
+      "fields": {
+        "field_1": {
+          "default": 1,
+          "validation": "required|numeric|gt:0"
+        },
+        "field_2": {
+          "default": 10,
+          "validation": "required|numeric|gt:0"
+        },
+        "quantity": {
+          "default": 10,
+          "validation": "required|numeric|gt:0"
+        }
+      },
+      "defaults": {
+        "distribution": "uniform",
+        "scale": "linear"
+      }
+    },
+    {
+      "code": "p_succ",
+      "symbol": "p_{succ}",
+      "variation_enabled": true,
+      "bottom_bias": true,
+      "fields": {
+        "field_1": {
+          "default": 1,
+          "validation": "required|numeric|gt:0"
+        },
+        "field_2": {
+          "default": 10,
+          "validation": "required|numeric|gt:0"
+        },
+        "quantity": {
+          "default": 10,
+          "validation": "required|numeric|gt:0"
+        }
+      },
+      "defaults": {
+        "distribution": "uniform",
+        "scale": "linear"
+      }
+    }
+  ],
+  "matrices": [
+    {
+      "name": "cov_m",
+      "definition": [
+        [
+          "Sigma_11",
+          "Sigma_12|21"
+        ],
+        [
+          "Sigma_12|21",
+          "Sigma_22"
+        ]
+      ]
+    }
+  ],
+  "algorithm_constants": [
+    {
+      "code": "d",
+      "symbol": "d",
+      "bottom_bias": false,
+      "default": 2,
+      "validation": "required|numeric|gte:2"
+    },
+    {
+      "code": "p_target",
+      "symbol": "P_{target}",
+      "bottom_bias": false,
+      "default": 0.1818,
+      "validation": "required|numeric|gt:0"
+    },
+    {
+      "code": "c_cov_plus",
+      "symbol": "c^{+}_{cov}",
+      "bottom_bias": false,
+      "default": 0.2,
+      "validation": "required|numeric|gt:0"
+    },
+    {
+      "code": "c_p",
+      "symbol": "c_{p}",
+      "bottom_bias": false,
+      "default": 0.8333,
+      "validation": "required|numeric|gt:0"
+    }
+  ]
+}

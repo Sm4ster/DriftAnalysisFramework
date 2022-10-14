@@ -1,0 +1,31 @@
+{
+  "name": "driftanalysisframework",
+  "private": true,
+  "version": "0.0.0",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "@headlessui/vue": "^1.5.0",
+    "@heroicons/vue": "^1.0.6",
+    "@vueform/slider": "^2.1.2",
+    "@vueuse/rxjs": "^8.7.5",
+    "d3": "^7.3.0",
+    "dexie": "^3.2.2",
+    "mathjax": "^3.2.0",
+    "mathjs": "^10.1.1",
+    "rxjs": "^7.5.5",
+    "vb-canvas": "^0.1.8",
+    "vue": "^3.2.25",
+    "vue-mathjax-next": "^0.0.4"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-vue": "^2.2.0",
+    "autoprefixer": "^10.4.2",
+    "postcss": "^8.4.6",
+    "tailwindcss": "^3.0.23",
+    "vite": "^2.9.15"
+  }
+}

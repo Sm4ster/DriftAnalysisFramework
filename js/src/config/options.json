@@ -1,0 +1,44 @@
+{
+  "distributions": [
+    {
+      "id": "grid",
+      "name": "Grid",
+      "fields": [
+        "min",
+        "max"
+      ]
+    },
+    {
+      "id": "uniform",
+      "name": "Uniform Random",
+      "fields": [
+        "min",
+        "max"
+      ]
+    },
+    {
+      "id": "normal",
+      "name": "Normal Distribution",
+      "fields": [
+        {
+          "code": "mean",
+          "symbol": "mu"
+        },
+        {
+          "code": "variance",
+          "symbol": "sigma^2"
+        }
+      ]
+    }
+  ],
+  "scales": [
+    {
+      "id": "linear",
+      "name": "Linear"
+    },
+    {
+      "id": "logarithmic",
+      "name": "Logarithmic"
+    }
+  ]
+}

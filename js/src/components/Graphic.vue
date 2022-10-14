@@ -1,0 +1,112 @@
+<template>
+
+  <div ref="wrapper" class="h-full w-full flex relative">
+    <ContourGraph v-if="target_params" class="z-10 w-full h-full"
+                  :viewbox="viewbox"
+                  :params="target_params"
+                  @svg="set_svg"
+    />
+    <DataGraph class="z-20 absolute w-full h-full"
+               :viewbox="viewbox"
+               :data="data"
+               :draw="draw"
+               @has_drawn="draw = false"
+    />
+    <EventLayer ref="event_component"
+                class="z-30 absolute w-full h-full"
+                :svg="svg"
+                @viewbox="viewbox = $event"
+    />
+    <DataOptions class="z-40 absolute"
+                 :drift_range="drift_range"
+                 :run_id="run_id"
+                 @run_selected="$emit('run_selected', $event)"
+    />
+  </div>
+
+</template>
+
+<script>
+import EventLayer from './GraphModules/EventLayer.vue'
+import DataOptions from './GraphModules/DataOptions.vue'
+import ContourGraph from './GraphModules/ContourGraph.vue'
+import DataGraph from './GraphModules/DataGraph.vue'
+import {db} from "../db";
+
+export default {
+  name: "Graphic",
+  components: {
+    EventLayer,
+    DataOptions,
+    ContourGraph,
+    DataGraph
+  },
+  props: ["run_id", "run_data_updated", "target_params", "filters"],
+  emits: ["run_selected", "update_received"],
+  data() {
+    return {
+      data: [],
+      min_drift: 0,
+
+      viewbox: {
+        x: 0,
+        y: 0,
+        width: 250,
+        height: 250,
+      },
+
+      svg: null,
+      draw: null
+    }
+  },
+
+  watch: {
+    run_id() {
+      this.update_data();
+    },
+    run_data_updated() {
+      this.$emit("update_received");
+      this.update_data();
+    }
+  },
+
+  computed: {
+    drift_range() {
+      return {
+        min: Math.min(...this.data.map(e => e.drift)),
+        max: Math.max(...this.data.map(e => e.drift))
+      }
+    },
+  },
+  methods: {
+    update_data() {
+      if (this.run_id) {
+        db.locations.where({"run_id": this.run_id}).toArray()
+            .then(data => {
+              this.data = data
+                  .map(e => {
+                    return {
+                      ...e,
+                      significance: e.results.reduce((pv, cv) => pv && (cv.significance.drift || cv.significance.drift), true),
+                      mean_drift: e.results.reduce((pv, cv) => pv + cv.drift, 0) / e.results.length
+                    }
+                  })
+                  .filter(e => {
+                    return true;
+
+                  }).map(d => {
+                    let color = "blue";
+                    if (!d.has_results) color = "white";
+                    if (d.mean_drift < this.min_drift) color = "red";
+                    return {location: d.location, color: color, drift: d.mean_drift}
+                  })
+            });
+      }
+    },
+
+    set_svg(event) {
+      this.svg = event;
+    },
+  },
+}
+</script>

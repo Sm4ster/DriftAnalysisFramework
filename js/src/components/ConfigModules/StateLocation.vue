@@ -1,0 +1,149 @@
+<template>
+  <div class="">
+    <div class="relative mb-5">
+      <div class="absolute bg-white pr-0.5 pl-0.5  ml-1.5 block text-sm text-indigo-700 font-medium mb-5">Sampling
+        Options
+      </div>
+      <div class="h-6 flex w-full flex-col justify-center ">
+        <hr>
+      </div>
+    </div>
+
+    <div class="flex justify-between mb-10">
+      <label class="my-auto font-thin">Samples</label>
+      <div
+          :class="[has_error('quantity') ?  'bg-red-400 border-red-500': 'bg-white border-gray-300', 'mr-2 w-32 relative border rounded-md px-3 py-2 shadow-sm focus-within:ring-1 focus-within:ring-indigo-600 focus-within:border-indigo-600']">
+        <input v-model="quantity" type="number"
+               :class="[has_error('quantity') ? 'bg-red-400' : 'bg-white', 'block w-full border-0 p-0 text-gray-900 placeholder-gray-500 focus:ring-0 focus:outline-0 sm:text-sm appearance-none']"/>
+      </div>
+    </div>
+
+    <div class="flex flex-col space-y-3">
+      <div v-for="value in values" class="flex justify-between">
+        <label class="my-auto">$x_{{ value.dimension }}$</label>
+        <div class="flex space-x-3">
+          <div
+              :class="[has_value_error(value.dimension, 'field_1') ?  'bg-red-400 border-red-500': 'bg-white border-gray-300', 'w-20 relative border rounded-md px-3 py-2 shadow-sm focus-within:ring-1 focus-within:ring-indigo-600 focus-within:border-indigo-600']">
+            <label
+                class="absolute -top-2 left-2 -mt-px inline-block rounded px-1 bg-white text-xs font-medium text-gray-900">
+            <span
+                v-if="typeof value.distribution.fields[0] === 'string'">{{
+                value.distribution.fields[0]
+              }}</span>
+              <span v-else>$\{{ value.distribution.fields[0].symbol }}$</span>
+            </label>
+            <input v-model="value.field_1" type="number"
+                   :class="[has_value_error(value.dimension, 'field_1') ? 'bg-red-400' : 'bg-white',  'block w-full border-0 p-0 text-gray-900 placeholder-gray-500 focus:ring-0 focus:outline-0 sm:text-sm appearance-none']"/>
+          </div>
+          <div
+              :class="[has_value_error(value.dimension, 'field_2') ?  'bg-red-400 border-red-500': 'bg-white border-gray-300', 'w-20 relative border rounded-md px-3 py-2 shadow-sm focus-within:ring-1 focus-within:ring-indigo-600 focus-within:border-indigo-600']">
+            <label
+                class="absolute -top-2 left-2 -mt-px inline-block rounded px-1 bg-white text-xs font-medium text-gray-900">
+            <span
+                v-if="typeof value.distribution.fields[1] === 'string'">{{
+                value.distribution.fields[1]
+              }}</span>
+              <span v-else>$\{{ value.distribution.fields[1].symbol }}$</span>
+            </label>
+            <input v-model="value.field_2" type="number"
+                   :class="[has_value_error(value.dimension, 'field_2') ? 'bg-red-400' : 'bg-white', 'block w-full border-0 p-0 text-gray-900 placeholder-gray-500 focus:ring-0 focus:outline-0 sm:text-sm appearance-none']"/>
+          </div>
+          <StateVariableOptions
+              :init="{distribution: 'uniform', scale: 'linear'}"
+              @rand_alg="select_rand_alg($event, value)" @scale="select_scale($event, value)"/>
+        </div>
+      </div>
+    </div>
+  </div>
+</template>
+
+<script>
+import StateVariables from "./StateVariables.vue"
+import StateVariableOptions from "./elements/StateVariableOptions.vue";
+import Validation from "../../mixins";
+import options from "../../../../options/options.json"
+
+export default {
+  name: "StateLocation",
+  components: {
+    StateVariables,
+    StateVariableOptions
+  },
+  mixins: [Validation],
+  props: ["algorithm"],
+  data() {
+    return {
+      dimensions: 2,
+      values: [],
+      value_errors: {},
+      quantity: 10,
+    }
+  },
+  created() {
+    for (let i = 0; i < this.dimensions; i++) {
+      this.value_errors[i + 1] = {};
+      this.values.push(
+          {
+            dimension: i + 1,
+            field_1: -100,
+            field_2: 100,
+            distribution: options.distributions.find(e => e.id === 'uniform'),
+            scale: options.scales.find(e => e.id === 'linear'),
+          },
+      )
+    }
+  },
+  updated() {
+    MathJax.typeset()
+  },
+  methods: {
+    select_rand_alg(e, v) {
+      v.distribution = e;
+    },
+    select_scale(e, v,) {
+      v.scale = e;
+    },
+    has_value_error(index, name) {
+      return name in this.value_errors[index] ? this.value_errors[index][name].length > 0 : false;
+    },
+    export() {
+      for (let i = 1; i <= this.dimensions; i++) {
+        this.value_errors[i] = this.validate(
+            {
+              field_1: this.values[i - 1].field_1,
+              field_2: this.values[i - 1].field_2,
+            },
+            {
+              field_1: "required|numeric",
+              field_2: "required|numeric",
+            }
+        )
+        if (this.value_errors[i].length > 0) throw "validation error";
+      }
+
+      this.validate({
+            quantity: this.quantity,
+          },
+          {
+            quantity: "required|numeric|gt:0"
+          }
+      )
+
+      if (this.validation_error) throw "validation error";
+
+      return {
+        vector: this.values.map(e => {
+          let obj = {
+            distribution: e.distribution.id,
+            scale: e.scale.id
+          }
+          obj[typeof e.distribution.fields[0] === 'object' ? e.distribution.fields[0].code : e.distribution.fields[0]] = e.field_1
+          obj[typeof e.distribution.fields[1] === 'object' ? e.distribution.fields[1].code : e.distribution.fields[1]] = e.field_2
+          return obj;
+        }),
+        quantity: this.quantity
+      }
+    }
+  }
+}
+</script>
