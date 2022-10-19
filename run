@@ -1,0 +1,24 @@
+#!/bin/bash
+
+# make sure the script exits when fail
+set -e
+
+# start backend
+cd ./py || exit
+venv/bin/uvicorn main:app > /dev/null &
+UVICORN_PID=$!
+cd .. || exit
+echo "[BACKEND] Started websocket server..."
+
+# start frontend
+cd ./js || exit
+npm run preview > /dev/null &
+NPM_PID=$!
+echo "[FRONTEND] Started GUI application..."
+
+sleep 0.5
+xdg-open http://localhost:4173/
+
+trap 'echo "This just happened"; kill $NPM_PID; exit' INT
+
+read -r -d '' _ </dev/tty
