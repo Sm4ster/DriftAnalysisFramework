@@ -9,7 +9,7 @@ import numpy as np
 def work_job(oa, pf, states, options):
     results = []
 
-    # print(states)
+    print("hello from the worker")
 
     # set up the state counting logic
     total_combinations = 1
@@ -49,10 +49,16 @@ def work_job(oa, pf, states, options):
             for idx in range(options["batch_size"]):
                 # iterate and save the follow up state
                 follow_up_state = oa.iterate(current_state)
-                follow_up_states.append(follow_up_state)
 
                 # calculate the difference in potential
                 batch_samples[idx] = pf.potential(follow_up_state) - pf.potential(current_state)
+
+                # clean the follow up state if the algorithm was not successful
+                if follow_up_state["m"].all() == current_state["m"].all():
+                    follow_up_state["success"] = False
+                else:
+                    follow_up_state["success"] = False
+                follow_up_states.append(follow_up_state)
 
             # add samples of this batch to the overall samples
             all_samples = np.concatenate((all_samples, batch_samples))

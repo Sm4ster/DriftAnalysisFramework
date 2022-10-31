@@ -6,7 +6,6 @@ import json
 from redis import Redis
 from rq import Queue
 import numpy as np
-import uuid
 
 
 class DriftAnalysis:
@@ -45,9 +44,6 @@ class DriftAnalysis:
 
         # generate locations
         self.starting_locations = self.generate_locations(config["location"])
-        # locations =  self.generate_locations(config["location"])
-        # for id in np.arange(0, config["location"]["quantity"], 1):
-        #     self.starting_locations.append({'id': id, 'vector': locations[id]})
 
     def start(self):
         options = {
@@ -72,30 +68,47 @@ class DriftAnalysis:
                 # print("worker enqueued (" + str(idx) + ")")
 
             else:
-                self.results += work_job(self.oa, self.pf, self.states, options)
-        print("finished queuing workers")
+                self.jobs.append({
+                    "id": idx,
+                    "location": starting_location,
+                    "result": work_job(self.oa, self.pf, self.states, options),
+                    "not_in_results": True
+                })
+
+        if self.queue:
+            print("finished queuing workers")
+        else:
+            print("finished evaluating jobs")
+
         if self.queue:
             registry = ScheduledJobRegistry(queue=self.q)
             # print(registry.get_job_ids())
-
-        return job
 
     def get_starting_locations(self):
         return [{"id": idx, "location": loc} for idx, loc in enumerate(self.starting_locations)]
 
     def get_new_results(self):
         new_results = []
+
         for job_wrapper in self.jobs:
-            if job_wrapper["not_in_results"] and job_wrapper["job"].result is not None:
+            if job_wrapper["not_in_results"]:
+                # continue if the job in the queue doesn't have any results yet
+                if self.queue and job_wrapper["job"].result is None:
+                    continue
+
                 new_results.append({
                     "id": job_wrapper["id"],
                     "location": job_wrapper["location"],
-                    "data": job_wrapper["job"].result
+                    "data":  job_wrapper["job"].result if self.queue else job_wrapper["result"]
                 })
                 job_wrapper["not_in_results"] = False
+
         return new_results
 
     def all_jobs_in_results(self):
+        if len(self.jobs) < len(self.starting_locations):
+            return False
+
         return all(not job["not_in_results"] for job in self.jobs)
 
     def generate_locations(self, config):

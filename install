@@ -3,7 +3,7 @@
 # Install python packages
 echo "Installing python packages..."
 cd ./py || exit
-pip install -r requirements.txt
+./venv/bin/python3 -m pip install -r requirements.txt
 echo "Done!"
 
 # Install npm packages

@@ -3,3 +3,5 @@
 /py/venv
 /py/old
 /py/.idea/
+package-lock.json
+package.json
