@@ -53,8 +53,6 @@ class DriftAnalysis:
             "max_evaluations": 1000,  # if no significant result was obtained we cancel the evaluations of this state
         }
 
-        job = None
-
         for idx, starting_location in enumerate(self.starting_locations):
             self.oa.set_location(starting_location)
             if self.queue:
@@ -99,7 +97,7 @@ class DriftAnalysis:
                 new_results.append({
                     "id": job_wrapper["id"],
                     "location": job_wrapper["location"],
-                    "data":  job_wrapper["job"].result if self.queue else job_wrapper["result"]
+                    "data": job_wrapper["job"].result if self.queue else job_wrapper["result"]
                 })
                 job_wrapper["not_in_results"] = False
 

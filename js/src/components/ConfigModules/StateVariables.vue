@@ -36,6 +36,7 @@ export default {
   },
   watch: {
     algorithm() {
+      console.log("initing the algorithm now");
       this.init_algorithm();
     },
   },
@@ -71,10 +72,11 @@ export default {
     export() {
       let variables = {};
 
+      console.log(variables);
       for (const el of this.definition) {
         variables[el.code] = this.$refs[el.code][0].export();
       }
-      console.log(variables);
+
       return variables;
     },
   },

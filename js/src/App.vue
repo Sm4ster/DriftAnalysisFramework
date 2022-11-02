@@ -2,39 +2,41 @@
   <div>
     <div class="flex h-screen w-screen">
       <Graphic
-          :run_id="current_run"
-          :target_params="target_params"
-          :run_data_updated="run_data_updated"
-          @run_selected="current_run = $event"
-          @update_received="run_data_updated = false;"
+        :run_id="current_run"
+        :target_params="target_params"
+        :run_data_updated="run_data_updated"
+        @update_received="run_data_updated = false"
       />
 
-      <Configuration ref="config" class="w-96 h-full overflow-auto hide-scrollbar"
-                     @start_run="start_run($event)"
-                     @target_changed="target_params=$event"
+      <Configuration
+        ref="config"
+        class="hide-scrollbar h-full w-96 overflow-auto"
+        :run_id="current_run"
+        @run_selected="current_run = $event"
+        @start_run="start_run($event)"
+        @target_changed="target_params = $event"
       />
     </div>
   </div>
 </template>
 
 <script>
-
-import Configuration from './components/Configuration.vue'
-import Graphic from './components/Graphic.vue'
-import {db} from './db.js'
+import Configuration from "./components/Configuration.vue";
+import Graphic from "./components/Graphic.vue";
+import { db } from "./db.js";
 
 export default {
-  name: 'App',
+  name: "App",
   components: {
     Configuration,
-    Graphic
+    Graphic,
   },
   data: function () {
     return {
       current_run: null,
       target_params: {},
       run_data_updated: false,
-    }
+    };
   },
   created() {
     this.connect_websocket();
@@ -43,46 +45,58 @@ export default {
   methods: {
     connect_websocket() {
       // connect to the websocket server for data transmission
-      this.connection = new WebSocket("ws://localhost:8000/ws")
+      this.connection = new WebSocket("ws://localhost:8000/ws");
 
       this.connection.onopen = function () {
-        console.log("Connection to server established.")
-      }
+        console.log("Connection to server established.");
+      };
 
       // reaction to data from the server
-      this.connection.onmessage = function ({data}) {
+      this.connection.onmessage = function ({ data }) {
         data = JSON.parse(data);
         if (data.message === "run_started") {
           this.add_run(data.data);
         }
         if (data.message === "locations") {
           this.add_locations(data.data.run_id, data.data.locations);
+          this.current_run = data.data.run_id;
         }
 
         if (data.message === "partial_results") {
-          console.log(data)
           this.add_data(data.data.run_id, data.data.results);
         }
-      }.bind(this)
+      }.bind(this);
 
       this.connection.onclose = function (e) {
-        console.log('Socket is closed. Reconnect will be attempted in 1 second.', e.reason);
-        setTimeout(function () {
-          this.connect_websocket();
-        }.bind(this), 1000);
+        console.log(
+          "Socket is closed. Reconnect will be attempted in 1 second.",
+          e.reason
+        );
+        setTimeout(
+          function () {
+            this.connect_websocket();
+          }.bind(this),
+          1000
+        );
       }.bind(this);
 
       this.connection.onerror = function (err) {
-        console.error('Socket encountered error: ', err.message, 'Closing socket');
+        console.error(
+          "Socket encountered error: ",
+          err.message,
+          "Closing socket"
+        );
         this.connection.close();
       }.bind(this);
     },
 
     start_run(config) {
-      this.connection.send(JSON.stringify({
-        "message": "start_run",
-        "config": config,
-      }))
+      this.connection.send(
+        JSON.stringify({
+          message: "start_run",
+          config: config,
+        })
+      );
     },
 
     async add_run(data) {
@@ -106,7 +120,7 @@ export default {
     },
 
     async add_data(run_id, results) {
-      results.forEach(d => {
+      results.forEach((d) => {
         db.locations.update(run_id + "-" + d.id, {
           has_results: true,
           results: d.data,
@@ -114,10 +128,9 @@ export default {
       });
       // make sure we tell the graphics component to update
       if (this.current_run === run_id) this.run_data_updated = true;
-    }
-  }
-}
-
+    },
+  },
+};
 </script>
 
 <style>

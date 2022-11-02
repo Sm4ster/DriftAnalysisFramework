@@ -1,11 +1,5 @@
 <template>
   <div ref="wrapper" class="relative h-full w-full">
-    <DataOptions
-      class="absolute z-40"
-      :drift_range="drift_range"
-      :run_id="run_id"
-      @run_selected="$emit('run_selected', $event)"
-    />
     <ViewOptions
       class="absolute top-3 right-3 z-40"
       :view="view"
@@ -107,7 +101,6 @@ export default {
           .then((data) => {
             this.data = data
               .map((e) => {
-                console.log(e);
                 return {
                   ...e,
                   significance: e.results.reduce(

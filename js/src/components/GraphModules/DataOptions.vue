@@ -44,23 +44,7 @@
         <div
           v-if="selected_menu === 'run_selection'"
           class="flex w-96 flex-col"
-        >
-          <div v-for="run in stored_runs" class="flex justify-center">
-            <button
-              @click="show_locations(run.uuid)"
-              :class="[
-                run.uuid === this.run_id
-                  ? 'bg-indigo-600 font-semibold text-white'
-                  : 'hover:bg-indigo-50',
-                'flex w-full justify-center py-1',
-              ]"
-            >
-              <div class="">
-                {{ run.uuid.slice(run.uuid.length - 5) }} - {{ run.name }}
-              </div>
-            </button>
-          </div>
-        </div>
+        ></div>
         <div
           v-if="selected_menu === 'data_filters'"
           class="flex h-20 w-96 justify-center px-5"

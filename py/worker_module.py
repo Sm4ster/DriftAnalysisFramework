@@ -80,7 +80,7 @@ def work_job(oa, pf, states, options):
         results.append({
             "run": state_idx,
             "state": current_state.copy(),
-            "follow_up_states": follow_up_states,
+            "samples": follow_up_states,
             "drift": np.mean(all_samples),
             "significance": {
                 "drift": significance[1],
