@@ -1,7 +1,7 @@
 <template>
   <div ref="wrapper" class="relative h-full w-full">
     <ViewOptions
-      class="absolute top-3 right-3 z-40"
+      class="absolute top-3 right-6 z-40"
       :view="view"
       @view_selected="view = $event"
     />
@@ -29,7 +29,7 @@
       />
     </div>
     <div v-if="view === 'raw'">
-      <DataView :data="data" />
+      <DataView :run="run_data" :data="data" />
     </div>
   </div>
 </template>
@@ -59,6 +59,7 @@ export default {
     return {
       view: "map", // raw, map
 
+      run_data: [],
       data: [],
       min_drift: 0,
 
@@ -77,6 +78,12 @@ export default {
   watch: {
     run_id() {
       this.update_data();
+      db.runs
+        .where({ uuid: this.run_id })
+        .first()
+        .then((data) => {
+          this.run_data = data;
+        });
     },
     run_data_updated() {
       this.$emit("update_received");
@@ -122,7 +129,7 @@ export default {
                 if (d.mean_drift < this.min_drift) color = "red";
                 return {
                   id: d.location_id,
-                  samples: d.results,
+                  states: d.results,
                   location: d.location,
                   color: color,
                   drift: d.mean_drift,

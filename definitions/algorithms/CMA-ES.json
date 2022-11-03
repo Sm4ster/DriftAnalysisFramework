@@ -1,4 +1,5 @@
 {
+  "algorithm": "CMA-ES",
   "python_class": "CMA_ES",
   "state_variables": [
     {

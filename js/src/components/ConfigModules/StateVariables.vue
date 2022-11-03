@@ -20,8 +20,6 @@
 </template>
 
 <script>
-import CMA_ES from "../../../../definitions/algorithms/CMA-ES.json";
-import OnePlusOne_ES from "../../../../definitions/algorithms/1+1-ES.json";
 import SingleStateVariable from "./elements/SingleStateVariable.vue";
 
 export default {
@@ -45,11 +43,9 @@ export default {
   },
   methods: {
     init_algorithm() {
-      let algorithm;
-      if (this.algorithm === "CMA-ES") algorithm = CMA_ES;
-      if (this.algorithm === "1+1-ES") algorithm = OnePlusOne_ES;
-
-      this.definition = algorithm.state_variables;
+      this.definition = alg_defs.find(
+        (e) => e.algorithm === this.algorithm
+      ).state_variables;
     },
     defaults(variable) {
       let defaults = {};

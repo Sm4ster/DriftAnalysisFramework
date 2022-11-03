@@ -1,5 +1,10 @@
-import { createApp } from 'vue'
-import App from './App.vue'
-import './index.css'
+import { createApp } from "vue";
+import App from "./App.vue";
+import "./index.css";
 
-createApp(App).mount('#app')
+import CMA_ES from "../../definitions/algorithms/CMA-ES.json";
+import OnePlusOne_ES from "../../definitions/algorithms/1+1-ES.json";
+
+window.alg_defs = [CMA_ES, OnePlusOne_ES];
+
+createApp(App).mount("#app");

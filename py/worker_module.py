@@ -9,8 +9,6 @@ import numpy as np
 def work_job(oa, pf, states, options):
     results = []
 
-    print("hello from the worker")
-
     # set up the state counting logic
     total_combinations = 1
     keys = []
@@ -78,7 +76,7 @@ def work_job(oa, pf, states, options):
                 counter[counter_idx] = 0
 
         results.append({
-            "run": state_idx,
+            "id": state_idx,
             "state": current_state.copy(),
             "samples": follow_up_states,
             "drift": np.mean(all_samples),

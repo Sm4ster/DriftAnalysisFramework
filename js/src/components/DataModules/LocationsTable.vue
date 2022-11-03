@@ -55,7 +55,7 @@
                     {{ datapoint.drift }}
                   </td>
                   <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
-                    {{ datapoint.samples.filter((d) => d.drift < 0).length }}
+                    {{ datapoint.states.filter((d) => d.drift < 0).length }}
                   </td>
                   <td
                     class="relative whitespace-nowrap py-4 pl-3 pr-4 text-right text-sm font-medium sm:pr-6"
@@ -82,8 +82,5 @@ export default {
   name: "LocationsTable",
   props: ["data"],
   emits: ["location_selected"],
-  created() {
-    console.log("Hello from the locations table", this.data);
-  },
 };
 </script>

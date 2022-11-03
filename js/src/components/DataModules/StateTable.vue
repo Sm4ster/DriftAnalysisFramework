@@ -19,19 +19,14 @@
                     scope="col"
                     class="px-3 py-3.5 text-left text-sm font-semibold text-gray-900"
                   >
-                    Location
-                  </th>
-                  <th
-                    scope="col"
-                    class="px-3 py-3.5 text-left text-sm font-semibold text-gray-900"
-                  >
                     Average Drift
                   </th>
                   <th
+                    v-for="column in variable_columns"
                     scope="col"
                     class="px-3 py-3.5 text-left text-sm font-semibold text-gray-900"
                   >
-                    # Drift Samples
+                    ${{ column.symbol }}$
                   </th>
                   <th scope="col" class="relative py-3.5 pl-3 pr-4 sm:pr-6">
                     <span class="sr-only">Edit</span>
@@ -40,27 +35,32 @@
               </thead>
               <tbody class="bg-white">
                 <tr
-                  v-for="(datapoint, datapointIdx) in data"
+                  v-for="(datapoint, datapointIdx) in data.states"
                   :class="datapointIdx % 2 === 0 ? undefined : 'bg-gray-50'"
                 >
                   <td
                     class="whitespace-nowrap py-4 pl-4 pr-3 text-sm font-medium text-gray-900 sm:pl-6"
-                  ></td>
-                  <td
-                    class="whitespace-nowrap px-3 py-4 text-sm text-gray-500"
-                  ></td>
+                  >
+                    {{ datapoint.id }}
+                  </td>
                   <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
                     {{ datapoint.drift }}
                   </td>
-                  <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
-                    {{ datapoint.significance }}
+                  <td
+                    v-for="column in variable_columns"
+                    class="whitespace-nowrap px-3 py-4 text-sm text-gray-500"
+                  >
+                    {{ datapoint.state[column.code] }}
                   </td>
                   <td
                     class="relative whitespace-nowrap py-4 pl-3 pr-4 text-right text-sm font-medium sm:pr-6"
                   >
-                    <a href="#" class="text-indigo-600 hover:text-indigo-900"
-                      >Details</a
+                    <button
+                      @click="$emit('state_selected', datapoint.id)"
+                      class="text-indigo-600 hover:text-indigo-900"
                     >
+                      Details
+                    </button>
                   </td>
                 </tr>
               </tbody>
@@ -75,9 +75,32 @@
 <script>
 export default {
   name: "StateTable",
-  props: ["data"],
+  props: ["data", "run"],
+  emits: ["state_selected"],
+  data: () => {
+    return {
+      variable_columns: [],
+    };
+  },
+  updated() {
+    MathJax.typeset();
+  },
   created() {
-    console.log("hello state table", this.data);
+    this.update_columns();
+  },
+  mounted() {
+    MathJax.typeset();
+  },
+  methods: {
+    update_columns() {
+      this.variable_columns = Object.entries(this.run.config.variables)
+        .filter(([key, value]) => value.variation)
+        .map((e) =>
+          alg_defs
+            .find((e) => e.algorithm === this.run.config.algorithm)
+            .state_variables.find((e_) => e_.code === e[0])
+        );
+    },
   },
 };
 </script>

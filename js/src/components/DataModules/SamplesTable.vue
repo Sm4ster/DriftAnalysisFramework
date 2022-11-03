@@ -1,6 +1,6 @@
 <template>
   <div>
-    <div class="mt-8 flex flex-col">
+    <div class="flex flex-col">
       <div class="-my-2 -mx-4 overflow-x-auto sm:-mx-6 lg:-mx-8">
         <div class="inline-block min-w-full py-2 align-middle md:px-6 lg:px-8">
           <div
@@ -22,48 +22,41 @@
                     Location
                   </th>
                   <th
+                    v-for="column in variable_columns"
                     scope="col"
                     class="px-3 py-3.5 text-left text-sm font-semibold text-gray-900"
                   >
-                    Average Drift
+                    ${{ column.symbol }}$
                   </th>
-                  <th
-                    scope="col"
-                    class="px-3 py-3.5 text-left text-sm font-semibold text-gray-900"
-                  >
-                    # Drift Samples
-                  </th>
+
                   <th scope="col" class="relative py-3.5 pl-3 pr-4 sm:pr-6">
-                    <span class="sr-only">Edit</span>
+                    Drift
                   </th>
                 </tr>
               </thead>
               <tbody class="bg-white">
                 <tr
-                  v-for="(datapoint, datapointIdx) in data"
+                  v-for="(datapoint, datapointIdx) in data.samples"
                   :class="datapointIdx % 2 === 0 ? undefined : 'bg-gray-50'"
                 >
                   <td
                     class="whitespace-nowrap py-4 pl-4 pr-3 text-sm font-medium text-gray-900 sm:pl-6"
                   >
-                    {{ datapoint.id }}
+                    {{ datapointIdx }}
                   </td>
                   <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
-                    {{ datapoint.location }}
-                  </td>
-                  <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
-                    {{ datapoint.drift }}
-                  </td>
-                  <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
-                    {{ datapoint.samples.filter((d) => d.drift < 0).length }}
+                    {{ datapoint.m }}
                   </td>
                   <td
-                    class="relative whitespace-nowrap py-4 pl-3 pr-4 text-right text-sm font-medium sm:pr-6"
+                    v-for="column in variable_columns"
+                    class="whitespace-nowrap px-3 py-4 text-sm text-gray-500"
                   >
-                    <a href="#" class="text-indigo-600 hover:text-indigo-900"
-                      >Details</a
-                    >
+                    {{ datapoint[column.code] }}
                   </td>
+
+                  <td
+                    class="relative whitespace-nowrap py-4 pl-3 pr-4 text-right text-sm font-medium sm:pr-6"
+                  ></td>
                 </tr>
               </tbody>
             </table>
@@ -76,10 +69,33 @@
 
 <script>
 export default {
-  name: "DataTable",
-  props: ["data"],
+  name: "SamplesTable",
+  props: ["data", "run"],
   created() {
-    console.log(this.data);
+    this.update_columns();
+    console.log("samples table", this.data);
+  },
+  data: () => {
+    return {
+      variable_columns: [],
+    };
+  },
+  updated() {
+    MathJax.typeset();
+  },
+  mounted() {
+    MathJax.typeset();
+  },
+  watch: {},
+  methods: {
+    update_columns() {
+      this.variable_columns = Object.entries(this.run.config.variables).map(
+        (e) =>
+          alg_defs
+            .find((e) => e.algorithm === this.run.config.algorithm)
+            .state_variables.find((e_) => e_.code === e[0])
+      );
+    },
   },
 };
 </script>
