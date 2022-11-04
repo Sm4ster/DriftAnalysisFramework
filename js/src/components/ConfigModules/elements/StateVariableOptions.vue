@@ -5,7 +5,7 @@
         class="flex items-center rounded-full text-gray-400 hover:text-gray-600 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 focus:ring-offset-gray-100"
       >
         <span class="sr-only">Open options</span>
-        <DotsVerticalIcon class="my-auto h-5 w-5" aria-hidden="true" />
+        <EllipsisVerticalIcon class="my-auto h-5 w-5" aria-hidden="true" />
       </MenuButton>
     </div>
 
@@ -117,7 +117,7 @@ import {
   MenuItem,
   MenuItems,
 } from "@headlessui/vue";
-import { CheckIcon, DotsVerticalIcon } from "@heroicons/vue/solid";
+import { CheckIcon, EllipsisVerticalIcon } from "@heroicons/vue/24/solid";
 import options from "../../../../../definitions/options/options.json";
 
 export default {
@@ -127,7 +127,7 @@ export default {
     MenuButton,
     MenuItem,
     MenuItems,
-    DotsVerticalIcon,
+    EllipsisVerticalIcon,
     ListboxOption,
     ListboxOptions,
     Listbox,

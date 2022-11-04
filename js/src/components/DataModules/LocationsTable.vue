@@ -70,6 +70,9 @@
                 </tr>
               </tbody>
             </table>
+            <div class="py-5">
+              <Pagination :total_pages="20" />
+            </div>
           </div>
         </div>
       </div>
@@ -78,8 +81,11 @@
 </template>
 
 <script>
+import Pagination from "./elements/Pagination.vue";
+
 export default {
   name: "LocationsTable",
+  components: { Pagination },
   props: ["data"],
   emits: ["location_selected"],
 };

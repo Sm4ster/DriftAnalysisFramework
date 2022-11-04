@@ -96,7 +96,7 @@
 </template>
 
 <script>
-import { PlusIcon, ArrowLeftIcon } from "@heroicons/vue/outline";
+import { PlusIcon, ArrowLeftIcon } from "@heroicons/vue/24/solid";
 import TargetFunction from "./ConfigModules/TargetFunction.vue";
 import PotentialFunction from "./ConfigModules/PotentialFunction.vue";
 import AlgorithmOptions from "./ConfigModules/AlgorithmOptions.vue";

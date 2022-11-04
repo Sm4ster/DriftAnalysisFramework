@@ -55,7 +55,7 @@
 import LocationsTable from "./LocationsTable.vue";
 import StateTable from "./StateTable.vue";
 import SamplesTable from "./SamplesTable.vue";
-import { ArrowLeftIcon } from "@heroicons/vue/outline";
+import { ArrowLeftIcon } from "@heroicons/vue/24/solid";
 
 export default {
   name: "DataView",
