@@ -36,7 +36,7 @@
               </thead>
               <tbody class="bg-white">
                 <tr
-                  v-for="(datapoint, datapointIdx) in data.samples"
+                  v-for="(datapoint, datapointIdx) in data_"
                   :class="datapointIdx % 2 === 0 ? undefined : 'bg-gray-50'"
                 >
                   <td
@@ -60,6 +60,13 @@
                 </tr>
               </tbody>
             </table>
+            <div v-if="total_pages > 1" class="py-5">
+              <Pagination
+                :total_pages="total_pages"
+                :current_page="current_page"
+                @current_page="current_page = $event"
+              />
+            </div>
           </div>
         </div>
       </div>
@@ -68,9 +75,12 @@
 </template>
 
 <script>
+import Pagination from "./elements/Pagination.vue";
+
 export default {
   name: "SamplesTable",
   props: ["data", "run"],
+  components: { Pagination },
   created() {
     this.update_columns();
     console.log("samples table", this.data);
@@ -78,6 +88,8 @@ export default {
   data: () => {
     return {
       variable_columns: [],
+      current_page: 1,
+      items_per_page: 20,
     };
   },
   updated() {
@@ -95,6 +107,19 @@ export default {
             .find((e) => e.algorithm === this.run.config.algorithm)
             .state_variables.find((e_) => e_.code === e[0])
       );
+    },
+  },
+  computed: {
+    data_() {
+      for (let i = 0; i < this.items_per_page; i++) {}
+      return this.data.samples.filter(
+        (e, i) =>
+          i >= (this.current_page - 1) * this.items_per_page &&
+          i < this.current_page * this.items_per_page
+      );
+    },
+    total_pages() {
+      return Math.ceil(this.data.samples.length / this.items_per_page);
     },
   },
 };

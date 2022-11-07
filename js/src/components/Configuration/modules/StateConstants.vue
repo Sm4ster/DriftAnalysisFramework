@@ -33,10 +33,10 @@
 </template>
 
 <script>
-import Validation from "../../mixins.js";
-import CMA_ES from "../../../../definitions/algorithms/CMA-ES.json";
-import OnePlusOne_ES from "../../../../definitions/algorithms/1+1-ES.json";
-import StateVariableOptions from "./elements/StateVariableOptions.vue";
+import Validation from "../../../mixins.js";
+import CMA_ES from "../../../../../definitions/algorithms/CMA-ES.json";
+import OnePlusOne_ES from "../../../../../definitions/algorithms/1+1-ES.json";
+import StateVariableOptions from "../elements/StateVariableOptions.vue";
 
 export default {
   props: ["algorithm"],

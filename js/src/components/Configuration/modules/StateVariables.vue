@@ -20,7 +20,7 @@
 </template>
 
 <script>
-import SingleStateVariable from "./elements/SingleStateVariable.vue";
+import SingleStateVariable from "../elements/SingleStateVariable.vue";
 
 export default {
   props: ["algorithm"],
@@ -68,7 +68,6 @@ export default {
     export() {
       let variables = {};
 
-      console.log(variables);
       for (const el of this.definition) {
         variables[el.code] = this.$refs[el.code][0].export();
       }

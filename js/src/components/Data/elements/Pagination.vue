@@ -1,8 +1,9 @@
 <template>
   <nav class="flex items-center justify-between border-t border-gray-200 px-4">
     <div class="-mt-px flex w-0 flex-1">
-      <a
-        href="#"
+      <button
+        v-if="current_page > 1"
+        @click="current_page -= 1"
         class="inline-flex items-center border-t-2 border-transparent pt-4 pr-1 text-sm font-medium text-gray-500 hover:border-gray-300 hover:text-gray-700"
       >
         <ArrowLongLeftIcon
@@ -10,7 +11,7 @@
           aria-hidden="true"
         />
         Previous
-      </a>
+      </button>
     </div>
     <div class="hidden md:-mt-px md:flex">
       <button
@@ -26,12 +27,11 @@
         <span v-if="page !== '.'">{{ page }}</span>
         <span v-else>...</span>
       </button>
-
-      <!-- Current: "", Default: "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300" -->
     </div>
     <div class="-mt-px flex w-0 flex-1 justify-end">
-      <a
-        href="#"
+      <button
+        v-if="current_page < total_pages"
+        @click="current_page += 1"
         class="inline-flex items-center border-t-2 border-transparent pt-4 pl-1 text-sm font-medium text-gray-500 hover:border-gray-300 hover:text-gray-700"
       >
         Next
@@ -39,7 +39,7 @@
           class="ml-3 h-5 w-5 text-gray-400"
           aria-hidden="true"
         />
-      </a>
+      </button>
     </div>
   </nav>
 </template>
@@ -54,15 +54,17 @@ export default {
   data: () => {
     return {
       display: [1, 2, 3],
-      current_page: 8,
+      current_page: 1,
     };
   },
   created() {
     this.update_display();
+    this.$emit("current_page", this.current_page);
   },
   watch: {
     current_page() {
       this.update_display();
+      this.$emit("current_page", this.current_page);
     },
   },
   methods: {
@@ -75,13 +77,19 @@ export default {
     },
     update_display() {
       if (this.total_pages < 10) {
-        this.display = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
+        let array = Array.from(Array(this.total_pages).keys());
+        this.display = array.map((e) => e + 1);
       } else {
         this.display = [1, 2, 3];
+
+        if (this.current_page < this.total_pages - 1 && this.current_page > 3)
+          this.display.push(
+            this.current_page - 1,
+            this.current_page,
+            this.current_page + 1
+          );
+
         this.display.push(
-          this.current_page - 1,
-          this.current_page,
-          this.current_page + 1,
           this.total_pages - 2,
           this.total_pages - 1,
           this.total_pages

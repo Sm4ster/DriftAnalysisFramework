@@ -35,16 +35,16 @@
 </template>
 
 <script>
-import EventLayer from "./GraphModules/EventLayer.vue";
-import DataOptions from "./GraphModules/DataOptions.vue";
-import ContourGraph from "./GraphModules/ContourGraph.vue";
-import DataGraph from "./GraphModules/DataGraph.vue";
-import ViewOptions from "./GraphModules/ViewOptions.vue";
-import DataView from "./DataModules/DataView.vue";
+import EventLayer from "./Graph/EventLayer.vue";
+import DataOptions from "./Graph/DataOptions.vue";
+import ContourGraph from "./Graph/ContourGraph.vue";
+import DataGraph from "./Graph/DataGraph.vue";
+import ViewOptions from "./Graph/ViewOptions.vue";
+import DataView from "./Data/DataView.vue";
 import { db } from "../db";
 
 export default {
-  name: "Graphic",
+  name: "MainView",
   components: {
     EventLayer,
     DataOptions,
@@ -77,13 +77,17 @@ export default {
 
   watch: {
     run_id() {
-      this.update_data();
-      db.runs
-        .where({ uuid: this.run_id })
-        .first()
-        .then((data) => {
-          this.run_data = data;
+      if (this.run_id) {
+        this.update_data().then((result) => {
+          this.data = result;
         });
+        db.runs
+          .where({ uuid: this.run_id })
+          .first()
+          .then((data) => {
+            this.run_data = data;
+          });
+      }
     },
     run_data_updated() {
       this.$emit("update_received");
@@ -101,42 +105,43 @@ export default {
   },
   methods: {
     update_data() {
-      if (this.run_id) {
-        db.locations
-          .where({ run_id: this.run_id })
-          .toArray()
-          .then((data) => {
-            this.data = data
-              .map((e) => {
-                return {
-                  ...e,
-                  significance: e.results.reduce(
-                    (pv, cv) =>
-                      pv && (cv.significance.drift || cv.significance.drift),
-                    true
-                  ),
-                  mean_drift:
-                    e.results.reduce((pv, cv) => pv + cv.drift, 0) /
-                    e.results.length,
-                };
-              })
-              .filter((e) => {
-                return true;
-              })
-              .map((d) => {
-                let color = "blue";
-                if (!d.has_results) color = "white";
-                if (d.mean_drift < this.min_drift) color = "red";
-                return {
-                  id: d.location_id,
-                  states: d.results,
-                  location: d.location,
-                  color: color,
-                  drift: d.mean_drift,
-                };
-              });
-          });
-      }
+      return db.locations
+        .where({ run_id: this.run_id })
+        .toArray()
+        .then((data) => {
+          return data
+            .map((e) => {
+              return {
+                ...e,
+                significance: e.results
+                  ? e.results.reduce(
+                      (pv, cv) =>
+                        pv && (cv.significance.drift || cv.significance.drift),
+                      true
+                    )
+                  : undefined,
+                mean_drift: e.results
+                  ? e.results.reduce((pv, cv) => pv + cv.drift, 0) /
+                    e.results.length
+                  : undefined,
+              };
+            })
+            .filter((e) => {
+              return true;
+            })
+            .map((d) => {
+              let color = "blue";
+              if (!d.has_results) color = "white";
+              if (d.mean_drift < this.min_drift) color = "red";
+              return {
+                id: d.location_id,
+                states: d.results,
+                location: d.location,
+                color: color,
+                drift: d.mean_drift,
+              };
+            });
+        });
     },
 
     set_svg(event) {

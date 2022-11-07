@@ -1,14 +1,14 @@
 <template>
   <div>
     <div class="flex h-screen w-screen">
-      <Graphic
+      <MainView
         :run_id="current_run"
         :target_params="target_params"
         :run_data_updated="run_data_updated"
         @update_received="run_data_updated = false"
       />
 
-      <Configuration
+      <SideBar
         ref="config"
         class="hide-scrollbar h-full w-96 overflow-auto"
         :run_id="current_run"
@@ -21,15 +21,15 @@
 </template>
 
 <script>
-import Configuration from "./components/Configuration.vue";
-import Graphic from "./components/Graphic.vue";
+import SideBar from "./components/Sidebar.vue";
+import MainView from "./components/MainView.vue";
 import { db } from "./db.js";
 
 export default {
   name: "App",
   components: {
-    Configuration,
-    Graphic,
+    SideBar,
+    MainView,
   },
   data: function () {
     return {

@@ -103,9 +103,9 @@
 
 <script>
 import StateVariables from "./StateVariables.vue";
-import StateVariableOptions from "./elements/StateVariableOptions.vue";
-import Validation from "../../mixins";
-import options from "../../../../definitions/options/options.json";
+import StateVariableOptions from "../elements/StateVariableOptions.vue";
+import Validation from "../../../mixins.js";
+import options from "../../../../../definitions/options/options.json";
 
 export default {
   name: "StateLocation",
