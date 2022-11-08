@@ -10,23 +10,50 @@
               <thead class="bg-gray-50">
                 <tr>
                   <th
+                    v-for="(header, index) in table_headers"
                     scope="col"
-                    class="py-3.5 pl-4 pr-3 text-left text-sm font-semibold text-gray-900 sm:pl-6"
+                    :class="[
+                      index > 0 ? 'px-3 py-3.5' : '',
+                      index === 0 ? 'py-3.5 pl-4 pr-3 sm:pl-6 ' : '',
+                      index === table_headers.length - 1
+                        ? 'py-3.5 pl-3 pr-4 sm:pr-6'
+                        : '',
+                      'text-left text-sm font-semibold text-gray-900',
+                    ]"
                   >
-                    Name
-                  </th>
-                  <th
-                    scope="col"
-                    class="px-3 py-3.5 text-left text-sm font-semibold text-gray-900"
-                  >
-                    Average Drift
-                  </th>
-                  <th
-                    v-for="column in variable_columns"
-                    scope="col"
-                    class="px-3 py-3.5 text-left text-sm font-semibold text-gray-900"
-                  >
-                    ${{ column.symbol }}$
+                    <button
+                      class="flex"
+                      @click="sort(header.code, header.state)"
+                    >
+                      <span v-if="'name' in header">{{ header.name }}</span>
+                      <span v-if="'symbol' in header"
+                        >${{ header.symbol }}$</span
+                      >
+                      <span
+                        v-if="sort_by.find((e) => e.code === header.code)"
+                        class="ml-2 flex flex-none rounded text-gray-400"
+                      >
+                        <ChevronDownIcon
+                          v-if="
+                            sort_by.find((e) => e.code === header.code).dir ===
+                            'asc'
+                          "
+                          class="h-5 w-5"
+                          aria-hidden="true"
+                        />
+                        <ChevronUpIcon
+                          v-if="
+                            sort_by.find((e) => e.code === header.code).dir ===
+                            'desc'
+                          "
+                          class="h-5 w-5"
+                          aria-hidden="true"
+                        />
+                        <span v-if="sort_by.length > 1">{{
+                          sort_by.findIndex((e) => e.code === header.code) + 1
+                        }}</span>
+                      </span>
+                    </button>
                   </th>
                   <th scope="col" class="relative py-3.5 pl-3 pr-4 sm:pr-6">
                     <span class="sr-only">Edit</span>
@@ -81,17 +108,27 @@
 
 <script>
 import Pagination from "./elements/Pagination.vue";
+import {
+  ChevronDownIcon,
+  ChevronUpIcon,
+} from "@heroicons/vue/20/solid/index.js";
+import { sort } from "fast-sort";
 
 export default {
   name: "StateTable",
-  components: { Pagination },
+  components: { Pagination, ChevronDownIcon, ChevronUpIcon },
   props: ["data", "run"],
   emits: ["state_selected"],
   data: () => {
     return {
+      table_headers: [
+        { code: "id", name: "ID", sortable: true, state: false },
+        { code: "drift", name: "Average Drift", sortable: true, state: false },
+      ],
       variable_columns: [],
       current_page: 1,
       items_per_page: 20,
+      sort_by: [],
     };
   },
   updated() {
@@ -112,12 +149,42 @@ export default {
             .find((e) => e.algorithm === this.run.config.algorithm)
             .state_variables.find((e_) => e_.code === e[0])
         );
+      this.table_headers.push(
+        ...this.variable_columns.map((e) => {
+          return {
+            symbol: e.symbol,
+            code: e.code,
+            state: true,
+            sortable: true,
+          };
+        })
+      );
+    },
+    sort(code, state = false) {
+      let index = this.sort_by.findIndex((e) => e.code === code);
+
+      if (!this.sort_by[index])
+        this.sort_by.push({ code: code, state: state, dir: "asc" });
+      else if (this.sort_by[index].dir === "asc")
+        this.sort_by[index].dir = "desc";
+      else if (this.sort_by[index].dir === "desc")
+        this.sort_by.splice(index, 1);
     },
   },
   computed: {
     data_() {
+      let sort_by = this.sort_by.map((e) => {
+        let object = {};
+        object[e.dir] = function (u) {
+          return e.state ? u.state[e.code] : u[e.code];
+        }.bind(e);
+        return object;
+      });
+
+      let data = sort(this.data.states).by(sort_by);
+
       for (let i = 0; i < this.items_per_page; i++) {}
-      return this.data.states.filter(
+      return data.filter(
         (e, i) =>
           i >= (this.current_page - 1) * this.items_per_page &&
           i < this.current_page * this.items_per_page

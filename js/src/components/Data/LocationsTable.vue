@@ -49,6 +49,9 @@
                       </span>
                     </button>
                   </th>
+                  <th scope="col" class="relative py-3.5 pl-3 pr-4 sm:pr-6">
+                    <span class="sr-only">Edit</span>
+                  </th>
                 </tr>
               </thead>
               <tbody class="bg-white">
@@ -118,7 +121,6 @@ export default {
           name: "Drift Samples",
           sortable: true,
         },
-        { code: "edit", name: "Edit", sortable: false },
       ],
       current_page: 1,
       items_per_page: 20,

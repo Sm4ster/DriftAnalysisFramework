@@ -6,17 +6,77 @@
         <span>Overview</span>
       </button>
     </div>
-    <div v-if="run_data">{{ run_data.config }}</div>
-    <PotentialFunction />
-
-    <SingleFilterVariable v-for="filter_variable in filter_variables">
-      <template v-slot:title>
-        <div :class="[filter_variable.bottom_bias ? 'mt-1.5' : '']">
-          ${{ filter_variable.symbol }}$
+    <div class="mt-5 space-y-10 px-5">
+      <div>
+        <div>
+          <div
+            v-if="run_data"
+            class="flex flex-col space-y-5 text-sm text-gray-900"
+          >
+            <div class="">
+              <h4 class="mb-2 text-xs font-semibold uppercase text-gray-400">
+                Algorithm
+              </h4>
+              <span>{{ run_data.config.algorithm }}</span>
+            </div>
+            <div class="">
+              <h4 class="mb-2 text-xs font-semibold uppercase text-gray-400">
+                Constants
+              </h4>
+              <div class="space-y-2">
+                <div
+                  v-for="[key, constant] in constants"
+                  class="flex justify-between"
+                >
+                  <span class="">{{ key }}</span>
+                  <span class="font-light">{{ constant }}</span>
+                </div>
+                <div
+                  v-for="constant in filter_variables(false)"
+                  class="flex justify-between"
+                >
+                  <span class="">${{ constant.symbol }}$</span>
+                  <span class="font-light">{{ constant.value }}</span>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
-      </template>
-      <template v-slot:code>{{ filter_variable.code }}</template>
-    </SingleFilterVariable>
+      </div>
+      <PotentialFunction />
+
+      <div class="text-xs">
+        <div class="relative mb-5">
+          <div
+            class="absolute ml-1.5 mb-5 block bg-white pr-0.5 pl-0.5 text-sm font-medium text-indigo-700"
+          >
+            Filters
+          </div>
+          <div class="flex h-6 w-full flex-col justify-center">
+            <hr />
+          </div>
+        </div>
+        <div>
+          <SingleFilterVariable
+            v-for="filter_variable in filter_variables(true)"
+          >
+            <template v-slot:title>
+              <div
+                :class="[
+                  filter_variable.bottom_bias ? 'mt-1.5' : '',
+                  'text-base',
+                ]"
+              >
+                ${{ filter_variable.symbol }}$
+              </div>
+            </template>
+            <template v-slot:code
+              ><span class="text-xs">{{ filter_variable.code }}</span></template
+            >
+          </SingleFilterVariable>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -48,12 +108,11 @@ export default {
         this.run_data = data;
       });
   },
-  computed: {
-    filter_variables() {
+  methods: {
+    filter_variables(variation) {
       let variables = [];
 
       if (this.run_data) {
-        console.log(this.run_data);
         let algorithm = alg_defs.find(
           (e) => e.algorithm === this.run_data.config.algorithm
         ).state_variables;
@@ -62,17 +121,27 @@ export default {
           this.run_data.config.variables
         )) {
           let state_variable = algorithm.find((e) => e.code === key);
-          variables.push({
-            code: key,
-            symbol: state_variable.symbol,
-            bottom_bias: state_variable.bottom_bias,
-            name: key,
-            ...value,
-          });
+          if (
+            this.run_data.config.variables[state_variable.code].variation ===
+            variation
+          ) {
+            variables.push({
+              code: key,
+              symbol: state_variable.symbol,
+              bottom_bias: state_variable.bottom_bias,
+              name: key,
+              ...value,
+            });
+          }
         }
       }
 
       return variables;
+    },
+  },
+  computed: {
+    constants() {
+      return Object.entries(this.run_data.config.constants);
     },
   },
 };
