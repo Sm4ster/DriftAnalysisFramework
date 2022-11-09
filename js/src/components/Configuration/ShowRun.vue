@@ -6,13 +6,10 @@
         <span>Overview</span>
       </button>
     </div>
-    <div class="mt-5 space-y-10 px-5">
+    <div v-if="run_data" class="mt-5 space-y-10 px-5">
       <div>
         <div>
-          <div
-            v-if="run_data"
-            class="flex flex-col space-y-5 text-sm text-gray-900"
-          >
+          <div class="flex flex-col space-y-5 text-sm text-gray-900">
             <div class="">
               <h4 class="mb-2 text-xs font-semibold uppercase text-gray-400">
                 Algorithm
@@ -24,18 +21,27 @@
                 Constants
               </h4>
               <div class="space-y-2">
-                <div
-                  v-for="[key, constant] in constants"
-                  class="flex justify-between"
-                >
-                  <span class="">{{ key }}</span>
-                  <span class="font-light">{{ constant }}</span>
+                <div v-for="constant in constants" class="flex justify-between">
+                  <div>
+                    ${{ constant.symbol }}$
+                    <span class="ml-2 font-mono text-xs"
+                      >({{ constant.code }})</span
+                    >
+                  </div>
+
+                  <span class="font-light">{{ constant.value }}</span>
                 </div>
                 <div
                   v-for="constant in filter_variables(false)"
                   class="flex justify-between"
                 >
-                  <span class="">${{ constant.symbol }}$</span>
+                  <span class=""
+                    >${{ constant.symbol }}$
+                    <span class="ml-2 font-mono text-xs"
+                      >({{ constant.code }})</span
+                    >
+                  </span>
+
                   <span class="font-light">{{ constant.value }}</span>
                 </div>
               </div>
@@ -43,7 +49,27 @@
           </div>
         </div>
       </div>
-      <PotentialFunction />
+
+      <div class="flex flex-col">
+        <h4 class="mb-2 text-xs font-semibold uppercase text-gray-400">
+          Potential Function
+        </h4>
+        <div v-if="!edit_potential" class="flex flex-col">
+          <hr />
+          <span class="py-3 px-2 font-light text-gray-900">
+            {{ run_data.config.potential }}
+          </span>
+          <hr />
+        </div>
+
+        <PotentialFunction class="mt-5" v-if="edit_potential" :header="false" />
+        <button class="text-right" @click="edit_potential = !edit_potential">
+          <span
+            class="mt-3 text-xs font-semibold text-indigo-700 hover:text-indigo-800"
+            >{{ edit_potential ? "Evaluate" : "Edit" }}</span
+          >
+        </button>
+      </div>
 
       <div class="text-xs">
         <div class="relative mb-5">
@@ -52,12 +78,41 @@
           >
             Filters
           </div>
+          <button
+            @click="$emit('apply_filters')"
+            type="button"
+            class="absolute right-0 inline-flex items-center rounded border border-gray-300 bg-white px-2.5 py-1 text-xs font-medium text-gray-700 shadow-sm hover:bg-indigo-600 hover:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
+          >
+            Apply
+          </button>
           <div class="flex h-6 w-full flex-col justify-center">
             <hr />
           </div>
         </div>
-        <div>
+        <h4 class="mb-2 text-xs font-semibold uppercase text-gray-400">
+          Location
+        </h4>
+        <div class="mb-8 space-y-5">
           <SingleFilterVariable
+            @filter="filters.location[0] = $event"
+            :extreme_values="run_data.config.location.vector[0]"
+          >
+            <template v-slot:title>$x_1$</template>
+          </SingleFilterVariable>
+          <SingleFilterVariable
+            @filter="filters.location[1] = $event"
+            :extreme_values="run_data.config.location.vector[1]"
+          >
+            <template v-slot:title>$x_2$</template>
+          </SingleFilterVariable>
+        </div>
+        <h4 class="mb-2 text-xs font-semibold uppercase text-gray-400">
+          Variables
+        </h4>
+        <div class="flex flex-col space-y-5">
+          <SingleFilterVariable
+            :extreme_values="extreme_values(filter_variable.code)"
+            @filter="filters.variables[filter_variable.code] = $event"
             v-for="filter_variable in filter_variables(true)"
           >
             <template v-slot:title>
@@ -71,7 +126,7 @@
               </div>
             </template>
             <template v-slot:code
-              ><span class="text-xs">{{ filter_variable.code }}</span></template
+              ><span>{{ filter_variable.code }}</span></template
             >
           </SingleFilterVariable>
         </div>
@@ -94,12 +149,18 @@ export default {
     SingleFilterVariable,
   },
   props: ["run_id"],
-  emits: ["overview"],
+  emits: ["overview", "filters", "apply_filters"],
   data: () => {
     return {
+      edit_potential: false,
       run_data: null,
+      filters: {
+        location: [],
+        variables: {},
+      },
     };
   },
+
   created() {
     db.runs
       .where({ uuid: this.run_id })
@@ -108,7 +169,18 @@ export default {
         this.run_data = data;
       });
   },
+  mounted() {
+    this.$emit("filters", this.filters);
+  },
   methods: {
+    extreme_values(code) {
+      if (this.run_data.config.variables[code].variation)
+        return {
+          min: this.run_data.config.variables[code].min,
+          max: this.run_data.config.variables[code].max,
+        };
+      //TODO for other distributions we need to extract min and max from the data
+    },
     filter_variables(variation) {
       let variables = [];
 
@@ -141,7 +213,19 @@ export default {
   },
   computed: {
     constants() {
-      return Object.entries(this.run_data.config.constants);
+      let algorithm_constants = alg_defs.find(
+        (e) => e.algorithm === this.run_data.config.algorithm
+      ).algorithm_constants;
+
+      return Object.entries(this.run_data.config.constants).map(
+        ([key, constant]) => {
+          return {
+            code: key,
+            symbol: algorithm_constants.find((e) => e.code === key).symbol,
+            value: constant,
+          };
+        }
+      );
     },
   },
 };

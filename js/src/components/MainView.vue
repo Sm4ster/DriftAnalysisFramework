@@ -53,8 +53,14 @@ export default {
     ViewOptions,
     DataView,
   },
-  props: ["run_id", "run_data_updated", "target_params", "filters"],
-  emits: ["run_selected", "update_received"],
+  props: [
+    "run_id",
+    "run_data_updated",
+    "target_params",
+    "filters",
+    "apply_filters",
+  ],
+  emits: ["run_selected", "update_received", "filters_applied"],
   data() {
     return {
       view: "map", // raw, map
@@ -78,9 +84,6 @@ export default {
   watch: {
     run_id() {
       if (this.run_id) {
-        this.update_data().then((result) => {
-          this.data = result;
-        });
         db.runs
           .where({ uuid: this.run_id })
           .first()
@@ -88,10 +91,26 @@ export default {
             this.run_data = data;
           });
       }
+      if (this.filters) {
+        this.update_data().then((result) => {
+          this.data = result;
+        });
+      }
     },
     run_data_updated() {
       this.$emit("update_received");
-      this.update_data();
+      this.update_data().then((result) => {
+        this.data = result;
+      });
+    },
+    apply_filters: {
+      handler: function () {
+        this.update_data().then((result) => {
+          this.data = result;
+          this.$emit("filters_applied");
+        });
+      },
+      deep: true,
     },
   },
 
@@ -105,45 +124,65 @@ export default {
   },
   methods: {
     update_data() {
-      return db.locations
-        .where({ run_id: this.run_id })
-        .toArray()
-        .then((data) => {
-          return data
-            .map((e) => {
-              return {
-                ...e,
-                significance: e.results
-                  ? e.results.reduce(
-                      (pv, cv) =>
-                        pv && (cv.significance.drift || cv.significance.drift),
-                      true
-                    )
-                  : undefined,
-                mean_drift: e.results
-                  ? e.results.reduce((pv, cv) => pv + cv.drift, 0) /
-                    e.results.length
-                  : undefined,
-              };
-            })
-            .filter((e) => {
-              return true;
-            })
-            .map((d) => {
-              let color = "blue";
-              if (!d.has_results) color = "white";
-              if (d.mean_drift < this.min_drift) color = "red";
-              return {
-                id: d.location_id,
-                states: d.results,
-                location: d.location,
-                color: color,
-                drift: d.mean_drift,
-              };
+      if (this.filters) {
+        return db.locations
+          .where({ run_id: this.run_id })
+          .toArray()
+          .then((data) => {
+            let filtered_data = data.filter((d) => {
+              return (
+                d.location[0] > this.filters.location[0].min &&
+                d.location[1] > this.filters.location[1].min &&
+                d.location[0] < this.filters.location[0].max &&
+                d.location[1] < this.filters.location[1].max
+              );
             });
-        });
-    },
 
+            return filtered_data
+              .map((e) => {
+                return {
+                  ...e,
+                  significance: e.results
+                    ? e.results.reduce(
+                        (pv, cv) =>
+                          pv &&
+                          (cv.significance.drift || cv.significance.drift),
+                        true
+                      )
+                    : undefined,
+                  mean_drift: e.results
+                    ? e.results.reduce((pv, cv) => pv + cv.drift, 0) /
+                      e.results.length
+                    : undefined,
+                };
+              })
+              .filter((e) => {
+                return true;
+              })
+              .map((d) => {
+                let color = "blue";
+                if (!d.has_results) color = "white";
+                if (d.mean_drift < this.min_drift) color = "red";
+                return {
+                  id: d.location_id,
+                  states: d.results.filter((state) => {
+                    return Object.entries(this.filters.variables).every(
+                      ([code, filter]) => {
+                        return (
+                          state.state[code] > filter.min &&
+                          state.state[code] < filter.max
+                        );
+                      }
+                    );
+                  }),
+                  location: d.location,
+                  color: color,
+                  drift: d.mean_drift,
+                };
+              });
+          });
+      }
+    },
     set_svg(event) {
       this.svg = event;
     },

@@ -45,6 +45,8 @@
       <ShowRun
         v-if="mode === 'run'"
         :run_id="run_id"
+        @filters="$emit('filters', $event)"
+        @apply_filters="$emit('apply_filters')"
         @overview="
           $emit('run_selected', null);
           mode = 'overview';
@@ -54,6 +56,7 @@
         v-show="mode === 'new'"
         @target_changed="$emit('target_changed', $event)"
         @overview="mode = 'overview'"
+        @start_run="$emit('start_run', $event)"
       />
     </div>
   </div>
@@ -76,7 +79,13 @@ export default {
   },
   mixins: [Validation],
   props: ["run_id"],
-  emits: ["start_run", "target_changed", "run_selected"],
+  emits: [
+    "start_run",
+    "target_changed",
+    "run_selected",
+    "filters",
+    "apply_filters",
+  ],
   data: function () {
     return {
       new_name: "",

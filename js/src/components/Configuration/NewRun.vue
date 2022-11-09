@@ -49,7 +49,7 @@ export default {
     PotentialFunction,
     AlgorithmOptions,
   },
-  emits: ["target_changed", "overview"],
+  emits: ["target_changed", "overview", "start_run"],
   data: () => {
     return {
       algorithm: "",

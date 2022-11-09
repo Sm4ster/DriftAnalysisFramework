@@ -38,25 +38,37 @@ def work_job(oa, pf, states, options):
         # We calculate the potential for a single state until it becomes significant
         all_samples = np.zeros(0)
 
-        # Save the follow up states for later examination
-        follow_up_states = []
+        # Save the sample data (like follow up state, drift, etc) for later examination
+        state_data = []
 
         while True:
             batch_samples = np.zeros(options["batch_size"])
 
             for idx in range(options["batch_size"]):
+                sample_data = {}
+
                 # iterate and save the follow up state
                 follow_up_state = oa.iterate(current_state)
 
                 # calculate the difference in potential
                 batch_samples[idx] = pf.potential(follow_up_state) - pf.potential(current_state)
 
-                # clean the follow up state if the algorithm was not successful
-                if follow_up_state["m"].all() == current_state["m"].all():
-                    follow_up_state["success"] = False
-                else:
-                    follow_up_state["success"] = False
-                follow_up_states.append(follow_up_state)
+                # save the drift for the frontend
+                sample_data["drift"] = batch_samples[idx]
+
+                # save potential for debugging
+                sample_data["potential"] = {
+                    "current_state": pf.potential(current_state),
+                    "follow_up_state": pf.potential(follow_up_state)
+                }
+
+                # save the follow up state
+                sample_data["follow_up_state"] = follow_up_state
+                sample_data["success"] = follow_up_state["m"].all() == current_state["m"].all()
+
+                # TODO strip the follow up data in case of unsuccessful iteration
+                # save the sample data
+                state_data.append(sample_data)
 
             # add samples of this batch to the overall samples
             all_samples = np.concatenate((all_samples, batch_samples))
@@ -78,7 +90,7 @@ def work_job(oa, pf, states, options):
         results.append({
             "id": state_idx,
             "state": current_state.copy(),
-            "samples": follow_up_states,
+            "samples": state_data,
             "drift": np.mean(all_samples),
             "significance": {
                 "drift": significance[1],

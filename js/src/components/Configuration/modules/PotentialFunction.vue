@@ -1,6 +1,6 @@
 <template>
   <div class="space-y-3">
-    <div class="relative mb-10">
+    <div v-if="header" class="relative mb-10">
       <div
         class="absolute ml-1.5 mb-5 block bg-white pr-0.5 pl-0.5 text-sm font-medium text-indigo-700"
       >
@@ -55,6 +55,12 @@
 <script>
 export default {
   name: "PotentialFunction",
+  props: {
+    header: {
+      type: Boolean,
+      default: true,
+    },
+  },
   data: function () {
     return {
       expanded: false,

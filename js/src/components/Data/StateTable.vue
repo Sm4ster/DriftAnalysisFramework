@@ -142,6 +142,7 @@ export default {
   },
   methods: {
     update_columns() {
+      console.log(this.run);
       this.variable_columns = Object.entries(this.run.config.variables)
         .filter(([key, value]) => value.variation)
         .map((e) =>
@@ -183,7 +184,6 @@ export default {
 
       let data = sort(this.data.states).by(sort_by);
 
-      for (let i = 0; i < this.items_per_page; i++) {}
       return data.filter(
         (e, i) =>
           i >= (this.current_page - 1) * this.items_per_page &&

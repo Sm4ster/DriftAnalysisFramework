@@ -75,7 +75,7 @@
                     {{ datapointIdx }}
                   </td>
                   <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
-                    {{ datapoint.m }}
+                    {{ datapoint.follow_up_state.m }}
                   </td>
                   <td
                     v-for="column in variable_columns"
@@ -83,10 +83,12 @@
                   >
                     {{
                       column.code in matrix_keys
-                        ? datapoint[matrix_keys[column.code][0]][
-                            matrix_keys[column.code][1]
-                          ][matrix_keys[column.code][2]]
-                        : datapoint[column.code]
+                        ? datapoint.follow_up_state[
+                            matrix_keys[column.code][0]
+                          ][matrix_keys[column.code][1]][
+                            matrix_keys[column.code][2]
+                          ]
+                        : datapoint.follow_up_state[column.code]
                     }}
                   </td>
 
@@ -202,8 +204,7 @@ export default {
       });
 
       let data = sort(this.data.samples).by(sort_by);
-
-      for (let i = 0; i < this.items_per_page; i++) {}
+      console.log(data);
       return data.filter(
         (e, i) =>
           i >= (this.current_page - 1) * this.items_per_page &&
