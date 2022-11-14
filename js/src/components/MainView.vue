@@ -19,8 +19,10 @@
         :viewbox="viewbox"
         :data="data"
         :draw="draw"
+        :potential_function="potential_function"
         @has_drawn="draw = false"
       />
+
       <EventLayer
         ref="event_component"
         class="absolute z-30 h-full w-full"
@@ -29,7 +31,11 @@
       />
     </div>
     <div v-if="view === 'raw'">
-      <DataView :run="run_data" :data="data" />
+      <DataView
+        :run="run_data"
+        :data="data"
+        :potential_function="potential_function"
+      />
     </div>
   </div>
 </template>
@@ -58,9 +64,16 @@ export default {
     "run_data_updated",
     "target_params",
     "filters",
+    "potential_function",
     "apply_filters",
+    "init_filters",
   ],
-  emits: ["run_selected", "update_received", "filters_applied"],
+  emits: [
+    "run_selected",
+    "update_received",
+    "filters_applied",
+    "filters_inited",
+  ],
   data() {
     return {
       view: "map", // raw, map
@@ -78,6 +91,11 @@ export default {
 
       svg: null,
       draw: null,
+
+      flags: {
+        run_id: false,
+        filters: false,
+      },
     };
   },
 
@@ -90,11 +108,9 @@ export default {
           .then((data) => {
             this.run_data = data;
           });
-      }
-      if (this.filters) {
-        this.update_data().then((result) => {
-          this.data = result;
-        });
+      } else {
+        this.run_data = [];
+        this.data = [];
       }
     },
     run_data_updated() {
@@ -103,14 +119,17 @@ export default {
         this.data = result;
       });
     },
-    apply_filters: {
-      handler: function () {
-        this.update_data().then((result) => {
-          this.data = result;
-          this.$emit("filters_applied");
-        });
-      },
-      deep: true,
+    apply_filters: function () {
+      this.update_data().then((result) => {
+        this.data = result;
+        this.$emit("filters_applied");
+      });
+    },
+    init_filters() {
+      this.update_data().then((result) => {
+        this.data = result;
+        this.$emit("filters_inited");
+      });
     },
   },
 
@@ -124,7 +143,7 @@ export default {
   },
   methods: {
     update_data() {
-      if (this.filters) {
+      if (this.filters && this.run_id) {
         return db.locations
           .where({ run_id: this.run_id })
           .toArray()

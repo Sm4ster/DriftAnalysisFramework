@@ -46,7 +46,11 @@
           <span class="text-lg">State</span>
         </button>
       </div>
-      <SamplesTable :run="run" :data="data[location_id].states[state_id]" />
+      <SamplesTable
+        :run="run"
+        :data="data[location_id].states[state_id]"
+        :potential_function="potential_function"
+      />
     </div>
   </div>
 </template>
@@ -59,7 +63,7 @@ import { ArrowLeftIcon } from "@heroicons/vue/24/solid";
 
 export default {
   name: "DataView",
-  props: ["data", "run"],
+  props: ["data", "run", "potential_function"],
   components: { LocationsTable, StateTable, SamplesTable, ArrowLeftIcon },
   data: () => {
     return {

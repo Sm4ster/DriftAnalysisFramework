@@ -142,7 +142,6 @@ export default {
   },
   methods: {
     update_columns() {
-      console.log(this.run);
       this.variable_columns = Object.entries(this.run.config.variables)
         .filter(([key, value]) => value.variation)
         .map((e) =>

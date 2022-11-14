@@ -57,10 +57,7 @@ def work_job(oa, pf, states, options):
                 sample_data["drift"] = batch_samples[idx]
 
                 # save potential for debugging
-                sample_data["potential"] = {
-                    "current_state": pf.potential(current_state),
-                    "follow_up_state": pf.potential(follow_up_state)
-                }
+                sample_data["potential"] = pf.potential(follow_up_state)
 
                 # save the follow up state
                 sample_data["follow_up_state"] = follow_up_state
@@ -91,6 +88,7 @@ def work_job(oa, pf, states, options):
             "id": state_idx,
             "state": current_state.copy(),
             "samples": state_data,
+            "potential": pf.potential(current_state),
             "drift": np.mean(all_samples),
             "significance": {
                 "drift": significance[1],

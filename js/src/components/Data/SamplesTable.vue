@@ -12,13 +12,17 @@
                   <th
                     v-for="(header, index) in table_headers"
                     scope="col"
+                    v-show="!('dynamic' in header)"
                     :class="[
                       index > 0 ? 'px-3 py-3.5' : '',
                       index === 0 ? 'py-3.5 pl-4 pr-3 sm:pl-6 ' : '',
                       index === table_headers.length - 1
                         ? 'py-3.5 pl-3 pr-4 sm:pr-6'
                         : '',
-                      'text-left text-sm font-semibold text-gray-900',
+                      header.dynamic
+                        ? 'text-indigo-700'
+                        : 'font-normal text-gray-900',
+                      'w-10 text-left text-sm',
                     ]"
                   >
                     <button
@@ -59,9 +63,6 @@
                     </button>
                     <span v-else>{{ header.name }}</span>
                   </th>
-                  <th scope="col" class="relative py-3.5 pl-3 pr-4 sm:pr-6">
-                    Drift
-                  </th>
                 </tr>
               </thead>
               <tbody class="bg-white">
@@ -70,7 +71,7 @@
                   :class="datapointIdx % 2 === 0 ? undefined : 'bg-gray-50'"
                 >
                   <td
-                    class="whitespace-nowrap py-4 pl-4 pr-3 text-sm font-medium text-gray-900 sm:pl-6"
+                    class="whitespace-nowrap py-4 pl-4 pr-3 text-sm text-gray-900 sm:pl-6"
                   >
                     {{ datapointIdx }}
                   </td>
@@ -87,14 +88,20 @@
                             matrix_keys[column.code][0]
                           ][matrix_keys[column.code][1]][
                             matrix_keys[column.code][2]
-                          ]
-                        : datapoint.follow_up_state[column.code]
+                          ].toFixed(4)
+                        : datapoint.follow_up_state[column.code].toFixed(4)
                     }}
                   </td>
-
                   <td
-                    class="relative whitespace-nowrap py-4 pl-3 pr-4 text-right text-sm font-medium sm:pr-6"
-                  ></td>
+                    v-for="(column, idx) in potential_columns"
+                    v-show="!('dynamic' in column)"
+                    :class="[
+                      idx === 0 ? 'border-l-2' : '',
+                      'whitespace-nowrap px-3 py-4 text-sm text-gray-500',
+                    ]"
+                  >
+                    {{ datapoint[column.code] }}
+                  </td>
                 </tr>
               </tbody>
             </table>
@@ -122,7 +129,7 @@ import {
 
 export default {
   name: "SamplesTable",
-  props: ["data", "run"],
+  props: ["data", "run", "potential_function"],
   components: { Pagination, ChevronDownIcon, ChevronUpIcon },
   created() {
     this.update_columns();
@@ -134,10 +141,31 @@ export default {
         { code: "m", symbol: "m", sortable: true },
       ],
       variable_columns: [],
+      potential_columns: [
+        {
+          name: "Potential",
+          code: "potential",
+          sortable: true,
+        },
+        {
+          name: "Potential",
+          code: "potential_frontend",
+          dynamic: true,
+          sortable: true,
+        },
+        { name: "Drift", code: "drift", sortable: true },
+        {
+          name: "Drift",
+          code: "drift_frontend",
+          dynamic: true,
+          sortable: true,
+        },
+      ],
       matrix_keys: {},
       current_page: 1,
       items_per_page: 20,
       sort_by: [],
+      b: {},
     };
   },
   updated() {
@@ -164,9 +192,10 @@ export default {
         });
       });
 
-      this.variable_columns = Object.entries(this.run.config.variables)
-        .filter(([key, value]) => value.variation)
-        .map((e) => algorithm.state_variables.find((e_) => e_.code === e[0]));
+      this.variable_columns = Object.entries(this.run.config.variables).map(
+        (e) => algorithm.state_variables.find((e_) => e_.code === e[0])
+      );
+
       this.table_headers.push(
         ...this.variable_columns.map((e) => {
           return {
@@ -174,7 +203,8 @@ export default {
             code: e.code,
             sortable: true,
           };
-        })
+        }),
+        ...this.potential_columns
       );
     },
     sort(code, state = false) {
@@ -190,18 +220,22 @@ export default {
   },
   computed: {
     data_() {
-      let sort_by = this.sort_by.map((e) => {
-        let object = {};
-        const matrix_keys = this.matrix_keys;
-        let b = [e, matrix_keys];
+      console.log(this.sort_by);
+      let sort_by = this.sort_by.map(
+        function (e) {
+          let object = {};
+          let matrix_keys = this.matrix_keys;
+          let b = [e, matrix_keys];
 
-        object[e.dir] = function (u) {
-          return b[0].code in b[1]
-            ? u[b[1][b[0].code][0]][b[1][b[0].code][1]][b[1][b[0].code][2]]
-            : u[b[0].code];
-        }.bind(b);
-        return object;
-      });
+          object[e.dir] = function (u) {
+            u = u.follow_up_state;
+            return b[0].code in b[1]
+              ? u[b[1][b[0].code][0]][b[1][b[0].code][1]][b[1][b[0].code][2]]
+              : u[b[0].code];
+          }.bind(this);
+          return object;
+        }.bind(this)
+      );
 
       let data = sort(this.data.samples).by(sort_by);
       console.log(data);

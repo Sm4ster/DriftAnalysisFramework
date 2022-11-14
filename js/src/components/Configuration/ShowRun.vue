@@ -63,12 +63,23 @@
         </div>
 
         <PotentialFunction class="mt-5" v-if="edit_potential" :header="false" />
-        <button class="text-right" @click="edit_potential = !edit_potential">
-          <span
-            class="mt-3 text-xs font-semibold text-indigo-700 hover:text-indigo-800"
-            >{{ edit_potential ? "Evaluate" : "Edit" }}</span
+        <div class="flex justify-end space-x-3">
+          <button class="text-right" @click="edit_potential = !edit_potential">
+            <span class="mt-3 text-xs text-gray-700 hover:text-indigo-800">{{
+              edit_potential ? "Cancel" : "Edit"
+            }}</span>
+          </button>
+          <button
+            class="text-right"
+            v-if="edit_potential"
+            @click="$emit('eval_potential')"
           >
-        </button>
+            <span
+              class="inline-flex items-center rounded border border-indigo-600 bg-white px-2.5 py-1 text-xs font-medium text-indigo-700 shadow-sm hover:bg-indigo-600 hover:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
+              >Evaluate</span
+            >
+          </button>
+        </div>
       </div>
 
       <div class="text-xs">
@@ -79,9 +90,9 @@
             Filters
           </div>
           <button
-            @click="$emit('apply_filters')"
+            @click="$emit('apply_filters', { init: false })"
             type="button"
-            class="absolute right-0 inline-flex items-center rounded border border-gray-300 bg-white px-2.5 py-1 text-xs font-medium text-gray-700 shadow-sm hover:bg-indigo-600 hover:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
+            class="absolute right-0 inline-flex items-center rounded border border-indigo-600 bg-white px-2.5 py-1 text-xs font-medium text-indigo-700 shadow-sm hover:bg-indigo-600 hover:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
           >
             Apply
           </button>
@@ -149,7 +160,7 @@ export default {
     SingleFilterVariable,
   },
   props: ["run_id"],
-  emits: ["overview", "filters", "apply_filters"],
+  emits: ["overview", "filters", "apply_filters", "eval_potential"],
   data: () => {
     return {
       edit_potential: false,
@@ -160,13 +171,13 @@ export default {
       },
     };
   },
-
   created() {
     db.runs
       .where({ uuid: this.run_id })
       .first()
       .then((data) => {
         this.run_data = data;
+        this.$emit("apply_filters", { init: true });
       });
   },
   mounted() {

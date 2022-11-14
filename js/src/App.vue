@@ -6,8 +6,11 @@
         :target_params="target_params"
         :run_data_updated="run_data_updated"
         :filters="filters"
+        :potential_function="potential_function"
         :apply_filters="apply_filters"
+        :init_filters="init_filters"
         @filters_applied="apply_filters = false"
+        @filters_inited="init_filters = false"
         @update_received="run_data_updated = false"
       />
 
@@ -15,11 +18,14 @@
         ref="config"
         class="hide-scrollbar h-full w-96 overflow-auto"
         :run_id="current_run"
-        @apply_filters="apply_filters = true"
+        @apply_filters="
+          $event.init ? (init_filters = true) : (apply_filters = true)
+        "
         @filters="filters = $event"
         @run_selected="current_run = $event"
         @start_run="start_run($event)"
         @target_changed="target_params = $event"
+        @eval_potential="potential_function = $event"
       />
     </div>
   </div>
@@ -40,9 +46,11 @@ export default {
     return {
       current_run: null,
       apply_filters: false,
+      init_filters: false,
       filters: null,
       target_params: {},
       run_data_updated: false,
+      potential_function: "",
     };
   },
   created() {
