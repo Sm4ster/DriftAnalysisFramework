@@ -16,11 +16,12 @@
     "dexie": "^3.2.2",
     "fast-sort": "^3.2.0",
     "mathjax": "^3.2.0",
-    "mathjs": "^10.1.1",
+    "mathjs": "^10.6.4",
     "rxjs": "^7.5.5",
     "vb-canvas": "^0.1.8",
     "vue": "^3.2.25",
-    "vue-mathjax-next": "^0.0.4"
+    "vue-mathjax-next": "^0.0.4",
+    "vuex": "^4.0.2"
   },
   "devDependencies": {
     "@vitejs/plugin-vue": "^2.2.0",

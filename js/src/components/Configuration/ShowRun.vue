@@ -72,7 +72,7 @@
           <button
             class="text-right"
             v-if="edit_potential"
-            @click="$emit('eval_potential')"
+            @click="eval_potential()"
           >
             <span
               class="inline-flex items-center rounded border border-indigo-600 bg-white px-2.5 py-1 text-xs font-medium text-indigo-700 shadow-sm hover:bg-indigo-600 hover:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
@@ -184,6 +184,9 @@ export default {
     this.$emit("filters", this.filters);
   },
   methods: {
+    eval_potential() {
+      this.$store.commit("eval_potential");
+    },
     extreme_values(code) {
       if (this.run_data.config.variables[code].variation)
         return {

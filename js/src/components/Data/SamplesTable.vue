@@ -3,6 +3,7 @@
     <div class="flex flex-col">
       <div class="-my-2 -mx-4 overflow-x-auto sm:-mx-6 lg:-mx-8">
         <div class="inline-block min-w-full py-2 align-middle md:px-6 lg:px-8">
+          {{ eval_potential }}
           <div
             class="overflow-hidden shadow ring-1 ring-black ring-opacity-5 md:rounded-lg"
           >
@@ -12,7 +13,7 @@
                   <th
                     v-for="(header, index) in table_headers"
                     scope="col"
-                    v-show="!('dynamic' in header)"
+                    v-show="!('dynamic' in header) || show_potential"
                     :class="[
                       index > 0 ? 'px-3 py-3.5' : '',
                       index === 0 ? 'py-3.5 pl-4 pr-3 sm:pl-6 ' : '',
@@ -94,13 +95,17 @@
                   </td>
                   <td
                     v-for="(column, idx) in potential_columns"
-                    v-show="!('dynamic' in column)"
+                    v-show="!('dynamic' in column) || show_potential"
                     :class="[
                       idx === 0 ? 'border-l-2' : '',
                       'whitespace-nowrap px-3 py-4 text-sm text-gray-500',
                     ]"
                   >
-                    {{ datapoint[column.code] }}
+                    {{
+                      "dynamic" in column
+                        ? eval_data(column.code, datapoint)
+                        : datapoint[column.code].toFixed(4)
+                    }}
                   </td>
                 </tr>
               </tbody>
@@ -120,6 +125,7 @@
 </template>
 
 <script>
+import { evaluate } from "mathjs";
 import Pagination from "./elements/Pagination.vue";
 import { sort } from "fast-sort";
 import {
@@ -129,7 +135,8 @@ import {
 
 export default {
   name: "SamplesTable",
-  props: ["data", "run", "potential_function"],
+  props: ["data", "run"],
+  emits: ["potential_evaluated"],
   components: { Pagination, ChevronDownIcon, ChevronUpIcon },
   created() {
     this.update_columns();
@@ -165,7 +172,7 @@ export default {
       current_page: 1,
       items_per_page: 20,
       sort_by: [],
-      b: {},
+      show_potential: false,
     };
   },
   updated() {
@@ -174,8 +181,24 @@ export default {
   mounted() {
     MathJax.typeset();
   },
-  watch: {},
+  watch: {
+    eval_potential: function (value) {
+      if (value) {
+        this.show_potential = true;
+        console.log("Eval Potential");
+        this.$store.commit("potential_evaluated");
+      }
+    },
+  },
   methods: {
+    eval_data(code, datapoint) {
+      if (code === "potential_frontend") {
+        return evaluate("12 / (2.3 + 0.7)");
+      }
+      if (code === "drift_frontend") {
+        return 2;
+      }
+    },
     update_columns() {
       let algorithm = alg_defs.find(
         (e) => e.algorithm === this.run.config.algorithm
@@ -219,6 +242,9 @@ export default {
     },
   },
   computed: {
+    eval_potential() {
+      return this.$store.state.eval_potential;
+    },
     data_() {
       console.log(this.sort_by);
       let sort_by = this.sort_by.map(

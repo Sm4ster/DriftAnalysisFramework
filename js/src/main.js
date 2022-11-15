@@ -7,4 +7,6 @@ import OnePlusOne_ES from "../../definitions/algorithms/1+1-ES.json";
 
 window.alg_defs = [CMA_ES, OnePlusOne_ES];
 
-createApp(App).mount("#app");
+import { store } from "./store.js";
+
+createApp(App).use(store).mount("#app");

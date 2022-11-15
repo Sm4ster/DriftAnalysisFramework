@@ -97,6 +97,9 @@ def sgn(a):
 def trunc(a):
     return int(a)
 
+def cmp(a, b):
+    return (a > b) - (a < b)
+
 # Functions take input in the tokenized form fn(a, b, c)
 FUNCTION_MAP = {
     'add': add,

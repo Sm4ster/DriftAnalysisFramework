@@ -47,7 +47,6 @@
         :run_id="run_id"
         @filters="$emit('filters', $event)"
         @apply_filters="$emit('apply_filters', $event)"
-        @eval_potential="$emit('eval_potential', $event)"
         @overview="
           $emit('run_selected', null);
           mode = 'overview';
