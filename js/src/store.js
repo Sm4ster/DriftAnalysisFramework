@@ -6,7 +6,8 @@ export const store = createStore({
     potential_function: "",
   },
   mutations: {
-    eval_potential(state) {
+    eval_potential(state, potential_function) {
+      state.potential_function = potential_function;
       state.eval_potential = true;
     },
     potential_evaluated(state) {

@@ -35,9 +35,10 @@ R_IF = compile("(.*)\?(.*):(.*)")
 R_EXP = compile("([^%/*+-]+)\^([^%/*+-]+)")
 R_MOD = compile("([^/*+-]+)%([^/*+-]+)")
 R_DIV = compile("([^*+-]+)\/([^*+-]+)")
-R_MUL = compile("([^+-]+)\*([^+-]+)")
+R_MUL = compile("(.+)\*(.+)")
 R_ADD = compile("(.+)\+(.+)")
 R_SUB = compile("(.+)\-(.+)")
+# R_SGN = compile("([-+]+)(\d+)")
 
 M_PI = pi
 M_E = e

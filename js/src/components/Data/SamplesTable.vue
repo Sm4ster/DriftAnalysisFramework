@@ -125,13 +125,16 @@
 </template>
 
 <script>
-import { evaluate } from "mathjs";
 import Pagination from "./elements/Pagination.vue";
 import { sort } from "fast-sort";
 import {
   ChevronDownIcon,
   ChevronUpIcon,
 } from "@heroicons/vue/20/solid/index.js";
+
+import { create, all } from "mathjs";
+
+const math = create(all);
 
 export default {
   name: "SamplesTable",
@@ -192,11 +195,22 @@ export default {
   },
   methods: {
     eval_data(code, datapoint) {
+      // this is the formula for the cond number (potentially)
+      // math.norm(cov_m, 2) * math.norm(math.inv(cov_m), 2)
+
+      const potential_function = math
+        .parse(this.$store.state.potential_function)
+        .compile();
+      let scope = {
+        ...datapoint.follow_up_state,
+        ...this.run.config.constants,
+      };
+      let potential = potential_function.evaluate(scope);
       if (code === "potential_frontend") {
-        return evaluate("12 / (2.3 + 0.7)");
+        return potential;
       }
       if (code === "drift_frontend") {
-        return 2;
+        return this.state_potential - potential;
       }
     },
     update_columns() {
@@ -242,11 +256,20 @@ export default {
     },
   },
   computed: {
+    state_potential() {
+      const potential_function = math
+        .parse(this.$store.state.potential_function)
+        .compile();
+      let scope = {
+        ...this.data.state,
+        ...this.run.config.constants,
+      };
+      return potential_function.evaluate(scope);
+    },
     eval_potential() {
       return this.$store.state.eval_potential;
     },
     data_() {
-      console.log(this.sort_by);
       let sort_by = this.sort_by.map(
         function (e) {
           let object = {};

@@ -211,6 +211,7 @@ class MathJS(object):
         expr = R_MUL.sub(MathJS.operator_converter_factory('mul'), expr)
         expr = R_ADD.sub(MathJS.operator_converter_factory('add'), expr)
         expr = R_SUB.sub(MathJS.operator_converter_factory('sub'), expr)
+        # expr = R_SGN.sub(MathJS.operator_converter_factory('sgn'), expr)
         return expr
 
     def parse(self, tokens):

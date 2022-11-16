@@ -62,7 +62,12 @@
           <hr />
         </div>
 
-        <PotentialFunction class="mt-5" v-if="edit_potential" :header="false" />
+        <PotentialFunction
+          class="mt-5"
+          v-if="edit_potential"
+          ref="potential"
+          :header="false"
+        />
         <div class="flex justify-end space-x-3">
           <button class="text-right" @click="edit_potential = !edit_potential">
             <span class="mt-3 text-xs text-gray-700 hover:text-indigo-800">{{
@@ -185,7 +190,7 @@ export default {
   },
   methods: {
     eval_potential() {
-      this.$store.commit("eval_potential");
+      this.$store.commit("eval_potential", this.$refs.potential.export());
     },
     extreme_values(code) {
       if (this.run_data.config.variables[code].variation)

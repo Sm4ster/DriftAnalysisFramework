@@ -90,17 +90,6 @@ export default {
   },
 
   methods: {
-    eval_potential_function(m, sigma, cov_m) {
-      const parser = math.parser();
-
-      const scope = {
-        norm_m: math.norm(m),
-        sigma: sigma,
-        cond_cov_m: math.norm(cov_m, 2) * math.norm(math.inv(cov_m), 2),
-      };
-
-      return parser.evaluate(this.potential, scope);
-    },
     expand() {
       this.expanded = !this.expanded;
       this.$nextTick(() => {
