@@ -11,12 +11,13 @@ import numpy as np
 class DriftAnalysis:
     dim = 2
     states = {}
-    starting_locations = []
+    location = []
     location_uuids = []
     results = []
     jobs = []
     matrices = None
     queue = False
+    min_max = {}
 
     def __init__(self, config, queue=True):
         with open('../definitions/algorithms/' + config["algorithm"] + '.json', 'r') as f:
@@ -40,10 +41,10 @@ class DriftAnalysis:
         self.pf = PotentialFunctions.Expression(config["potential"], config["constants"])
 
         # generate states
-        self.states = self.generate_states(config["variables"])
+        self.states, self.min_max["states"] = self.generate_states(config["variables"])
 
         # generate locations
-        self.starting_locations = self.generate_locations(config["location"])
+        self.location, self.min_max["location"] = self.generate_locations(config["location"])
 
     def start(self):
         options = {
@@ -53,7 +54,7 @@ class DriftAnalysis:
             "max_evaluations": 1000,  # if no significant result was obtained we cancel the evaluations of this state
         }
 
-        for idx, starting_location in enumerate(self.starting_locations):
+        for idx, starting_location in enumerate(self.location):
             self.oa.set_location(starting_location)
             if self.queue:
                 job = self.q.enqueue(work_job, self.oa, self.pf, self.states, options)
@@ -82,8 +83,8 @@ class DriftAnalysis:
             registry = ScheduledJobRegistry(queue=self.q)
             # print(registry.get_job_ids())
 
-    def get_starting_locations(self):
-        return [{"id": idx, "location": loc} for idx, loc in enumerate(self.starting_locations)]
+    def get_locations(self):
+        return [{"id": idx, "location": loc} for idx, loc in enumerate(self.location)]
 
     def get_new_results(self):
         new_results = []
@@ -104,31 +105,42 @@ class DriftAnalysis:
         return new_results
 
     def all_jobs_in_results(self):
-        if len(self.jobs) < len(self.starting_locations):
+        if len(self.jobs) < len(self.location):
             return False
 
         return all(not job["not_in_results"] for job in self.jobs)
 
     def generate_locations(self, config):
-        locations = np.empty((len(config["vector"]), config["quantity"]))
-
+        sequences = []
+        min_max = []
         for idx, el in enumerate(config["vector"]):
-            locations[idx][:] = self.generate_sequence(el["distribution"], el, config["quantity"])
-        return np.transpose(locations)
+            sequence = self.generate_sequence(el["distribution"], el, el["quantity"], el["scale"])
+            min_max.append({"min": sequence.min(), "max": sequence.max()})
+            sequences.append(sequence)
+
+        return np.array(np.meshgrid(*sequences)).T.reshape(-1, len(config["vector"])), min_max
 
     def generate_states(self, state_variables):
         raw_state_list = {}
+        min_max = {}
         for key, variable in state_variables.items():
             if variable["variation"]:
-                raw_state_list[key] = self.generate_sequence(variable["distribution"], variable, variable["quantity"])
+                sequence = self.generate_sequence(variable["distribution"], variable, variable["quantity"], variable["scale"])
+                raw_state_list[key] = sequence
+                min_max[key] = {"min": sequence.min(), "max": sequence.max()}
             else:
                 raw_state_list[key] = np.array([variable["value"]])
-        return raw_state_list
+        return raw_state_list, min_max
 
-    def generate_sequence(self, distribution, params, quantity):
+    def generate_sequence(self, distribution, params, quantity, scale="linear"):
         if distribution == "grid":
-            return np.linspace(params["min"], params["max"], quantity)
+            sequence = np.linspace(params["min"], params["max"], quantity)
         if distribution == "uniform":
-            return np.random.default_rng().uniform(params["min"], params["max"], size=quantity)
+            sequence = np.random.default_rng().uniform(params["min"], params["max"], size=quantity)
         if distribution == "normal":
-            return np.random.default_rng().normal(params["mean"], params["variance"], size=quantity)
+            sequence = np.random.default_rng().normal(params["mean"], params["variance"], size=quantity)
+
+        if scale == "logarithmic":
+            return np.power(2, sequence).astype(np.dtype)
+        else:
+            return sequence

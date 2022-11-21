@@ -72,11 +72,14 @@ export default {
         if (data.message === "run_started") {
           this.add_run(data.data);
         }
+        if (data.message === "run_finished") {
+          this.finish_run(data.data);
+        }
         if (data.message === "locations") {
           this.add_locations(data.data.run_id, data.data.locations);
-          this.current_run = data.data.run_id;
+          this.add_min_max(data.data.run_id, data.data.min_max);
+          // this.current_run = data.data.run_id;
         }
-
         if (data.message === "partial_results") {
           this.add_data(data.data.run_id, data.data.results);
         }
@@ -119,6 +122,13 @@ export default {
         uuid: data.uuid,
         config: data.config,
         name: data.config.name,
+        started_at: data.started_at,
+      });
+    },
+
+    async finish_run(data) {
+      db.runs.update(data.uuid, {
+        finished_at: data.finished_at,
       });
     },
 
@@ -134,6 +144,12 @@ export default {
       });
     },
 
+    async add_min_max(run_id, min_max) {
+      db.runs.update(run_id, {
+        min_max: min_max,
+      });
+    },
+
     async add_data(run_id, results) {
       results.forEach((d) => {
         db.locations.update(run_id + "-" + d.id, {
@@ -141,8 +157,6 @@ export default {
           results: d.data,
         });
       });
-      // make sure we tell the graphics component to update
-      if (this.current_run === run_id) this.run_data_updated = true;
     },
   },
 };

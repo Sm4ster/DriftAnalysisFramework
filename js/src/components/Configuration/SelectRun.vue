@@ -1,20 +1,41 @@
 <template>
   <div class="flex flex-col space-y-10">
     <div>
-      <div v-for="run in stored_runs" class="flex justify-center">
+      <div class="flex justify-end bg-indigo-600 px-5 py-3">
         <button
-          @click="$emit('run_selected', run.uuid)"
-          :class="[
-            run.uuid === this.run_id
-              ? 'bg-indigo-600 font-semibold text-white'
-              : 'hover:bg-indigo-50',
-            'flex w-full justify-center py-1',
-          ]"
+          @click="$emit('new_run')"
+          class="flex space-x-1 font-semibold text-white"
         >
-          <div class="">
-            {{ run.uuid.slice(run.uuid.length - 5) }} - {{ run.name }}
-          </div>
+          <PlusIcon class="my-auto h-4 w-4" />
+          <span>New Run</span>
         </button>
+      </div>
+
+      <div v-for="run in runs" class="flex w-full py-3 pl-5 hover:bg-indigo-50">
+        <div class="w-full">
+          <div class="flex w-full justify-between">
+            <div class="font-mono">
+              <div>
+                <span>{{ run.uuid.slice(run.uuid.length - 5) }}</span>
+                <span> - </span>
+                <span>{{ run.config.algorithm }}</span>
+              </div>
+              <div class="text-xs text-gray-500">
+                <span>{{ run.started_at }}</span>
+              </div>
+            </div>
+            <button
+              v-if="'finished_at' in run"
+              @click="$emit('run_selected', run.uuid)"
+              class="px-5 py-1"
+            >
+              <ArrowRightIcon class="my-auto h-4 w-4" />
+            </button>
+            <div v-else class="my-auto px-5 py-1">
+              <CpuChipIcon class="h-4 w-4" />
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   </div>
@@ -24,17 +45,32 @@
 import { useObservable } from "@vueuse/rxjs";
 import { liveQuery } from "dexie";
 import { db } from "../../db.js";
+import {
+  PlusIcon,
+  ArrowRightIcon,
+  CpuChipIcon,
+} from "@heroicons/vue/24/outline/index.js";
+import { sort } from "fast-sort";
 
 export default {
   name: "SelectRun",
   props: ["run_id"],
   emits: ["run_selected"],
-  components: {},
+  components: {
+    PlusIcon,
+    ArrowRightIcon,
+    CpuChipIcon,
+  },
   data: () => {
     return {
-      new_name: "DriftAnalysisRun",
+      selected_run_uuid: null,
       stored_runs: useObservable(liveQuery(() => db.runs.toArray())),
     };
+  },
+  computed: {
+    runs() {
+      return sort(this.stored_runs).asc((u) => u.started_at);
+    },
   },
 };
 </script>

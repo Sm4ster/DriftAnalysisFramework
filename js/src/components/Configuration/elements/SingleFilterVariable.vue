@@ -25,9 +25,9 @@
             <span> min </span>
           </label>
           <label
-            class="absolute -bottom-2 left-2 -mt-px inline-block rounded bg-white px-1 text-xs font-light text-gray-600"
+            class="absolute -bottom-2 right-2 -mt-px inline-block rounded bg-white px-1 text-xs font-light text-gray-600"
           >
-            <span> {{ extreme_values.min }} </span>
+            <span> {{ Math.floor(extreme_values.min) }} </span>
           </label>
           <input
             v-model="variable.field_1"
@@ -50,7 +50,7 @@
           <label
             class="absolute -bottom-2 right-2 -mt-px inline-block rounded bg-white px-1 text-xs font-light text-gray-600"
           >
-            <span> {{ extreme_values.max }} </span>
+            <span> {{ Math.ceil(extreme_values.max) }} </span>
           </label>
           <input
             v-model="variable.field_2"
@@ -109,8 +109,8 @@ export default {
   },
   methods: {
     initialize() {
-      this.variable.field_1 = this.extreme_values.min;
-      this.variable.field_2 = this.extreme_values.max;
+      this.variable.field_1 = Math.floor(this.extreme_values.min);
+      this.variable.field_2 = Math.ceil(this.extreme_values.max);
     },
   },
 };

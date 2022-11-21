@@ -1,9 +1,34 @@
 <template>
   <div>
     <div class="sticky top-0 z-40 bg-indigo-600 px-5 py-3">
-      <button @click="$emit('overview')" class="flex font-semibold text-white">
-        <ArrowLeftIcon class="my-auto mr-1 h-4 w-4" />
-        <span>Overview</span>
+      <div class="flex justify-between">
+        <button
+          @click="$emit('overview')"
+          class="flex font-semibold text-white"
+        >
+          <ArrowLeftIcon class="my-auto mr-1 h-4 w-4 stroke-2" />
+          <span>Overview</span>
+        </button>
+        <button @click="options = !options">
+          <Cog8ToothIconSolid v-if="options" class="h-5 w-5 text-white" />
+          <Cog8ToothIconOutline v-else class="h-5 w-5 text-white" />
+        </button>
+      </div>
+    </div>
+    <div
+      v-if="options"
+      class="flex justify-between border-b-2 py-3 px-5 text-sm"
+    >
+      <button class="flex space-x-1.5" @click="export_run()">
+        <CloudArrowDownIcon class="my-auto h-5 w-5" />
+        <span class="font-normal">Export Run</span>
+      </button>
+      <button
+        class="flex space-x-1 font-semibold text-red-600"
+        @click="delete_run()"
+      >
+        <TrashIcon class="my-auto h-4 w-4 stroke-2" />
+        <span>Delete Run</span>
       </button>
     </div>
     <div v-if="run_data" class="mt-5 space-y-10 px-5">
@@ -111,13 +136,13 @@
         <div class="mb-8 space-y-5">
           <SingleFilterVariable
             @filter="filters.location[0] = $event"
-            :extreme_values="run_data.config.location.vector[0]"
+            :extreme_values="run_data.min_max.location[0]"
           >
             <template v-slot:title>$x_1$</template>
           </SingleFilterVariable>
           <SingleFilterVariable
             @filter="filters.location[1] = $event"
-            :extreme_values="run_data.config.location.vector[1]"
+            :extreme_values="run_data.min_max.location[1]"
           >
             <template v-slot:title>$x_2$</template>
           </SingleFilterVariable>
@@ -152,7 +177,14 @@
 </template>
 
 <script>
-import { ArrowLeftIcon } from "@heroicons/vue/24/solid/index.js";
+import {
+  ArrowLeftIcon,
+  Cog8ToothIcon as Cog8ToothIconOutline,
+  TrashIcon,
+  CloudArrowDownIcon,
+} from "@heroicons/vue/24/outline/index.js";
+import { Cog8ToothIcon as Cog8ToothIconSolid } from "@heroicons/vue/24/solid/index.js";
+
 import { db } from "../../db.js";
 import PotentialFunction from "./modules/PotentialFunction.vue";
 import SingleFilterVariable from "./elements/SingleFilterVariable.vue";
@@ -163,11 +195,16 @@ export default {
     ArrowLeftIcon,
     PotentialFunction,
     SingleFilterVariable,
+    Cog8ToothIconOutline,
+    Cog8ToothIconSolid,
+    TrashIcon,
+    CloudArrowDownIcon,
   },
   props: ["run_id"],
   emits: ["overview", "filters", "apply_filters", "eval_potential"],
   data: () => {
     return {
+      options: false,
       edit_potential: false,
       run_data: null,
       filters: {
@@ -189,16 +226,46 @@ export default {
     this.$emit("filters", this.filters);
   },
   methods: {
+    delete_run() {
+      if (confirm("Sure?")) {
+        Promise.all([
+          db.locations.where({ run_id: this.run_id }).delete(),
+          db.runs.delete(this.run_id),
+        ]).then(() => this.$emit("overview"));
+      }
+    },
+    export_run() {
+      if (confirm("Sure?")) {
+        Promise.all([
+          db.locations.where({ run_id: this.run_id }).toArray(),
+          db.runs.where({ uuid: this.run_id }).toArray(),
+        ]).then((data) => {
+          let blob1 = new Blob(
+            [...JSON.stringify({ run: data[1], locations: data[0] })],
+            {
+              type: "text/plain;charset=utf-8",
+            }
+          );
+          let url = window.URL || window.webkitURL;
+          let link = url.createObjectURL(blob1);
+          let a = document.createElement("a");
+          a.download = this.run_id + ".json";
+          a.href = link;
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+        });
+      }
+    },
     eval_potential() {
       this.$store.commit("eval_potential", this.$refs.potential.export());
     },
     extreme_values(code) {
       if (this.run_data.config.variables[code].variation)
         return {
-          min: this.run_data.config.variables[code].min,
-          max: this.run_data.config.variables[code].max,
+          min: this.run_data.min_max.states[code].min,
+          max: this.run_data.min_max.states[code].max,
         };
-      //TODO for other distributions we need to extract min and max from the data
     },
     filter_variables(variation) {
       let variables = [];

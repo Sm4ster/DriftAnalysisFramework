@@ -144,6 +144,7 @@ export default {
   methods: {
     update_data() {
       if (this.filters && this.run_id) {
+        console.log(db.locations.where({ run_id: this.run_id }).toArray());
         return db.locations
           .where({ run_id: this.run_id })
           .toArray()
@@ -199,6 +200,9 @@ export default {
                   drift: d.mean_drift,
                 };
               });
+          })
+          .catch((error) => {
+            console.log("something went wrong", error);
           });
       }
     },

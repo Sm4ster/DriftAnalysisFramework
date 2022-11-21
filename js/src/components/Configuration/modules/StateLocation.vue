@@ -11,28 +11,7 @@
       </div>
     </div>
 
-    <div class="mb-10 flex justify-between">
-      <label class="my-auto font-thin">Samples</label>
-      <div
-        :class="[
-          has_error('quantity')
-            ? 'border-red-500 bg-red-400'
-            : 'border-gray-300 bg-white',
-          'relative mr-2 w-32 rounded-md border px-3 py-2 shadow-sm focus-within:border-indigo-600 focus-within:ring-1 focus-within:ring-indigo-600',
-        ]"
-      >
-        <input
-          v-model="quantity"
-          type="number"
-          :class="[
-            has_error('quantity') ? 'bg-red-400' : 'bg-white',
-            'block w-full appearance-none border-0 p-0 text-gray-900 placeholder-gray-500 focus:outline-0 focus:ring-0 sm:text-sm',
-          ]"
-        />
-      </div>
-    </div>
-
-    <div class="flex flex-col space-y-3">
+    <div class="mb-5 flex flex-col space-y-3">
       <div v-for="value in values" class="flex justify-between">
         <label class="my-auto">$x_{{ value.dimension }}$</label>
         <div class="flex space-x-3">
@@ -98,6 +77,44 @@
         </div>
       </div>
     </div>
+    <div class="flex w-full flex-col justify-between">
+      <label class="mb-3 flex justify-between text-xs font-light text-gray-800">
+        <span>Quantity</span>
+        <span
+          >{{
+            quantity.reduce((sum, value) => (sum *= value), 1)
+          }}
+          Locations</span
+        >
+      </label>
+      <div class="flex space-x-2">
+        <div class="flex space-x-2" v-for="(q, i) in quantity">
+          <span v-if="i > 0" class="my-auto text-sm text-gray-800">x</span>
+          <div
+            :class="[
+              has_error('quantity_' + i)
+                ? 'border-red-500 bg-red-400'
+                : 'border-gray-300 bg-white',
+              'relative w-full rounded-md border px-3 py-2 shadow-sm focus-within:border-indigo-600 focus-within:ring-1 focus-within:ring-indigo-600',
+            ]"
+          >
+            <input
+              v-model="quantity[i]"
+              type="number"
+              :class="[
+                has_error('quantity') ? 'bg-red-400' : 'bg-white',
+                'block w-full appearance-none border-0 p-0 text-gray-900 placeholder-gray-500 focus:outline-0 focus:ring-0 sm:text-sm',
+              ]"
+            />
+            <label
+              class="absolute -top-3 left-2 -mt-px inline-block rounded bg-white px-1 text-sm font-semibold text-gray-600"
+            >
+              <span> $x_{{ i + 1 }}$ </span>
+            </label>
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -120,11 +137,13 @@ export default {
       dimensions: 2,
       values: [],
       value_errors: {},
-      quantity: 10,
+      quantity: [],
     };
   },
   created() {
     for (let i = 0; i < this.dimensions; i++) {
+      this.quantity[i] = 10;
+
       this.value_errors[i + 1] = {};
       this.values.push({
         dimension: i + 1,
@@ -137,6 +156,11 @@ export default {
   },
   updated() {
     MathJax.typeset();
+  },
+  computed: {
+    total_locations() {
+      return this.quantity.reduce((sum, value) => (sum += value), 0);
+    },
   },
   methods: {
     select_rand_alg(e, v) {
@@ -177,10 +201,11 @@ export default {
       if (this.validation_error) throw "validation error";
 
       return {
-        vector: this.values.map((e) => {
+        vector: this.values.map((e, i) => {
           let obj = {
             distribution: e.distribution.id,
             scale: e.scale.id,
+            quantity: this.quantity[i],
           };
           obj[
             typeof e.distribution.fields[0] === "object"
@@ -194,7 +219,6 @@ export default {
           ] = e.field_2;
           return obj;
         }),
-        quantity: this.quantity,
       };
     },
   },

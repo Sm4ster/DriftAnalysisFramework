@@ -38,6 +38,7 @@ import StateLocation from "./modules/StateLocation.vue";
 import StateVariables from "./modules/StateVariables.vue";
 import PotentialFunction from "./modules/PotentialFunction.vue";
 import AlgorithmOptions from "./modules/AlgorithmOptions.vue";
+import Validation from "../../mixins.js";
 
 export default {
   name: "NewRun",
@@ -50,8 +51,10 @@ export default {
     AlgorithmOptions,
   },
   emits: ["target_changed", "overview", "start_run"],
+  mixins: [Validation],
   data: () => {
     return {
+      new_name: "",
       algorithm: "",
       target_params: {
         A: 1,
