@@ -19,6 +19,7 @@
 <script>
 const views = [
   { id: "map", name: "Map" },
+  { id: "state", name: "State" },
   { id: "raw", name: "Data" },
 ];
 

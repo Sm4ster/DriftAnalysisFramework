@@ -49,9 +49,9 @@
                 <div v-for="constant in constants" class="flex justify-between">
                   <div>
                     ${{ constant.symbol }}$
-                    <span class="ml-2 font-mono text-xs"
-                      >({{ constant.code }})</span
-                    >
+                    <span class="ml-2 font-mono text-xs">
+                      ({{ constant.code }})
+                    </span>
                   </div>
 
                   <span class="font-light">{{ constant.value }}</span>
@@ -146,6 +146,18 @@
           >
             <template v-slot:title>$x_2$</template>
           </SingleFilterVariable>
+          <div class="flex justify-between font-thin text-gray-700">
+            <div>
+              <div
+                v-for="(dim, i) in $store.state.selected_run.config.location
+                  .vector"
+              >
+                $x_{{ i + 1 }}$ - {{ dim.scale }} | {{ dim.distribution }} |
+                {{ dim.quantity }}
+              </div>
+            </div>
+            <div class="my-auto text-base">{{ total_samples }} samples</div>
+          </div>
         </div>
         <h4 class="mb-2 text-xs font-semibold uppercase text-gray-400">
           Variables
@@ -153,22 +165,26 @@
         <div class="flex flex-col space-y-5">
           <SingleFilterVariable
             :extreme_values="extreme_values(filter_variable.code)"
+            :details="
+              $store.state.selected_run.config.variables[filter_variable.code]
+            "
             @filter="filters.variables[filter_variable.code] = $event"
             v-for="filter_variable in filter_variables(true)"
           >
+            <template v-slot:code>
+              <span>{{ filter_variable.code }}</span>
+            </template>
+
             <template v-slot:title>
               <div
                 :class="[
                   filter_variable.bottom_bias ? 'mt-1.5' : '',
-                  'text-base',
+                  'flex h-full flex-col justify-center text-base',
                 ]"
               >
-                ${{ filter_variable.symbol }}$
+                <span class="my-auto">${{ filter_variable.symbol }}$</span>
               </div>
             </template>
-            <template v-slot:code
-              ><span>{{ filter_variable.code }}</span></template
-            >
           </SingleFilterVariable>
         </div>
       </div>
@@ -235,27 +251,25 @@ export default {
       }
     },
     export_run() {
-      if (confirm("Sure?")) {
-        Promise.all([
-          db.locations.where({ run_id: this.run_id }).toArray(),
-          db.runs.where({ uuid: this.run_id }).toArray(),
-        ]).then((data) => {
-          let blob1 = new Blob(
-            [...JSON.stringify({ run: data[1], locations: data[0] })],
-            {
-              type: "text/plain;charset=utf-8",
-            }
-          );
-          let url = window.URL || window.webkitURL;
-          let link = url.createObjectURL(blob1);
-          let a = document.createElement("a");
-          a.download = this.run_id + ".json";
-          a.href = link;
-          document.body.appendChild(a);
-          a.click();
-          document.body.removeChild(a);
-        });
-      }
+      Promise.all([
+        db.locations.where({ run_id: this.run_id }).toArray(),
+        db.runs.where({ uuid: this.run_id }).toArray(),
+      ]).then((data) => {
+        let blob1 = new Blob(
+          [...JSON.stringify({ run: data[1], locations: data[0] })],
+          {
+            type: "text/plain;charset=utf-8",
+          }
+        );
+        let url = window.URL || window.webkitURL;
+        let link = url.createObjectURL(blob1);
+        let a = document.createElement("a");
+        a.download = this.run_id + ".json";
+        a.href = link;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+      });
     },
     eval_potential() {
       this.$store.commit("eval_potential", this.$refs.potential.export());
@@ -298,6 +312,12 @@ export default {
     },
   },
   computed: {
+    total_samples() {
+      return this.$store.state.selected_run.config.location.vector.reduce(
+        (prod, factor) => prod * factor.quantity,
+        1
+      );
+    },
     constants() {
       let algorithm_constants = alg_defs.find(
         (e) => e.algorithm === this.run_data.config.algorithm

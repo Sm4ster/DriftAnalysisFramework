@@ -1,9 +1,12 @@
 import { createStore } from "vuex";
+import { db } from "./db.js";
 
 export const store = createStore({
   state: {
     eval_potential: false,
     potential_function: "",
+
+    selected_run: null,
   },
   mutations: {
     eval_potential(state, potential_function) {
@@ -12,6 +15,23 @@ export const store = createStore({
     },
     potential_evaluated(state) {
       state.eval_potential = false;
+    },
+    select_run(state, run_data) {
+      state.selected_run = run_data;
+    },
+  },
+
+  actions: {
+    select_run({ commit }, run_id) {
+      db.runs
+        .where({ uuid: run_id })
+        .first()
+        .then((data) => {
+          commit("select_run", data);
+        })
+        .catch(() => {
+          console.error("Could not fetch the data from the database!");
+        });
     },
   },
 });

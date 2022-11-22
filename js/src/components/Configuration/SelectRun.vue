@@ -26,7 +26,10 @@
             </div>
             <button
               v-if="'finished_at' in run"
-              @click="$emit('run_selected', run.uuid)"
+              @click="
+                $store.dispatch('select_run', run.uuid);
+                $emit('run_selected', run.uuid);
+              "
               class="px-5 py-1"
             >
               <ArrowRightIcon class="my-auto h-4 w-4" />

@@ -62,6 +62,16 @@
         </div>
       </div>
     </div>
+
+    <div v-if="details" class="py-2 text-xs text-gray-700">
+      <div class="flex justify-end space-x-1 font-thin">
+        <span>{{ details.quantity }} samples</span>
+        <span>-</span>
+        <span>{{ details.distribution }}</span>
+        <span>-</span>
+        <span>{{ details.scale }}</span>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -76,7 +86,7 @@ export default {
     Switch,
   },
   emits: ["filter"],
-  props: ["extreme_values"],
+  props: ["extreme_values", "details"],
   data() {
     return {
       variation_enabled: true,
@@ -109,6 +119,7 @@ export default {
   },
   methods: {
     initialize() {
+      console.log("HJASD");
       this.variable.field_1 = Math.floor(this.extreme_values.min);
       this.variable.field_2 = Math.ceil(this.extreme_values.max);
     },

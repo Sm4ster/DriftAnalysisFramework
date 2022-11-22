@@ -30,6 +30,9 @@
         @viewbox="viewbox = $event"
       />
     </div>
+    <div v-if="view === 'state'">
+      <StateView />
+    </div>
     <div v-if="view === 'raw'">
       <DataView
         :run="run_data"
@@ -41,11 +44,12 @@
 </template>
 
 <script>
+import StateView from "./State/StateView.vue";
 import EventLayer from "./Graph/EventLayer.vue";
 import DataOptions from "./Graph/DataOptions.vue";
 import ContourGraph from "./Graph/ContourGraph.vue";
 import DataGraph from "./Graph/DataGraph.vue";
-import ViewOptions from "./Graph/ViewOptions.vue";
+import ViewOptions from "./ViewOptions.vue";
 import DataView from "./Data/DataView.vue";
 import { db } from "../db";
 
@@ -58,6 +62,7 @@ export default {
     DataGraph,
     ViewOptions,
     DataView,
+    StateView,
   },
   props: [
     "run_id",
@@ -144,7 +149,7 @@ export default {
   methods: {
     update_data() {
       if (this.filters && this.run_id) {
-        console.log(db.locations.where({ run_id: this.run_id }).toArray());
+        console.log("I AM TRYING");
         return db.locations
           .where({ run_id: this.run_id })
           .toArray()
@@ -202,7 +207,7 @@ export default {
               });
           })
           .catch((error) => {
-            console.log("something went wrong", error);
+            console.error("something went wrong", error);
           });
       }
     },
