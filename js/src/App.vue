@@ -27,6 +27,8 @@
         @target_changed="target_params = $event"
         @eval_potential="potential_function = $event"
       />
+
+      <Settings />
     </div>
   </div>
 </template>
@@ -34,6 +36,7 @@
 <script>
 import SideBar from "./components/Sidebar.vue";
 import MainView from "./components/MainView.vue";
+import Settings from "./components/Settings/Settings.vue";
 import { db } from "./db.js";
 
 export default {
@@ -41,6 +44,7 @@ export default {
   components: {
     SideBar,
     MainView,
+    Settings,
   },
   data: function () {
     return {

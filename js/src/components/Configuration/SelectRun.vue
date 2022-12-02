@@ -34,8 +34,11 @@
             >
               <ArrowRightIcon class="my-auto h-4 w-4" />
             </button>
-            <div v-else class="my-auto px-5 py-1">
-              <CpuChipIcon class="h-4 w-4" />
+            <div v-else class="my-auto flex px-5 py-1">
+              <span class="my-auto mr-3 text-xs"
+                >{{ percentage_completed(run) }}%</span
+              >
+              <CpuChipIcon class="my-auto h-5 w-5" />
             </div>
           </div>
         </div>
@@ -68,11 +71,25 @@ export default {
     return {
       selected_run_uuid: null,
       stored_runs: useObservable(liveQuery(() => db.runs.toArray())),
+      locations: useObservable(
+        liveQuery(async () => {
+          return await db.locations
+            .where("run_id", run_id)
+            .where("has_results", true)
+            .toArray();
+        })
+      ),
     };
   },
   computed: {
     runs() {
       return sort(this.stored_runs).asc((u) => u.started_at);
+    },
+  },
+  methods: {
+    percentage_completed(run) {
+      console.log(this.locations);
+      return 100;
     },
   },
 };

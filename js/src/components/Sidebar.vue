@@ -2,7 +2,7 @@
   <div
     class="relative flex flex-col justify-between border-l border-indigo-600"
   >
-    <div class="sticky top-0 z-50 flex flex-col bg-white">
+    <div class="sticky top-0 flex flex-col bg-white">
       <h1 class="mx-auto mt-5 mb-10 font-cuprum text-4xl font-bold">
         DriftAnalysis
       </h1>
