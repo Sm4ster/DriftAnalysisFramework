@@ -64,7 +64,7 @@ class DriftAnalysis:
                     "job": job,
                     "not_in_results": True
                 })
-                # print("worker enqueued (" + str(idx) + ")")
+                print("worker enqueued (" + str(idx) + ")")
 
             else:
                 self.jobs.append({

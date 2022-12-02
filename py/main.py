@@ -24,7 +24,7 @@ async def websocket_endpoint(websocket: WebSocket):
 
 async def start_run(run_id, config, websocket: WebSocket):
     # create the DriftAnalysisClass
-    analysis = DriftAnalysis(config, False)
+    analysis = DriftAnalysis(config, True)
 
     # send all locations to the frontend
     print(analysis.min_max)
