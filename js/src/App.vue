@@ -2,33 +2,33 @@
   <div>
     <div class="flex h-screen w-screen">
       <MainView
-        :run_id="current_run"
-        :target_params="target_params"
-        :run_data_updated="run_data_updated"
-        :filters="filters"
-        :potential_function="potential_function"
-        :apply_filters="apply_filters"
-        :init_filters="init_filters"
-        @filters_applied="apply_filters = false"
-        @filters_inited="init_filters = false"
-        @update_received="run_data_updated = false"
+          :run_id="current_run"
+          :target_params="target_params"
+          :run_data_updated="run_data_updated"
+          :filters="filters"
+          :potential_function="potential_function"
+          :apply_filters="apply_filters"
+          :init_filters="init_filters"
+          @filters_applied="apply_filters = false"
+          @filters_inited="init_filters = false"
+          @update_received="run_data_updated = false"
       />
 
       <SideBar
-        ref="config"
-        class="hide-scrollbar h-full w-96 overflow-auto"
-        :run_id="current_run"
-        @apply_filters="
+          ref="config"
+          class="hide-scrollbar h-full w-96 overflow-auto"
+          :run_id="current_run"
+          @apply_filters="
           $event.init ? (init_filters = true) : (apply_filters = true)
         "
-        @filters="filters = $event"
-        @run_selected="current_run = $event"
-        @start_run="start_run($event)"
-        @target_changed="target_params = $event"
-        @eval_potential="potential_function = $event"
+          @filters="filters = $event"
+          @run_selected="current_run = $event"
+          @start_run="start_run($event)"
+          @target_changed="target_params = $event"
+          @eval_potential="potential_function = $event"
       />
 
-      <Settings />
+      <Settings/>
     </div>
   </div>
 </template>
@@ -37,7 +37,7 @@
 import SideBar from "./components/Sidebar.vue";
 import MainView from "./components/MainView.vue";
 import Settings from "./components/Settings/Settings.vue";
-import { db } from "./db.js";
+import {db} from "./db.js";
 
 export default {
   name: "App",
@@ -64,15 +64,21 @@ export default {
   methods: {
     connect_websocket() {
       // connect to the websocket server for data transmission
-      this.connection = new WebSocket("ws://localhost:8000/ws");
+      let connection = new WebSocket("ws://localhost:8000/ws");
+      this.connection = connection;
+
+      this.$store.commit("update_websocket_connection", connection)
 
       this.connection.onopen = function () {
         console.log("Connection to server established.");
       };
 
       // reaction to data from the server
-      this.connection.onmessage = function ({ data }) {
+      this.connection.onmessage = function ({data}) {
         data = JSON.parse(data);
+        if (data.message === "pong") {
+          console.log("pong");
+        }
         if (data.message === "run_started") {
           this.add_run(data.data);
         }
@@ -91,22 +97,22 @@ export default {
 
       this.connection.onclose = function (e) {
         console.log(
-          "Socket is closed. Reconnect will be attempted in 1 second.",
-          e.reason
+            "Socket is closed. Reconnect will be attempted in 1 second.",
+            e.reason
         );
         setTimeout(
-          function () {
-            this.connect_websocket();
-          }.bind(this),
-          1000
+            function () {
+              this.connect_websocket();
+            }.bind(this),
+            1000
         );
       }.bind(this);
 
       this.connection.onerror = function (err) {
         console.error(
-          "Socket encountered error: ",
-          err.message,
-          "Closing socket"
+            "Socket encountered error: ",
+            err.message,
+            "Closing socket"
         );
         this.connection.close();
       }.bind(this);
@@ -114,10 +120,10 @@ export default {
 
     start_run(config) {
       this.connection.send(
-        JSON.stringify({
-          message: "start_run",
-          config: config,
-        })
+          JSON.stringify({
+            message: "start_run",
+            config: config,
+          })
       );
     },
 
