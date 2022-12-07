@@ -5,81 +5,96 @@ from fastapi import FastAPI, WebSocket
 from DriftAnalysis import DriftAnalysis
 from datetime import datetime
 
-
-
 app = FastAPI()
 
-class WebSocketSafe:
-    def __init__(self, websocket: WebSocket):
-        self.lock = threading.Lock()
-        self.connection = websocket
+# This just makes this variable call by reference
+class StopThreads:
+    value = False
 
-    async def receive(self):
+class OpenRunsSafe:
+    container = {}
+
+    def __init__(self, ):
+        self.lock = threading.Lock()
+
+    def get(self, uuid):
         self.lock.acquire()
         try:
-            data = await self.connection.receive_json()
-        except:
-            data = self.receive()
+            data = self.container[uuid]
         finally:
             self.lock.release()
         return data
 
-    async def send(self, data):
+    def add(self, uuid, run):
         self.lock.acquire()
         try:
-            success = await self.connection.send_json(data)
-        except:
-            success = self.send(data)
+            self.container[uuid] = run
         finally:
             self.lock.release()
-        return success
+
+    def delete(self, uuid):
+        self.lock.acquire()
+        try:
+            del self.container[uuid]
+        finally:
+            self.lock.release()
+
 
 @app.websocket("/ws")
-async def websocket_endpoint(websocket_: WebSocket):
-    await websocket_.accept()
+async def websocket_endpoint(websocket: WebSocket):
+    await websocket.accept()
 
-    stop_threads = False
-    open_jobs = []
-    counter = 0
+    stop_threads = StopThreads()
+    open_runs = OpenRunsSafe()
 
     # Initialize wrapper for thread safety
-    websocket = WebSocketSafe(websocket_)
     while True:
-        print(open_jobs)
-
         try:
-            data = await websocket.receive()
+            data = await websocket.receive_json()
         except:
+            stop_threads.value = True
             print("The user went offline and so will I.")
             break
 
         if data["message"] == "open_runs":
             # Load all open jobs for this user
-            print("Checking all open jobs")
+            for run_uuid in data["data"]:
+                # TODO load open jobs from the database, unfreeze them and store them in open_runs
+                print(run_uuid)
+
+            # start a background thread that sends new data to the user
+            asyncio.create_task(send_new_data(websocket, open_runs, stop_threads))
+
 
         if data["message"] == "ping":
-            thread = threading.Thread(target=asyncio.run, args=(test(websocket, open_jobs, counter),))
-            thread.start()
-            counter += 1
+            print(open_runs.container)
+            await websocket.send_json({"message": "pong"})
+            # thread = threading.Thread(target=asyncio.run, args=(test(websocket),))
+            # thread.start()
 
         if data["message"] == "start_run":
             # make a run uuid
             run_id = str(uuid.uuid4())
 
             # send the run with uuid and the configuration as well as the server time back to the client
-            await websocket.send({"message": "run_started", "data": {"uuid": run_id, "config": data['config'],
-                                                                          "started_at": datetime.now().strftime(
-                                                                              "%Y-%m-%d %H:%M:%S")}})
-            thread = threading.Thread(target=asyncio.run, args=(start_run(run_id, data['config'], websocket),))
-            print(thread)
+            await websocket.send_json({"message": "run_started", "data": {"uuid": run_id, "config": data['config'],
+                                                                     "started_at": datetime.now().strftime(
+                                                                         "%Y-%m-%d %H:%M:%S")}})
+            asyncio.create_task(start_run(run_id, data['config'], open_runs, websocket))
+            #thread = threading.Thread(target=asyncio.run, args=(start_run(run_id, data['config'], open_runs, websocket),))
+            #thread.start()
+
+        if data["message"] == "run_finished_confirmed":
+            print("removing run", data)
+            open_runs.delete(data["data"]["uuid"])
 
 
-async def start_run(run_id, config, websocket: WebSocketSafe):
+async def start_run(run_id, config, open_runs: OpenRunsSafe, websocket: WebSocket):
     # create the DriftAnalysisClass
-    analysis = DriftAnalysis(config, True)
+    analysis = DriftAnalysis(config, run_id, True)
 
     # send all locations to the frontend
-    await websocket.send(
+    await websocket.send_json(
         {"message": "locations", "data":
             {
                 "run_id": run_id,
@@ -90,27 +105,43 @@ async def start_run(run_id, config, websocket: WebSocketSafe):
 
     analysis.start()
 
-    while not analysis.all_jobs_in_results():
-        print("Hello from this loop")
-        new_results = analysis.get_new_results()
-        if len(new_results):
-            await websocket.send(
-                {"message": "partial_results", "data": {"run_id": run_id, "results": to_list(new_results)}})
-        time.sleep(1)
+    # add it to the open runs to keep the frontend informed
+    open_runs.add(run_id, analysis)
 
-    await websocket.send({"message": "run_finished",
-                               "data": {"uuid": run_id, "finished_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S")}})
-    print("finished_sending_data")
 
-async def send_new_data(websocket: WebSocketSafe, stop, open_runs, open_jobs):
-    print("do something")
+async def send_new_data(websocket: WebSocket, open_runs: OpenRunsSafe, stop):
+    while not stop.value:
+        await asyncio.sleep(1)
 
-async def test(websocket: WebSocketSafe, open_jobs, counter):
-    print("I am going to sleep now")
-    time.sleep(5)
-    print("I HAVE RISEN UP FROM THE DEAD")
+        print(stop.value)
+
+        print("doing stuff")
+        for run in open_runs.container.items():
+            # check for new results
+            new_results = run[1].get_new_results()
+            print("doing stuff")
+            try:
+                await websocket.send_json({"message": "pong"})
+            except:
+                print("something bad happened")
+
+            # send if there is something new
+            if len(new_results):
+                print("sending results")
+                await websocket.send_json(
+                    {"message": "partial_results", "data": {"run_id": run[0], "results": to_list(new_results)}})
+
+            # if the run is finished let the front end know
+            if run[1].all_jobs_in_results():
+                print("This is gonna end")
+                await websocket.send_json({"message": "run_finished",
+                                      "data": {"uuid": run[0],
+                                               "finished_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S")}})
+
+
+async def test(websocket: WebSocket):
     await websocket.send({"message": "pong"})
-    open_jobs.append("foo" + str(counter))
+
 
 def to_list(data):
     if type(data) is dict:
@@ -124,6 +155,7 @@ def to_list(data):
     if type(data).__module__ == "numpy":
         return data.tolist()
     return data
+
 
 async def send_data(websocket: WebSocket, data):
     await websocket.send_json({"message": "pong"})

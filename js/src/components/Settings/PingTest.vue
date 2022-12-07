@@ -21,7 +21,7 @@ export default {
             message: "ping"
           }
       ))
-      console.log()
+      console.log("pong")
     }
   }
 }

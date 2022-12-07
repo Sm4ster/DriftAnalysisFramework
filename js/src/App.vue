@@ -70,8 +70,15 @@ export default {
       this.$store.commit("update_websocket_connection", connection)
 
       this.connection.onopen = function () {
-        console.log("Connection to server established.");
-      };
+        db.runs.toArray().then((data) => {
+          this.$store.state.websocket_connection.send(JSON.stringify(
+              {
+                message: "open_runs",
+                data: data.filter(e => !("finished_at" in e)).map(e => e.uuid)
+              }
+          ))
+        })
+      }.bind(this);
 
       // reaction to data from the server
       this.connection.onmessage = function ({data}) {
@@ -83,7 +90,16 @@ export default {
           this.add_run(data.data);
         }
         if (data.message === "run_finished") {
-          this.finish_run(data.data);
+          this.finish_run(data.data).then(() => {
+            this.$store.state.websocket_connection.send(JSON.stringify(
+                {
+                  message: "run_finished_confirmed",
+                  data: {
+                    uuid: data.data.uuid
+                  }
+                }
+            ))
+          });
         }
         if (data.message === "locations") {
           this.add_locations(data.data.run_id, data.data.locations);
@@ -137,7 +153,7 @@ export default {
     },
 
     async finish_run(data) {
-      db.runs.update(data.uuid, {
+      return db.runs.update(data.uuid, {
         finished_at: data.finished_at,
       });
     },

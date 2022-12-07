@@ -9,6 +9,7 @@ import numpy as np
 
 
 class DriftAnalysis:
+    uuid = None
     dim = 2
     states = {}
     location = []
@@ -19,7 +20,9 @@ class DriftAnalysis:
     queue = False
     min_max = {}
 
-    def __init__(self, config, queue=True):
+    def __init__(self, config, uuid, queue=True):
+        self.uuid = uuid
+
         with open('../definitions/algorithms/' + config["algorithm"] + '.json', 'r') as f:
             oa_definition = json.load(f)
         self.matrices = oa_definition["matrices"]
@@ -56,6 +59,7 @@ class DriftAnalysis:
 
         for idx, starting_location in enumerate(self.location):
             self.oa.set_location(starting_location)
+            print("enqueuing")
             if self.queue:
                 job = self.q.enqueue(work_job, self.oa, self.pf, self.states, options)
                 self.jobs.append({
@@ -64,8 +68,6 @@ class DriftAnalysis:
                     "job": job,
                     "not_in_results": True
                 })
-                print("worker enqueued (" + str(idx) + ")")
-
             else:
                 self.jobs.append({
                     "id": idx,
@@ -73,11 +75,6 @@ class DriftAnalysis:
                     "result": work_job(self.oa, self.pf, self.states, options),
                     "not_in_results": True
                 })
-
-        if self.queue:
-            print("finished queuing workers")
-        else:
-            print("finished evaluating jobs")
 
         if self.queue:
             registry = ScheduledJobRegistry(queue=self.q)
@@ -125,7 +122,8 @@ class DriftAnalysis:
         min_max = {}
         for key, variable in state_variables.items():
             if variable["variation"]:
-                sequence = self.generate_sequence(variable["distribution"], variable, variable["quantity"], variable["scale"])
+                sequence = self.generate_sequence(variable["distribution"], variable, variable["quantity"],
+                                                  variable["scale"])
                 raw_state_list[key] = sequence
                 min_max[key] = {"min": sequence.min(), "max": sequence.max()}
             else:
