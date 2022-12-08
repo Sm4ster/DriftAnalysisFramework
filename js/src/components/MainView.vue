@@ -188,6 +188,7 @@ export default {
                 let color = "blue";
                 if (!d.has_results) color = "white";
                 if (d.mean_drift < this.min_drift) color = "red";
+
                 return {
                   id: d.location_id,
                   states: d.results.filter((state) => {
@@ -206,9 +207,9 @@ export default {
                 };
               });
           })
-          .catch((error) => {
-            console.error("something went wrong", error);
-          });
+          // .catch((error) => {
+          //   console.error("something went wrong", error);
+          // });
       }
     },
     set_svg(event) {

@@ -20,7 +20,7 @@ class DriftAnalysis:
     queue = False
     min_max = {}
 
-    def __init__(self, config, uuid, queue=True):
+    def __init__(self, config, uuid, redis_connection=None):
         self.uuid = uuid
 
         with open('../definitions/algorithms/' + config["algorithm"] + '.json', 'r') as f:
@@ -28,10 +28,9 @@ class DriftAnalysis:
         self.matrices = oa_definition["matrices"]
 
         # if necessary init the queue
-        if queue:
-            r = Redis(host='nash.ini.rub.de', port=6379, db=0, password='4xEhjbGNkNPr8UkBQbWL9qmPpXpAeCKMF2G2')
-            self.q = Queue(connection=r)
-        self.queue = queue
+        if redis_connection:
+            self.init_queue(redis_connection)
+            self.queue = True
 
         # initialize the target function
         self.tf = TargetFunctions.convex_quadratic(self.dim, config["target"])
@@ -59,26 +58,26 @@ class DriftAnalysis:
 
         for idx, starting_location in enumerate(self.location):
             self.oa.set_location(starting_location)
-            print("enqueuing")
             if self.queue:
-                job = self.q.enqueue(work_job, self.oa, self.pf, self.states, options)
+                job = self.q.enqueue(work_job, self.oa, self.pf, self.states, options, result_ttl=None)
                 self.jobs.append({
                     "id": idx,
                     "location": starting_location,
                     "job": job,
-                    "not_in_results": True
                 })
             else:
                 self.jobs.append({
                     "id": idx,
                     "location": starting_location,
                     "result": work_job(self.oa, self.pf, self.states, options),
-                    "not_in_results": True
                 })
 
         if self.queue:
             registry = ScheduledJobRegistry(queue=self.q)
             # print(registry.get_job_ids())
+
+    def init_queue(self, redis_connection):
+        self.q = Queue(connection=redis_connection)
 
     def get_locations(self):
         return [{"id": idx, "location": loc} for idx, loc in enumerate(self.location)]
@@ -87,25 +86,27 @@ class DriftAnalysis:
         new_results = []
 
         for job_wrapper in self.jobs:
-            if job_wrapper["not_in_results"]:
-                # continue if the job in the queue doesn't have any results yet
+            # continue if the job in the queue doesn't have any results yet
+            if job_wrapper:
                 if self.queue and job_wrapper["job"].result is None:
                     continue
-
                 new_results.append({
                     "id": job_wrapper["id"],
                     "location": job_wrapper["location"],
                     "data": job_wrapper["job"].result if self.queue else job_wrapper["result"]
                 })
-                job_wrapper["not_in_results"] = False
+
 
         return new_results
 
-    def all_jobs_in_results(self):
-        if len(self.jobs) < len(self.location):
-            return False
+    def remove_results(self, job_ids):
+        for job_id in job_ids:
+            if self.jobs[job_id]:
+                self.jobs[job_id]["job"].delete()
+            self.jobs[job_id] = None
 
-        return all(not job["not_in_results"] for job in self.jobs)
+    def all_jobs_in_results(self):
+        return all(v is None for v in self.jobs)
 
     def generate_locations(self, config):
         sequences = []

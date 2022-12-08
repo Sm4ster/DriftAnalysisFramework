@@ -93,7 +93,7 @@ export default {
           this.finish_run(data.data).then(() => {
             this.$store.state.websocket_connection.send(JSON.stringify(
                 {
-                  message: "run_finished_confirmed",
+                  message: "run_finished",
                   data: {
                     uuid: data.data.uuid
                   }
@@ -107,7 +107,19 @@ export default {
           // this.current_run = data.data.run_id;
         }
         if (data.message === "partial_results") {
-          this.add_data(data.data.run_id, data.data.results);
+          this.add_data(data.data.run_id, data.data.results).then(
+              (e) => {
+                this.$store.state.websocket_connection.send(JSON.stringify(
+                    {
+                      message: "results_received",
+                      data: {
+                        run_id: data.data.run_id,
+                        location_ids: data.data.results.map(e => e.id)
+                      }
+                    }
+                ))
+              }
+          );
         }
       }.bind(this);
 
