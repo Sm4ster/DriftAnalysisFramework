@@ -88,7 +88,6 @@ export default {
       }
     });
   },
-
   methods: {
     expand() {
       this.expanded = !this.expanded;
@@ -97,7 +96,8 @@ export default {
       });
     },
     export() {
-      return this.potential;
+
+      return this.potential.replace(/\r?\n|\r/g, "");
     },
   },
 };

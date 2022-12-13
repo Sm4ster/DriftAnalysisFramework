@@ -6,13 +6,15 @@ from DriftAnalysis import DriftAnalysis
 from datetime import datetime
 
 app = FastAPI()
-open_runs= {}
+open_runs = {}
 
 r = Redis(host='nash.ini.rub.de', port=6379, db=0, password='4xEhjbGNkNPr8UkBQbWL9qmPpXpAeCKMF2G2')
+
 
 # This just makes this variable call by reference
 class StopThreads:
     value = False
+
 
 @app.websocket("/ws")
 async def websocket_endpoint(websocket: WebSocket):
@@ -56,10 +58,8 @@ async def websocket_endpoint(websocket: WebSocket):
             asyncio.create_task(send_new_data(websocket, open_runs, stop_threads))
 
         if data["message"] == "ping":
-
             # print(open_runs["a0515314-e063-44e9-b1bc-c90baf702b1c"].jobs)
             await websocket.send_json({"message": "pong"})
-
 
         if data["message"] == "start_run":
             # make a run uuid
@@ -67,11 +67,10 @@ async def websocket_endpoint(websocket: WebSocket):
 
             # send the run with uuid and the configuration as well as the server time back to the client
             await websocket.send_json({"message": "run_started", "data": {"uuid": run_id, "config": data['config'],
-                                                                     "started_at": datetime.now().strftime(
-                                                                         "%Y-%m-%d %H:%M:%S")}})
+                                                                          "started_at": datetime.now().strftime(
+                                                                              "%Y-%m-%d %H:%M:%S")}})
 
             asyncio.create_task(start_run(run_id, data['config'], open_runs, websocket))
-
 
         if data["message"] == "run_finished":
             # print("removing run", data)
@@ -84,7 +83,7 @@ async def websocket_endpoint(websocket: WebSocket):
 
 async def start_run(run_id, config, open_runs, websocket: WebSocket):
     # create the DriftAnalysisClass
-    analysis = DriftAnalysis(config, run_id, r)
+    analysis = DriftAnalysis(config, run_id)
 
     # add it to the open runs to keep the frontend informed
     open_runs[run_id] = analysis
@@ -120,8 +119,8 @@ async def send_new_data(websocket: WebSocket, open_runs, stop):
             if run[1].all_jobs_in_results():
                 # print("This is gonna end")
                 await websocket.send_json({"message": "run_finished",
-                                      "data": {"uuid": run[0],
-                                               "finished_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S")}})
+                                           "data": {"uuid": run[0],
+                                                    "finished_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S")}})
 
 
 async def test(websocket: WebSocket):
