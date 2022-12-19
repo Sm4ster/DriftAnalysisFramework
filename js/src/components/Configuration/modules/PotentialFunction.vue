@@ -97,7 +97,7 @@ export default {
     },
     export() {
 
-      return this.potential.replace(/\r?\n|\r/g, "");
+      return this.potential.replace(/\r?\n|\r/g, " ");
     },
   },
 };
