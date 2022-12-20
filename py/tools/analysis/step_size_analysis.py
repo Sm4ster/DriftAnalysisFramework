@@ -2,16 +2,21 @@ from DriftAnalysisFramework.OptimizationAlgorithms import CMA_ES
 from DriftAnalysisFramework.TargetFunctions import Sphere
 import numpy as np
 import matplotlib.pyplot as plt
+from worker_module import analyze_step_size
+import time
+from tools.database.JobQueue import JobQueue
 
 # Globals
-sigma_iterations = 200
+sigma_iterations = 1000
 alg_iterations = 10000
-cutoff = 500
+cutoff = 5000
 
 dimension = 2
 
+q = JobQueue("step_size_analysis")
+
 # Experiments
-results = np.empty([sigma_iterations,4])
+results = np.empty([sigma_iterations, 4])
 
 target = Sphere(dimension)
 algorithm = CMA_ES(
@@ -23,33 +28,29 @@ algorithm = CMA_ES(
         "c_p": 0.8333
     }
 )
-algorithm.set_location([1, 0])
-
-for sigma_idx, sigma_22 in enumerate(np.linspace(1, 0.0001, num=sigma_iterations)):
-
+algorithm.set_location([1, 1])
+jobs = []
+for sigma_idx, sigma_22 in enumerate(np.linspace(0.0001, 10, num=sigma_iterations)):
     state = {
         "sigma": 3,
         "cov_m": np.array([[1, 1], [1, sigma_22]]),
         "p_succ": 1
     }
 
-    sigma_array = np.empty([alg_iterations, 1])
+    q.enqueue(analyze_step_size, state, algorithm, {"alg_iterations": alg_iterations, "cutoff": cutoff},
+              meta={"sigma_idx": sigma_idx, "sigma_22": sigma_22, "state": state})
 
-    for idx in range(alg_iterations):
-        next_state = algorithm.iterate(state)
-        sigma_array[idx] = next_state["sigma"]
-        state["sigma"] = next_state["sigma"]
-        state["p_succ"] = next_state["p_succ"]
+while not q.finished():
+    time.sleep(1)
+    print("Checked the queue, still working... " + str(q.open()))
 
-    # remove the first few iterations just to be sure to catch no starting bias
-    sigma_array = np.split(sigma_array, [cutoff, alg_iterations])[1]
-
-    results[sigma_idx] = sigma_22, sigma_array.mean(), sigma_array.var(), sigma_array.max() - sigma_array.min()
+for job in q.jobs:
+    result = job.result
+    results[job.meta["sigma_idx"]] = job.meta["sigma_22"], *result
 
 # Plotting, evaluating results
 plt.title("Middle value of converged Stepsize")
 plt.xlabel("sigma_22")
 plt.ylabel("sigma*")
-plt.plot(results[:,0],results[:,1])
+plt.plot(results[:, 0], results[:, 1])
 plt.show()
-

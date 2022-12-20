@@ -3,7 +3,6 @@ from worker_module import work_job
 from rq.registry import ScheduledJobRegistry
 
 import json
-from redis import Redis
 from rq import Queue
 import numpy as np
 

@@ -119,3 +119,20 @@ def replace_array_values(array, variables):
             else:
                 raise AttributeError('Key is not available: {0}'.format(entry))
     return return_array
+
+
+def analyze_step_size(state, algorithm, options):
+
+    sigma_array = np.empty([options["alg_iterations"], 1])
+
+    for idx in range(options["alg_iterations"]):
+        next_state = algorithm.iterate(state)
+        sigma_array[idx] = next_state["sigma"]
+        state["sigma"] = next_state["sigma"]
+        state["p_succ"] = next_state["p_succ"]
+
+    # remove the first few iterations just to be sure to catch no starting bias
+    sigma_array = np.split(sigma_array, [options["cutoff"], options["alg_iterations"]])[1]
+
+    return sigma_array.mean(), sigma_array.var(), sigma_array.max() - sigma_array.min()
+
