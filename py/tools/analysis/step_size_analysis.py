@@ -4,10 +4,15 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 # Globals
-iterations = 1000
+sigma_iterations = 200
+alg_iterations = 10000
+cutoff = 500
+
 dimension = 2
 
 # Experiments
+results = np.empty([sigma_iterations,4])
+
 target = Sphere(dimension)
 algorithm = CMA_ES(
     target,
@@ -18,26 +23,33 @@ algorithm = CMA_ES(
         "c_p": 0.8333
     }
 )
-algorithm.set_location([0, 1])
+algorithm.set_location([1, 0])
 
-sigma_22 = 10
-state = {
-    "sigma": 100,
-    "cov_m": np.array([[1, 1], [1, sigma_22]]),
-    "p_succ": 1
-}
+for sigma_idx, sigma_22 in enumerate(np.linspace(1, 0.0001, num=sigma_iterations)):
 
-sigma_array = np.empty([iterations, 1])
+    state = {
+        "sigma": 3,
+        "cov_m": np.array([[1, 1], [1, sigma_22]]),
+        "p_succ": 1
+    }
 
-for idx in range(iterations):
-    next_state = algorithm.iterate(state)
-    sigma_array[idx] = next_state["sigma"]
-    state["sigma"] = next_state["sigma"]
-    state["p_succ"] = next_state["p_succ"]
+    sigma_array = np.empty([alg_iterations, 1])
+
+    for idx in range(alg_iterations):
+        next_state = algorithm.iterate(state)
+        sigma_array[idx] = next_state["sigma"]
+        state["sigma"] = next_state["sigma"]
+        state["p_succ"] = next_state["p_succ"]
+
+    # remove the first few iterations just to be sure to catch no starting bias
+    sigma_array = np.split(sigma_array, [cutoff, alg_iterations])[1]
+
+    results[sigma_idx] = sigma_22, sigma_array.mean(), sigma_array.var(), sigma_array.max() - sigma_array.min()
 
 # Plotting, evaluating results
-print(sigma_array.mean())
-
-plt.plot(sigma_array)
+plt.title("Middle value of converged Stepsize")
+plt.xlabel("sigma_22")
+plt.ylabel("sigma*")
+plt.plot(results[:,0],results[:,1])
 plt.show()
 
