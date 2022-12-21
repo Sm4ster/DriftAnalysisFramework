@@ -8,7 +8,7 @@ from tools.database.JobQueue import JobQueue
 
 # Globals
 sigma_iterations = 1000
-alg_iterations = 10000
+alg_iterations = 50000
 cutoff = 5000
 
 dimension = 2
@@ -28,7 +28,7 @@ algorithm = CMA_ES(
         "c_p": 0.8333
     }
 )
-algorithm.set_location([1, 1])
+algorithm.set_location([1, 0])
 jobs = []
 for sigma_idx, sigma_22 in enumerate(np.linspace(0.0001, 10, num=sigma_iterations)):
     state = {
