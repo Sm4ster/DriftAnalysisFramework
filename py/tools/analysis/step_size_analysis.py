@@ -1,16 +1,14 @@
 from DriftAnalysisFramework.OptimizationAlgorithms import CMA_ES
 from DriftAnalysisFramework.TargetFunctions import Sphere
 import numpy as np
-import feyn
-import pandas as pd
 import matplotlib.pyplot as plt
 from worker_module import analyze_step_size
 import time
 from tools.database.JobQueue import JobQueue
 
 # Globals
-sigma_iterations = 500
-alg_iterations = 80000
+sigma_iterations = 1000
+alg_iterations = 100000
 cutoff = 10000
 
 dimension = 2
@@ -57,9 +55,7 @@ plt.ylabel("sigma*")
 plt.plot(results[:, 0], results[:, 1])
 plt.show()
 
-ql = feyn.QLattice()
-train = pd.DataFrame(results, columns=["sigma_22", "sigma*"])
-models = ql.auto_run(train, output_name='sigma*')
+np.save("sigma_data", results)
 
-best = models[0]
-best.plot(train, filename="feyn-summary.html")
+print("saved data")
+
