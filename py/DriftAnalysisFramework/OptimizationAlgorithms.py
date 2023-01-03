@@ -87,14 +87,14 @@ class CMA_ES:
             # a) Let x <- y
             m_t = x_t
             # b) update the success probability
-            p_succ = (1 - self.c_p) * p_succ + self.c_p
+            p_succ = 1  # (1 - self.c_p) * p_succ + self.c_p
             # c) omitted
             # d) update the covariance matrix as in equation (1) without search paths
             cov_m = (1 - self.c_cov_plus) * cov_m + self.c_cov_plus * np.outer(z, z)
 
         # Otherwise update the success probability
         else:
-            p_succ = (1 - self.c_p) * p_succ
+            p_succ = 0  # (1 - self.c_p) * p_succ
 
         # step 3: update the global step size
         sigma_t = sigma_t * np.exp((1 / self.d) * ((p_succ - self.p_target) / (1 - self.p_target)))

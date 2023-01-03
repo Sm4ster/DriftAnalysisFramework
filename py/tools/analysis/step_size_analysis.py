@@ -30,10 +30,10 @@ algorithm = CMA_ES(
 )
 algorithm.set_location([1, 0])
 jobs = []
-for sigma_idx, sigma_22 in enumerate(np.linspace(1, 10, num=sigma_iterations)):
+for sigma_idx, sigma_22 in enumerate(np.geomspace(0.01, 100, num=sigma_iterations)):
     state = {
         "sigma": 3,
-        "cov_m": np.array([[1, 1], [1, sigma_22]]),
+        "cov_m": np.array([[1, 0], [0, sigma_22]]),
         "p_succ": 1
     }
 
@@ -48,14 +48,17 @@ for job in q.jobs:
     result = job.result
     results[job.meta["sigma_idx"]] = job.meta["sigma_22"], result[0]
 
+
+np.save("sigma_data", results)
+print("saved data")
+
 # Plotting, evaluating results
 plt.title("Middle value of converged Stepsize")
 plt.xlabel("sigma_22")
 plt.ylabel("sigma*")
-plt.plot(results[:, 0], results[:, 1])
+plt.loglog(results[:, 0], results[:, 1])
 plt.show()
 
-np.save("sigma_data", results)
 
-print("saved data")
+
 
