@@ -76,7 +76,11 @@ class DriftAnalysis:
             # print(registry.get_job_ids())
 
     def init_queue(self, redis_connection):
-        self.q = Queue(connection=redis_connection)
+        try:
+            self.q = Queue("drift_analysis", connection=redis_connection)
+        except:
+            raise Exception("cannot make connection to redis server")
+
 
     def get_locations(self):
         return [{"id": idx, "location": loc} for idx, loc in enumerate(self.location)]
@@ -94,7 +98,6 @@ class DriftAnalysis:
                     "location": job_wrapper["location"],
                     "data": job_wrapper["job"].result if self.queue else job_wrapper["result"]
                 })
-
 
         return new_results
 
