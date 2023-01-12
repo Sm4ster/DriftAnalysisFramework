@@ -62,28 +62,28 @@
               </thead>
               <tbody class="bg-white">
                 <tr
-                  v-for="(datapoint, datapointIdx) in data_"
-                  :class="datapointIdx % 2 === 0 ? undefined : 'bg-gray-50'"
+                  v-for="(datapoint_idx, idx) in data_list"
+                  :class="idx % 2 === 0 ? undefined : 'bg-gray-50'"
                 >
                   <td
                     class="whitespace-nowrap py-4 pl-4 pr-3 text-sm font-medium text-gray-900 sm:pl-6"
                   >
-                    {{ datapoint.id }}
+                    {{ data.results[datapoint_idx].location_id }}
                   </td>
                   <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
-                    {{ datapoint.drift }}
+                    {{ data.results[datapoint_idx].drift }}
                   </td>
                   <td
                     v-for="column in variable_columns"
                     class="whitespace-nowrap px-3 py-4 text-sm text-gray-500"
                   >
-                    {{ datapoint.state[column.code] }}
+                    {{ data.results[datapoint_idx].state[column.code] }}
                   </td>
                   <td
                     class="relative whitespace-nowrap py-4 pl-3 pr-4 text-right text-sm font-medium sm:pr-6"
                   >
                     <button
-                      @click="$emit('state_selected', datapoint.id)"
+                      @click="$emit('state_selected', data.results[datapoint_idx].id)"
                       class="text-indigo-600 hover:text-indigo-900"
                     >
                       Details
@@ -172,25 +172,29 @@ export default {
     },
   },
   computed: {
-    data_() {
+    data_list() {
       let sort_by = this.sort_by.map((e) => {
         let object = {};
-        object[e.dir] = function (u) {
-          return e.state ? u.state[e.code] : u[e.code];
-        }.bind(e);
+        console.log("e", e)
+        object[e.dir] = (u) => {
+          console.log("u", u)
+          return e.state ? this.data.results[u].state[e.code] : this.data.results[u][e.code];
+        };
         return object;
       });
 
-      let data = sort(this.data.states).by(sort_by);
+      let list = [...this.data.results.keys()]
 
-      return data.filter(
+      list = sort(list).by(sort_by);
+
+      return list.filter(
         (e, i) =>
           i >= (this.current_page - 1) * this.items_per_page &&
           i < this.current_page * this.items_per_page
       );
     },
     total_pages() {
-      return Math.ceil(this.data.states.length / this.items_per_page);
+      return Math.ceil(this.data.results.length / this.items_per_page);
     },
   },
 };

@@ -65,11 +65,13 @@ class DriftAnalysis:
                     "job": job,
                 })
             else:
+                print("[Local Mode]: Working job on local machine (" + str(idx) + ")")
                 self.jobs.append({
                     "id": idx,
                     "location": starting_location,
                     "result": work_job(self.oa, self.pf, self.states, options),
                 })
+                print("[Local Mode]: Finished job (" + str(idx) + ")")
 
         if self.queue:
             registry = ScheduledJobRegistry(queue=self.q)
@@ -80,7 +82,6 @@ class DriftAnalysis:
             self.q = Queue("drift_analysis", connection=redis_connection)
         except:
             raise Exception("cannot make connection to redis server")
-
 
     def get_locations(self):
         return [{"id": idx, "location": loc} for idx, loc in enumerate(self.location)]

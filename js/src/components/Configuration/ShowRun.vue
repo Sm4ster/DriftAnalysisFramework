@@ -3,7 +3,7 @@
     <div class="sticky top-0 z-40 bg-indigo-600 px-5 py-3">
       <div class="flex justify-between">
         <button
-          @click="$emit('overview')"
+          @click="$store.commit('change_mode', 'overview')"
           class="flex font-semibold text-white"
         >
           <ArrowLeftIcon class="my-auto mr-1 h-4 w-4 stroke-2" />
@@ -149,7 +149,7 @@
           <div class="flex justify-between font-thin text-gray-700">
             <div>
               <div
-                v-for="(dim, i) in $store.state.selected_run.config.location
+                v-for="(dim, i) in run_data.config.location
                   .vector"
               >
                 $x_{{ i + 1 }}$ - {{ dim.scale }} | {{ dim.distribution }} |
@@ -166,7 +166,7 @@
           <SingleFilterVariable
             :extreme_values="extreme_values(filter_variable.code)"
             :details="
-              $store.state.selected_run.config.variables[filter_variable.code]
+              run_data.config.variables[filter_variable.code]
             "
             @filter="filters.variables[filter_variable.code] = $event"
             v-for="filter_variable in filter_variables(true)"
@@ -216,27 +216,16 @@ export default {
     TrashIcon,
     CloudArrowDownIcon,
   },
-  props: ["run_id"],
   emits: ["overview", "filters", "apply_filters", "eval_potential"],
   data: () => {
     return {
       options: false,
       edit_potential: false,
-      run_data: null,
       filters: {
         location: [],
         variables: {},
       },
     };
-  },
-  created() {
-    db.runs
-      .where({ uuid: this.run_id })
-      .first()
-      .then((data) => {
-        this.run_data = data;
-        this.$emit("apply_filters", { init: true });
-      });
   },
   mounted() {
     this.$emit("filters", this.filters);
@@ -312,8 +301,11 @@ export default {
     },
   },
   computed: {
+    run_data(){
+      return this.$store.getters.selected_run_data
+    },
     total_samples() {
-      return this.$store.state.selected_run.config.location.vector.reduce(
+      return this.run_data.config.location.vector.reduce(
         (prod, factor) => prod * factor.quantity,
         1
       );

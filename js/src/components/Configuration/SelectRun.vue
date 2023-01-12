@@ -3,7 +3,7 @@
     <div>
       <div class="flex justify-end bg-indigo-600 px-5 py-3">
         <button
-          @click="$emit('new_run')"
+          @click="$store.commit('change_mode', 'new')"
           class="flex space-x-1 font-semibold text-white"
         >
           <PlusIcon class="my-auto h-4 w-4" />
@@ -26,10 +26,7 @@
             </div>
             <button
               v-if="'finished_at' in run"
-              @click="
-                $store.dispatch('select_run', run.uuid);
-                $emit('run_selected', run.uuid);
-              "
+              @click="$store.dispatch('select_run', run.uuid);"
               class="px-5 py-1"
             >
               <ArrowRightIcon class="my-auto h-4 w-4" />
@@ -60,7 +57,6 @@ import { sort } from "fast-sort";
 
 export default {
   name: "SelectRun",
-  props: ["run_id"],
   emits: ["run_selected"],
   components: {
     PlusIcon,
@@ -70,26 +66,16 @@ export default {
   data: () => {
     return {
       selected_run_uuid: null,
-      stored_runs: useObservable(liveQuery(() => db.runs.toArray())),
-      locations: useObservable(
-        liveQuery(async () => {
-          return await db.locations
-            .where("run_id", run_id)
-            .where("has_results", true)
-            .toArray();
-        })
-      ),
     };
   },
   computed: {
     runs() {
-      return sort(this.stored_runs).asc((u) => u.started_at);
+      return sort(this.$store.state.runs).asc((u) => u.started_at);
     },
   },
   methods: {
     percentage_completed(run) {
-      // console.log(this.locations);
-      return 100;
+      return 95;
     },
   },
 };

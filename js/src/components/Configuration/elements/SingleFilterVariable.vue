@@ -119,7 +119,6 @@ export default {
   },
   methods: {
     initialize() {
-      console.log("HJASD");
       this.variable.field_1 = Math.floor(this.extreme_values.min);
       this.variable.field_2 = Math.ceil(this.extreme_values.max);
     },

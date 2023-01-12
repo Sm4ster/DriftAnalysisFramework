@@ -1,7 +1,7 @@
 <template>
   <div>
     <div class="sticky top-0 z-40 bg-indigo-600 px-5 py-3">
-      <button @click="$emit('overview')" class="flex font-semibold text-white">
+      <button @click="$store.commit('change_mode', 'overview')" class="flex font-semibold text-white">
         <ArrowLeftIcon class="my-auto mr-1 h-4 w-4" />
         <span>Overview</span>
       </button>
@@ -50,7 +50,7 @@ export default {
     PotentialFunction,
     AlgorithmOptions,
   },
-  emits: ["target_changed", "overview", "start_run"],
+  emits: ["target_changed", "start_run"],
   mixins: [Validation],
   data: () => {
     return {

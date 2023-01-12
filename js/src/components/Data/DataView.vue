@@ -73,7 +73,7 @@
 
     <div v-if="modes[mode_idx].code === 'location'">
       <StateTable
-        :run="run"
+        :run="$store.getters.selected_run_data"
         :data="data[location_id]"
         @state_selected="
           state_id = $event;
@@ -84,7 +84,7 @@
 
     <div v-if="modes[mode_idx].code === 'state'">
       <SamplesTable
-        :run="run"
+        :run="$store.getters.selected_run_data"
         :data="data[location_id].states[state_id]"
         :potential_function="potential_function"
       />
@@ -100,7 +100,7 @@ import { ArrowLeftIcon } from "@heroicons/vue/24/solid";
 
 export default {
   name: "DataView",
-  props: ["data", "run", "potential_function"],
+  props: ["potential_function"],
   components: { LocationsTable, StateTable, SamplesTable, ArrowLeftIcon },
   data: () => {
     return {
@@ -114,13 +114,10 @@ export default {
       state_id: "",
     };
   },
-  created() {
-    console.log(this.data);
-  },
-  watch: {
-    run() {
-      this.mode = "overview";
+  computed: {
+    data(){
+      return this.$store.state.locations
     },
-  },
+  }
 };
 </script>

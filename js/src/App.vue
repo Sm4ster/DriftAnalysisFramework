@@ -59,6 +59,7 @@ export default {
   },
   created() {
     this.connect_websocket();
+    this.$store.dispatch("init")
   },
 
   methods: {

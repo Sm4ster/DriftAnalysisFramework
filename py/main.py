@@ -1,8 +1,10 @@
 import asyncio, uuid, pickle, copy
 from redis import Redis
+import time
 
 from fastapi import FastAPI, WebSocket
 from DriftAnalysis import DriftAnalysis
+from tools.database.JobQueue import JobQueue
 from datetime import datetime
 
 app = FastAPI()
@@ -44,18 +46,18 @@ async def websocket_endpoint(websocket: WebSocket):
             for run_uuid in data["data"]:
                 run_object = r.get(run_uuid)
                 if run_object:
-                    print("I do have this object")
+                    print("Requested Object found, start sending data... (" + run_uuid + ")")
                     open_runs[run_uuid] = pickle.loads(run_object)
-                    print(open_runs[run_uuid].jobs)
+                    # print(open_runs[run_uuid].jobs)
 
                     # give the redis connection to give the queue back
                     open_runs[run_uuid].init_queue(r)
 
                 else:
-                    print("I do not have this object")
+                    print("Requested object not found (" + run_uuid + ")")
 
             # start a background thread that sends new data to the user
-            asyncio.create_task(send_new_data(websocket, open_runs, stop_threads))
+            #asyncio.create_task(send_new_data(websocket, open_runs, stop_threads))
 
         if data["message"] == "ping":
             # print(open_runs["a0515314-e063-44e9-b1bc-c90baf702b1c"].jobs)
@@ -70,7 +72,7 @@ async def websocket_endpoint(websocket: WebSocket):
                                                                           "started_at": datetime.now().strftime(
                                                                               "%Y-%m-%d %H:%M:%S")}})
 
-            asyncio.create_task(start_run(run_id, data['config'], open_runs, websocket))
+            # asyncio.create_task(start_run(run_id, data['config'], open_runs, websocket))
 
         if data["message"] == "run_finished":
             # print("removing run", data)
@@ -82,8 +84,9 @@ async def websocket_endpoint(websocket: WebSocket):
 
 
 async def start_run(run_id, config, open_runs, websocket: WebSocket):
+
     # create the DriftAnalysisClass
-    analysis = DriftAnalysis(config, run_id)
+    analysis = DriftAnalysis(config, run_id, redis_connection=r)
 
     # add it to the open runs to keep the frontend informed
     open_runs[run_id] = analysis

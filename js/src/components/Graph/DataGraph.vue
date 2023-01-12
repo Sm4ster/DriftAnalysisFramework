@@ -6,7 +6,7 @@
 import { createCanvas } from "vb-canvas";
 
 export default {
-  props: ["viewbox", "data", "draw"],
+  props: ["viewbox", "draw"],
   emits: ["has_drawn"],
   data: () => {
     return {
@@ -80,6 +80,12 @@ export default {
     },
   },
 
+  computed: {
+    data(){
+      console.log("something happenning here?")
+      return this.$store.state.locations
+    }
+  },
   methods: {
     draw_data() {
       this.data.forEach(

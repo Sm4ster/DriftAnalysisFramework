@@ -71,13 +71,13 @@
                     {{ datapoint.drift }}
                   </td>
                   <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
-                    {{ datapoint.states.filter((d) => d.drift < 0).length }}
+                    {{ datapoint.results.filter((d) => d.drift < 0).length }}
                   </td>
                   <td
                     class="relative whitespace-nowrap py-4 pl-3 pr-4 text-right text-sm font-medium sm:pr-6"
                   >
                     <button
-                      @click="$emit('location_selected', datapoint.id)"
+                      @click="$emit('location_selected',datapointIdx)"
                       class="text-indigo-600 hover:text-indigo-900"
                     >
                       Details
@@ -127,6 +127,7 @@ export default {
       sort_by: [],
     };
   },
+  created(){console.log(this.data)},
   methods: {
     sort(code) {
       let index = this.sort_by.findIndex((e) => e.code === code);
@@ -151,6 +152,7 @@ export default {
       let data = sort(this.data).by(sort_by);
 
       for (let i = 0; i < this.items_per_page; i++) {}
+      console.log(data)
       return data.filter(
         (e, i) =>
           i >= (this.current_page - 1) * this.items_per_page &&
