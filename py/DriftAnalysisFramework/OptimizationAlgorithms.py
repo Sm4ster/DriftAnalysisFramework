@@ -57,8 +57,7 @@ class CMA_ES:
         # constants
         self.d = constants["d"]  # 1 + self.dim / 2
         self.p_target = constants["p_target"]  # 2 / 11
-        self.c_cov_plus = constants["c_cov_plus"]  # 2 / (np.power(self.dim, 2) + 6)
-        self.c_p = constants["c_p"]  # 1 / 12
+        self.c_cov_plus = constants["c_cov"]  # 2 / (np.power(self.dim, 2) + 6)
 
         # make target function available
         self.target = target

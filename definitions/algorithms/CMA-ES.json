@@ -97,30 +97,6 @@
         "distribution": "uniform",
         "scale": "linear"
       }
-    },
-    {
-      "code": "p_succ",
-      "symbol": "p_{succ}",
-      "variation_enabled": true,
-      "bottom_bias": true,
-      "fields": {
-        "field_1": {
-          "default": 1,
-          "validation": "required|numeric|gt:0"
-        },
-        "field_2": {
-          "default": 10,
-          "validation": "required|numeric|gt:0"
-        },
-        "quantity": {
-          "default": 10,
-          "validation": "required|numeric|gt:0"
-        }
-      },
-      "defaults": {
-        "distribution": "uniform",
-        "scale": "linear"
-      }
     }
   ],
   "matrices": [
@@ -154,17 +130,10 @@
       "validation": "required|numeric|gt:0"
     },
     {
-      "code": "c_cov_plus",
-      "symbol": "c^{+}_{cov}",
+      "code": "c_cov",
+      "symbol": "c_{cov}",
       "bottom_bias": false,
       "default": 0.2,
-      "validation": "required|numeric|gt:0"
-    },
-    {
-      "code": "c_p",
-      "symbol": "c_{p}",
-      "bottom_bias": false,
-      "default": 0.8333,
       "validation": "required|numeric|gt:0"
     }
   ]
