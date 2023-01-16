@@ -11,7 +11,7 @@ def f2(sigma22):
 #
 #0.00057 - 0.002*log(1.5e-6*sigma22 - 0.099)
 
-results = np.load("sigma_data_pi.npy")
+results = np.load("sigma_data_pi_old.npy")
 
 
 # function_evals0 = np.empty([results.shape[0], 1])

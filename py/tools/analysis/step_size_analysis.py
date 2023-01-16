@@ -18,7 +18,7 @@ max_excentricity = 100000
 q = JobQueue("step_size_analysis")
 
 # Experiments
-results = np.empty([arc_iterations, sigma_iterations, 5])
+results = np.empty([arc_iterations, sigma_iterations, 6])
 
 target = Sphere(dimension)
 algorithm = CMA_ES(
@@ -31,12 +31,13 @@ algorithm = CMA_ES(
     }
 )
 
-for i in range(arc_iterations):
-    angle = np.linspace(0, np.pi/4, arc_iterations)
-    algorithm.set_location([np.cos(angle), np.sin(angle)])
+angle_sequence = np.linspace(0, np.pi / 4, arc_iterations)
+for angle_idx, angle in enumerate(angle_sequence):
+    location = [np.cos(angle), np.sin(angle)]
+    algorithm.set_location(location)
 
-    sequence = np.concatenate((1/(np.flip(np.geomspace(1, max_excentricity, num=int(sigma_iterations/2)))), np.geomspace(1, max_excentricity, num=int(sigma_iterations/2))))
-    for sigma_idx, sigma_var in enumerate(sequence):
+    sigma_sequence = np.concatenate((1/(np.flip(np.geomspace(1, max_excentricity, num=int(sigma_iterations/2)))), np.geomspace(1, max_excentricity, num=int(sigma_iterations/2))))
+    for sigma_idx, sigma_var in enumerate(sigma_sequence):
         state = {
             "sigma": 3,
             "cov_m": np.array([[1/sigma_var, 0], [0, sigma_var]]),
@@ -44,10 +45,10 @@ for i in range(arc_iterations):
         }
 
         q.enqueue(analyze_step_size, state, algorithm, {"alg_iterations": alg_iterations, "cutoff": cutoff},
-                  meta={"position_idx": i, "angle": angle, "location": [np.cos(angle), np.sin(angle)], "sigma_idx": sigma_idx, "sigma_var": sigma_var, "dir_cond_number": np.power(sigma_var, 2), "state": state},
+                  meta={"position_idx": angle_idx, "angle": angle, "location": location, "sigma_idx": sigma_idx, "sigma_var": sigma_var, "dir_cond_number": np.power(sigma_var, 2)},
                   result_ttl=86400)
 
-        if (sigma_idx % 10 == 0): print("Queued jobs" + str(sigma_iterations * i + sigma_idx) + "/" + str(sigma_iterations * arc_iterations))
+        if (sigma_idx % 10 == 0): print("Queued jobs " + str(sigma_iterations * angle_idx + sigma_idx) + "/" + str(sigma_iterations * arc_iterations))
 
 print("finished queueing")
 
@@ -60,7 +61,7 @@ print("Receiving data...")
 for job in q.jobs:
     print("checking jobs...")
     result = job.result
-    results[job.meta["position_idx"]][job.meta["sigma_idx"]] =  result[0], job.meta["sigma_var"], job.meta["angle"], job.meta["location"][0], job.meta["location"][1]
+    results[job.meta["position_idx"]][job.meta["sigma_idx"]] =  result[0], job.meta["sigma_var"], job.meta["angle"], job.meta["dir_cond_number"], job.meta["location"][0], job.meta["location"][1]
 
 
 np.save("sigma_data_pi", results)
