@@ -7,17 +7,18 @@ import time
 from tools.database.JobQueue import JobQueue
 
 # Globals
-curves = 4
-sigma_iterations = 2000
-alg_iterations = 200000
-cutoff = 50000
+sigma_iterations = 1000
+arc_iterations = 100
+alg_iterations = 100000
+cutoff = 20000
 
 dimension = 2
+max_excentricity = 100000
 
 q = JobQueue("step_size_analysis")
 
 # Experiments
-results = np.empty([curves+1, sigma_iterations, 5])
+results = np.empty([arc_iterations, sigma_iterations, 5])
 
 target = Sphere(dimension)
 algorithm = CMA_ES(
@@ -30,20 +31,23 @@ algorithm = CMA_ES(
     }
 )
 
-for i in range(curves + 1):
-    angle = np.pi / 2 * i / curves
+for i in range(arc_iterations):
+    angle = np.linspace(0, np.pi/4, arc_iterations)
     algorithm.set_location([np.cos(angle), np.sin(angle)])
-    jobs = []
-    for sigma_idx, sigma_22 in enumerate(np.geomspace(0.00001, 100000, num=sigma_iterations)):
+
+    sequence = np.concatenate((1/(np.flip(np.geomspace(1, max_excentricity, num=int(sigma_iterations/2)))), np.geomspace(1, max_excentricity, num=int(sigma_iterations/2))))
+    for sigma_idx, sigma_var in enumerate(sequence):
         state = {
             "sigma": 3,
-            "cov_m": np.array([[1, 0], [0, sigma_22]]),
+            "cov_m": np.array([[1/sigma_var, 0], [0, sigma_var]]),
             "p_succ": 1
         }
 
         q.enqueue(analyze_step_size, state, algorithm, {"alg_iterations": alg_iterations, "cutoff": cutoff},
-                  meta={"position_idx": i, "angle": angle, "location": [np.cos(angle), np.sin(angle)], "sigma_idx": sigma_idx, "sigma_22": sigma_22, "state": state},
+                  meta={"position_idx": i, "angle": angle, "location": [np.cos(angle), np.sin(angle)], "sigma_idx": sigma_idx, "sigma_var": sigma_var, "dir_cond_number": np.power(sigma_var, 2), "state": state},
                   result_ttl=86400)
+
+        if (sigma_idx % 10 == 0): print("Queued jobs" + str(sigma_iterations * i + sigma_idx) + "/" + str(sigma_iterations * arc_iterations))
 
 print("finished queueing")
 
@@ -52,19 +56,20 @@ while not q.finished():
     print("Checked the queue, still working... " + str(q.open()))
 
 
-print("starting so save data...")
+print("Receiving data...")
 for job in q.jobs:
+    print("checking jobs...")
     result = job.result
-    results[job.meta["position_idx"]][job.meta["sigma_idx"]] = job.meta["location"][0], job.meta["location"][1], job.meta["angle"], job.meta["sigma_22"], result[0]
+    results[job.meta["position_idx"]][job.meta["sigma_idx"]] =  result[0], job.meta["sigma_var"], job.meta["angle"], job.meta["location"][0], job.meta["location"][1]
+
 
 np.save("sigma_data_pi", results)
-
 print("saved data")
 
 # Plotting, evaluating results
 plt.title("Middle value of converged Stepsize")
-plt.xlabel("sigma_22")
+plt.xlabel("sigma_var")
 plt.ylabel("sigma*")
-for i in range(curves+1):
-    plt.loglog(results[i, :, 4], results[i, :, 5], lw=0.2)
+for i in range(arc_iterations):
+    plt.loglog(results[i, :, 1], results[i, :, 0], lw=0.2)
 plt.show()
