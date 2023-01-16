@@ -42,3 +42,7 @@ class JobQueue:
 
     def remove(self, job_id):
         FinishedJobRegistry(queue=self.q).remove(job_id)
+
+    def empty(self):
+       for job in self.get_finished_jobs():
+            self.remove(job.id)
