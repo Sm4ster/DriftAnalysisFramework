@@ -10,10 +10,10 @@ results = np.load("sigma_data_pi.npy")
 # print(a.reshape((6,5)))
 # data = results.reshape((10000, 5))
 
-data=results[0]
+data=results[99]
 
 ql = feyn.QLattice()
-train = pd.DataFrame(data, columns=["x", "y", "angle", "sigma_22", "sigma*"])
+train = pd.DataFrame(data[:, :2], columns=[ "sigma*", "sigma_var"]) # "angle", "dir_cond_number", "x", "y",
 models = ql.auto_run(train, output_name='sigma*')
 
 for idx, model in enumerate(models):

@@ -2,7 +2,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 
-results = np.load("sigma_data_pi.npy")
+results = np.load("sigma_data_pi_old.npy")
 
 plt.figure(dpi=300)
 plt.loglog(results[0, :, 3], results[0, :, 4], lw=0.2, label="curve 1")
