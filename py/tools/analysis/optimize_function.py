@@ -5,7 +5,6 @@ import numpy as np
 def f0(sigma22, a=5.4):
     return a
 
-
 def f1(sigma22, a=0.98, b=0.35, c=0.51, d=1.0):
     return a - b * np.log(np.log(c * sigma22 + d) ** 2)
 

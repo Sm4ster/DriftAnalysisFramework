@@ -35,6 +35,7 @@
               <div class="flex flex-col space-y-5 mb-10">
                 <LocalMode></LocalMode>
                 <PingTest></PingTest>
+                <Precision></Precision>
               </div>
 
               <div
@@ -75,6 +76,7 @@ import {
 import {CheckIcon} from "@heroicons/vue/24/outline";
 import LocalMode from "./LocalMode.vue";
 import PingTest from "./PingTest.vue";
+import Precision from "./Precision.vue"
 
 export default {
   name: "Settings",
@@ -86,7 +88,8 @@ export default {
     TransitionRoot,
     CheckIcon,
     LocalMode,
-    PingTest
+    PingTest,
+    Precision
   },
   data: () => {
     return {

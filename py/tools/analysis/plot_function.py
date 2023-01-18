@@ -1,19 +1,25 @@
 import numpy as np
 import matplotlib.pyplot as plt
 
+
 def f0(sigmavar):
-    return 0.0055 - 0.063/(-0.00038*sigmavar - 0.1) #0.0078 + 0.071/(0.00041*sigmavar + 0.11)
+    return 0.0055 - 0.063 / (-0.00038 * sigmavar - 0.1)  # 0.0078 + 0.071/(0.00041*sigmavar + 0.11)
+
+
 def f1(sigma22):
-    return (25 / (((sigma22+10)*2) ** 1.5))
+    return (25 / (((sigma22 + 10) * 2) ** 1.5))
+
+
 def f2(sigma22):
-    return (25 / (((sigma22+5)*1) ** 1.5))
+    return (25 / (((sigma22 + 5) * 1) ** 1.5))
+
 
 plt.figure(dpi=600)
-#0.00057 - 0.002*log(1.5e-6*sigma22 - 0.099)
+# 0.00057 - 0.002*log(1.5e-6*sigma22 - 0.099)
 results = np.load("sigma_data_pi.npy")
 
-curve_idxs = [0,49,99]
-plot_functions = True
+curve_idxs = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 19, 29, 39, 49, 59, 69, 79, 89, 99]
+plot_functions = False
 plot_helping_lines = False
 
 # x axis array, we take the 0th one, since it is as good as any
