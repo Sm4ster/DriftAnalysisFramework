@@ -1,45 +1,48 @@
 import numpy as np
 import matplotlib.pyplot as plt
 
-def f0(sigma22):
-    return 5.4
+def f0(sigmavar):
+    return 0.0055 - 0.063/(-0.00038*sigmavar - 0.1) #0.0078 + 0.071/(0.00041*sigmavar + 0.11)
 def f1(sigma22):
-    return 0.98 - 0.35 * np.log(np.log(0.51 * sigma22 + 1.0) ** 2)
+    return (25 / (((sigma22+10)*2) ** 1.5))
 def f2(sigma22):
-    return (25 / (((sigma22 +1.8)*2.5) ** 1.01))
+    return (25 / (((sigma22+5)*1) ** 1.5))
 
-#
+plt.figure(dpi=600)
 #0.00057 - 0.002*log(1.5e-6*sigma22 - 0.099)
+results = np.load("sigma_data_pi.npy")
 
-results = np.load("sigma_data_pi_old.npy")
+curve_idxs = [0,49,99]
+plot_functions = True
+plot_helping_lines = False
 
+# x axis array, we take the 0th one, since it is as good as any
+x_axis_idx = 1
+x_axis = results[0][:, x_axis_idx]
 
-# function_evals0 = np.empty([results.shape[0], 1])
-function_evals1 = np.empty([results.shape[0], 1])
-function_evals2 = np.empty([results.shape[0], 1])
+# Plot the ground truth lines
+for curve_idx in curve_idxs:
+    plt.loglog(x_axis, results[curve_idx][:, 0], linestyle='-', lw=0.2)
 
-for idx in range(results.shape[0]):
-    # print(function_evals)
-    # function_evals[idx] = 1
-    # function_evals0[idx] = f0(results[idx][0])
-    function_evals1[idx] = f1(results[idx][0])
-    function_evals2[idx] = f2(results[idx][0])
+# Plot functions
+if plot_functions:
+    function_evals0 = np.empty([x_axis.shape[0], 1])
+    function_evals1 = np.empty([x_axis.shape[0], 1])
+    function_evals2 = np.empty([x_axis.shape[0], 1])
 
-# Plot the first line
-# plt.loglog(results[:, 0], function_evals0, color='red', linestyle='--', label='f0')
-plt.loglog(results[:, 0], function_evals1, color='red', linestyle=':', label='f1')
-plt.loglog(results[:, 0], function_evals2, color='red', linestyle='--', label='f2')
+    for idx, x in enumerate(x_axis):
+        function_evals0[idx] = f0(x)
+        function_evals1[idx] = f1(x)
+        function_evals2[idx] = f2(x)
 
-# Plot the second line
-plt.loglog(results[:, 0], results[:, 1], color='blue', linestyle='-', label='ground truth')
+    # plt.loglog(x_axis, function_evals0, linestyle='--', label='f0', lw=0.5)
+    plt.loglog(x_axis, function_evals1, linestyle=':', label='f1', lw=0.5)
+    plt.loglog(x_axis, function_evals2, linestyle='-', label='f2', lw=0.5)
 
-plt.hlines(y=5.5, xmin=10 ** (-6), xmax=10, color='g', linestyle='--')
-plt.vlines(x=0.005, ymin=10 ** (-6), ymax=10, color='g', linestyle='--')
+# plot helping lines
+if plot_helping_lines:
+    plt.vlines(x=0.005, ymin=10 ** (-6), ymax=10, color='g', linestyle='--')
+    plt.vlines(x=50, ymin=10 ** (-6), ymax=10, color='g', linestyle='--')
 
-plt.vlines(x=50, ymin=10 ** (-6), ymax=10, color='g', linestyle='--')
-
-# Add a legend
 plt.legend()
-
-# Show the plot
 plt.show()

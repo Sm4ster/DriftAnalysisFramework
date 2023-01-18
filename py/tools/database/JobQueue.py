@@ -2,6 +2,7 @@ from redis import Redis
 from rq import Queue
 from rq.registry import FinishedJobRegistry
 from rq.job import Job
+from datetime import datetime, timedelta
 
 
 def get_queue(name):
@@ -44,5 +45,5 @@ class JobQueue:
         FinishedJobRegistry(queue=self.q).remove(job_id)
 
     def empty(self):
-       for job in self.get_finished_jobs():
-            self.remove(job.id)
+        time = datetime.now() + timedelta(days=5)
+        FinishedJobRegistry(queue=self.q).cleanup(time.timestamp())

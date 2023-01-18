@@ -7,6 +7,8 @@ q = JobQueue("step_size_analysis")
 arc_iterations = 100
 sigma_iterations = 1000
 
+q.get_finished()
+
 # results = np.empty([arc_iterations, sigma_iterations, 6])
 
 # for job in q.get_finished_jobs():

@@ -3,17 +3,17 @@ import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 
-results = np.load("sigma_data_pi_old.npy")
+results = np.load("sigma_data_pi.npy")
 
 
 # a = np.array([[[1,1,1,1,1],[2,2,2,2,2],[3,3,3,3,3]],[[11,11,11,11,11],[22,22,22,22,22],[33,33,33,33,33]]], dtype=object)
 # print(a.reshape((6,5)))
 # data = results.reshape((10000, 5))
 
-data=results[0]
+data=results[99]
 
 ql = feyn.QLattice()
-train = pd.DataFrame(data, columns=["x", "y", "angle", "sigma_22", "sigma*"])
+train = pd.DataFrame(data[:, :2], columns=[ "sigma*", "sigma_var"]) # "angle", "dir_cond_number", "x", "y",
 models = ql.auto_run(train, output_name='sigma*')
 
 for idx, model in enumerate(models):
