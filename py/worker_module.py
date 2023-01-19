@@ -122,7 +122,6 @@ def replace_array_values(array, variables):
 
 
 def analyze_step_size(state, algorithm, options):
-    print(state, algorithm, options)
     sigma_array = np.empty([options["alg_iterations"], 1])
 
     for idx in range(options["alg_iterations"]):
