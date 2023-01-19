@@ -5,10 +5,11 @@ import matplotlib.pyplot as plt
 from worker_module import analyze_step_size
 import time
 from tools.database.JobQueue import JobQueue
+import copy
 
 # Globals
-sigma_iterations = 1000
-arc_iterations = 100
+sigma_iterations = 10 #1000
+arc_iterations = 1 #100
 alg_iterations = 100000
 cutoff = 20000
 
@@ -26,7 +27,7 @@ algorithm = CMA_ES(
     {
         "d": 2,
         "p_target": 0.1818,
-        "c_cov_plus": 0.2,
+        "c_cov": 0.2,
         "c_p": 0.8333
     }
 )
@@ -44,13 +45,16 @@ for angle_idx, angle in enumerate(angle_sequence):
             "p_succ": 1
         }
 
-        q.enqueue(analyze_step_size, state, algorithm, {"alg_iterations": alg_iterations, "cutoff": cutoff},
+        q.enqueue(analyze_step_size, args = [state, algorithm, {"alg_iterations": alg_iterations, "cutoff": cutoff}],
                   meta={"position_idx": angle_idx, "angle": angle, "location": location, "sigma_idx": sigma_idx, "sigma_var": sigma_var, "dir_cond_number": np.power(sigma_var, 2)},
                   result_ttl=86400)
 
         if (sigma_idx % 10 == 0): print("Queued jobs " + str(sigma_iterations * angle_idx + sigma_idx) + "/" + str(sigma_iterations * arc_iterations))
 
 print("finished queueing")
+print(q.pipeline, q.jobs_ids)
+q.start()
+
 
 while not q.finished():
     time.sleep(1)
@@ -58,9 +62,10 @@ while not q.finished():
 
 
 print("Receiving data...")
-for job in q.jobs:
+for job in q.get_finished_jobs():
     print("checking jobs...")
     result = job.result
+    print(result)
     results[job.meta["position_idx"]][job.meta["sigma_idx"]] =  result[0], job.meta["sigma_var"], job.meta["angle"], job.meta["dir_cond_number"], job.meta["location"][0], job.meta["location"][1]
 
 

@@ -12,9 +12,11 @@ def get_queue(name):
 
 class JobQueue:
     q = None
-    jobs = []
+    pipeline = []
+    jobs_ids = []
     name = None
     connection = None
+    counter = 1
 
     def __init__(self, name):
         self.name = name
@@ -23,16 +25,18 @@ class JobQueue:
         self.q = Queue(name, connection=r)
 
     def enqueue(self, *args, **kwargs):
-        self.jobs.append(self.q.enqueue(*args, **kwargs))
+        self.counter += 1
+        self.pipeline.append(Queue.prepare_data(*args, **kwargs, job_id='my_job_id' + str(self.counter)))
+        self.jobs_ids.append('my_job_id' + str(self.counter))
+
+    def start(self):
+        self.q.enqueue_many(self.pipeline)
 
     def finished(self):
-        for job in self.jobs:
-            if job.get_status() != "finished":
-                return False
-        return True
+        print(FinishedJobRegistry(queue=self.q).count, len(self.jobs_ids))
+        return FinishedJobRegistry(queue=self.q).count == len(self.jobs_ids)
 
     def get_finished(self):
-        print(FinishedJobRegistry(queue=self.q).count)
         return FinishedJobRegistry(queue=self.q).get_job_ids()
 
     def get_finished_jobs(self):
