@@ -3,6 +3,7 @@ from rq import Queue
 from rq.registry import FinishedJobRegistry
 from rq.job import Job
 from datetime import datetime, timedelta
+import uuid
 
 
 def get_queue(name):
@@ -16,7 +17,7 @@ class JobQueue:
     jobs_ids = []
     name = None
     connection = None
-    counter = 1
+
 
     def __init__(self, name):
         self.name = name
@@ -25,22 +26,27 @@ class JobQueue:
         self.q = Queue(name, connection=r)
 
     def enqueue(self, *args, **kwargs):
-        self.counter += 1
-        self.pipeline.append(Queue.prepare_data(*args, **kwargs, job_id='my_job_id' + str(self.counter)))
-        self.jobs_ids.append('my_job_id' + str(self.counter))
+        job_id = str(uuid.uuid4())
+
+        while job_id in self.jobs_ids:
+            job_id = uuid.uuid4()
+
+        self.pipeline.append(Queue.prepare_data(*args, **kwargs, job_id=job_id))
+        self.jobs_ids.append(job_id)
+
 
     def start(self):
         self.q.enqueue_many(self.pipeline)
+        self.pipeline = []
 
-    def finished(self):
-        print(FinishedJobRegistry(queue=self.q).count, len(self.jobs_ids))
+    def is_finished(self):
         return FinishedJobRegistry(queue=self.q).count == len(self.jobs_ids)
 
     def get_finished(self):
-        return FinishedJobRegistry(queue=self.q).get_job_ids()
+        return FinishedJobRegistry(queue=self.q)
 
     def get_finished_jobs(self):
-        return Job.fetch_many(self.get_finished(), connection=self.connection)
+        return Job.fetch_many(self.jobs_ids, connection=self.connection)
 
     def open(self):
         return len(self.q)

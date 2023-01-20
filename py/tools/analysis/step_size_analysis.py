@@ -32,7 +32,7 @@ algorithm = CMA_ES(
     }
 )
 
-angle_sequence = np.linspace((np.pi / 4) - (np.pi / 100), np.pi / 4, arc_iterations)
+angle_sequence = np.linspace(0, (np.pi / 25), arc_iterations)
 for angle_idx, angle in enumerate(angle_sequence):
     location = [np.cos(angle), np.sin(angle)]
     algorithm.set_location(location)
@@ -54,13 +54,14 @@ for angle_idx, angle in enumerate(angle_sequence):
         if (sigma_idx % 10 == 0): print("Queued jobs " + str(sigma_iterations * angle_idx + sigma_idx) + "/" + str(
             sigma_iterations * arc_iterations))
 
+        q.start()
 print("finished queueing")
-print(q.pipeline, q.jobs_ids)
-q.start()
 
-while not q.finished():
-    time.sleep(1)
-    print("Checked the queue, still working... " + str(q.open()))
+
+
+while not q.is_finished():
+    time.sleep(10)
+    print("Checked the queue, still working... " + str(q.get_finished().count) + "/" + str(len(q.jobs_ids)))
 
 print("Receiving data...")
 for job in q.get_finished_jobs():
@@ -77,6 +78,7 @@ print("saved data")
 q.empty()
 
 # Plotting, evaluating results
+plt.figure(dpi=600)
 plt.title("Middle value of converged Stepsize")
 plt.xlabel("sigma_var")
 plt.ylabel("sigma*")

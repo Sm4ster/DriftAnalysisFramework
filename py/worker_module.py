@@ -2,7 +2,7 @@ import sys
 from DriftAnalysisFramework import PotentialFunctions, OptimizationAlgorithms, TargetFunctions
 # sys.path.insert(0, '/home/stephan/DriftAnalysis/')
 
-from scipy.stats import t
+from scipy.stats import t, ttest_1samp
 import numpy as np
 
 
@@ -99,6 +99,9 @@ def work_job(oa, pf, states, options):
 
     return results
 
+def has_precision(sample, precision):
+    popmean = np.around(np.mean(sample), precision)
+    ttest_1samp(sample, popmean)
 
 def has_drift_ttest(sample):
     t_value = np.mean(sample) / (np.std(sample) / np.sqrt(sample.size))

@@ -16,9 +16,9 @@ def f2(sigma22):
 
 plt.figure(dpi=600)
 # 0.00057 - 0.002*log(1.5e-6*sigma22 - 0.099)
-results = np.load("sigma_data_pi.npy")
+results = np.load("sigma_data_pi_2023_01_16.npy")
 
-curve_idxs = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 19, 29, 39, 49, 59, 69, 79, 89, 99]
+curve_idxs = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9,19,29,39,49,59,69,79,89,99]
 plot_functions = False
 plot_helping_lines = False
 
