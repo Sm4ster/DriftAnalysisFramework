@@ -16,19 +16,21 @@ def f2(sigma22):
 
 plt.figure(dpi=600)
 # 0.00057 - 0.002*log(1.5e-6*sigma22 - 0.099)
-results = np.load("sigma_data_pi_2023_01_16.npy")
-
-curve_idxs = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9,19,29,39,49,59,69,79,89,99]
+results = np.load("../../data/sigma_data_pi_2023_01_21.npy")
+distance_sequence = np.geomspace(1, 100, 10)
+curve_idxs = [0]
+distance_idxs = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
 plot_functions = False
 plot_helping_lines = False
 
 # x axis array, we take the 0th one, since it is as good as any
 x_axis_idx = 1
-x_axis = results[0][:, x_axis_idx]
+x_axis = results[0][0][:, x_axis_idx]
 
 # Plot the ground truth lines
-for curve_idx in curve_idxs:
-    plt.loglog(x_axis, results[curve_idx][:, 0], linestyle='-', lw=0.2)
+for distance_idx in distance_idxs:
+    for curve_idx in curve_idxs:
+        plt.loglog(x_axis,results[curve_idx][distance_idx][:, 0] / distance_sequence[distance_idx], linestyle='-', lw=0.2)
 
 # Plot functions
 if plot_functions:

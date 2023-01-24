@@ -1,6 +1,7 @@
 from DriftAnalysisFramework import TargetFunctions, OptimizationAlgorithms, PotentialFunctions
 from worker_module import work_job
 from rq.registry import ScheduledJobRegistry
+from tools.database.JobQueue import JobQueue
 
 import json
 from rq import Queue
@@ -28,7 +29,7 @@ class DriftAnalysis:
 
         # if necessary init the queue
         if redis_connection:
-            self.init_queue(redis_connection)
+            self.q = JobQueue("drift_analysis")
             self.queue = True
 
         # initialize the target function

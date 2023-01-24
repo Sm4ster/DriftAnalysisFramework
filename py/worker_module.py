@@ -99,9 +99,16 @@ def work_job(oa, pf, states, options):
 
     return results
 
-def has_precision(sample, precision):
-    popmean = np.around(np.mean(sample), precision)
-    ttest_1samp(sample, popmean)
+
+def has_precision(sample, precision, confidence = 0.05):
+    deviation = (1 / (10 ** precision))
+    popmean_plus = np.around(np.mean(sample), precision) + deviation
+    popmean_minus = np.around(np.mean(sample), precision) - deviation
+
+    return \
+        ttest_1samp(sample, popmean_plus, alternative="less").pvalue < confidence and \
+        ttest_1samp(sample, popmean_minus, alternative="greater").pvalue < confidence
+
 
 def has_drift_ttest(sample):
     t_value = np.mean(sample) / (np.std(sample) / np.sqrt(sample.size))
@@ -137,4 +144,3 @@ def analyze_step_size(state, algorithm, options):
     sigma_array = np.split(sigma_array, [options["cutoff"], options["alg_iterations"]])[1]
 
     return sigma_array.mean(), sigma_array.var(), sigma_array.max() - sigma_array.min()
-

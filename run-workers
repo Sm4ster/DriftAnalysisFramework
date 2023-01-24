@@ -1,6 +1,12 @@
 #!/bin/bash
 
-cores=$(grep -c ^processor /proc/cpuinfo)-2
+if [ $# -gt 0 ]; then
+  cores=$1
+else
+  cores=$(grep -c ^processor /proc/cpuinfo)-2
+fi
+
+
 
 declare -a workers;
 for ((core=1; core <= cores; core++))

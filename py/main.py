@@ -1,10 +1,8 @@
-import asyncio, uuid, pickle, copy
+import asyncio, uuid, pickle
 from redis import Redis
-import time
 
 from fastapi import FastAPI, WebSocket
 from DriftAnalysis import DriftAnalysis
-from tools.database.JobQueue import JobQueue
 from datetime import datetime
 
 app = FastAPI()
@@ -72,7 +70,7 @@ async def websocket_endpoint(websocket: WebSocket):
                                                                           "started_at": datetime.now().strftime(
                                                                               "%Y-%m-%d %H:%M:%S")}})
 
-            # asyncio.create_task(start_run(run_id, data['config'], open_runs, websocket))
+            asyncio.create_task(start_run(run_id, data['config'], open_runs, websocket))
 
         if data["message"] == "run_finished":
             # print("removing run", data)

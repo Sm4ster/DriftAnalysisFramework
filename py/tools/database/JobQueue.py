@@ -1,6 +1,6 @@
 from redis import Redis
 from rq import Queue
-from rq.registry import FinishedJobRegistry
+from rq.registry import FinishedJobRegistry, CanceledJobRegistry, FailedJobRegistry
 from rq.job import Job
 from datetime import datetime, timedelta
 import uuid
@@ -45,8 +45,20 @@ class JobQueue:
     def get_finished(self):
         return FinishedJobRegistry(queue=self.q)
 
+    def get_jobs(self, jobs_ids=None):
+        if jobs_ids == None:
+            return Job.fetch_many(self.jobs_ids, connection=self.connection)
+        else:
+            return Job.fetch_many(jobs_ids, connection=self.connection)
+
+    def get_canceled_jobs(self):
+        return CanceledJobRegistry(queue=self.q)
+
+    def get_failed_jobs(self):
+        return FailedJobRegistry(queue=self.q)
+
     def get_finished_jobs(self):
-        return Job.fetch_many(self.jobs_ids, connection=self.connection)
+        return FinishedJobRegistry(queue=self.q)
 
     def open(self):
         return len(self.q)

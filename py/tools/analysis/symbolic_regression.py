@@ -3,7 +3,7 @@ import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 
-results = np.load("sigma_data_pi_2023_01_20.npy")
+results = np.load("../../data/sigma_data_pi_2023_01_20.npy")
 
 
 # a = np.array([[[1,1,1,1,1],[2,2,2,2,2],[3,3,3,3,3]],[[11,11,11,11,11],[22,22,22,22,22],[33,33,33,33,33]]], dtype=object)
