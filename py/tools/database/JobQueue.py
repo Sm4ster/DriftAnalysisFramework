@@ -42,9 +42,6 @@ class JobQueue:
     def is_finished(self):
         return FinishedJobRegistry(queue=self.q).count == len(self.jobs_ids)
 
-    def get_finished(self):
-        return FinishedJobRegistry(queue=self.q)
-
     def get_jobs(self, jobs_ids=None):
         if jobs_ids == None:
             return Job.fetch_many(self.jobs_ids, connection=self.connection)

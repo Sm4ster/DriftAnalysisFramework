@@ -75,7 +75,7 @@ class CMA_ES:
         return self.m
 
     def iterate(self, state):
-        m_t, sigma_t, cov_m, p_succ = self.m, state["sigma"], state["cov_m"], state["p_succ"]
+        m_t, sigma_t, cov_m = self.m, state["sigma"], state["cov_m"]
 
         # step 1: draw random sample
         z = self.rng.multivariate_normal(np.zeros(self.dim), cov_m)

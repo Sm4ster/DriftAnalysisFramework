@@ -2,6 +2,7 @@ from DriftAnalysisFramework import TargetFunctions, OptimizationAlgorithms, Pote
 from worker_module import work_job
 from rq.registry import ScheduledJobRegistry
 from tools.database.JobQueue import JobQueue
+from definitions import ALGORITHM_PATH
 
 import json
 from rq import Queue
@@ -15,7 +16,7 @@ class DriftAnalysis:
     location = []
     location_uuids = []
     results = []
-    jobs = []
+    q = None
     matrices = None
     queue = False
     min_max = {}
@@ -23,7 +24,7 @@ class DriftAnalysis:
     def __init__(self, config, uuid, redis_connection=None):
         self.uuid = uuid
 
-        with open('../definitions/algorithms/' + config["algorithm"] + '.json', 'r') as f:
+        with open(ALGORITHM_PATH + config["algorithm"] + '.json', 'r') as f:
             oa_definition = json.load(f)
         self.matrices = oa_definition["matrices"]
 
@@ -48,35 +49,37 @@ class DriftAnalysis:
         # generate locations
         self.location, self.min_max["location"] = self.generate_locations(config["location"])
 
+        # generate state array
+
+        # print("states\n", self.states["sigma"])
+        # print("locations\n", self.location)
+        # location_idxs = list(range(self.location.shape[0]))
+        # print("results\n", np.array(np.meshgrid(self.states["sigma"], location_idxs)).T.reshape(-1, 2))
+
     def start(self):
         options = {
+            "save_follow_up_states": False,
             "matrices": self.matrices,
             # parameters for the batches
-            "batch_size": 10,  # number of evaluations before a significance test is performed
-            "max_evaluations": 1000,  # if no significant result was obtained we cancel the evaluations of this state
+            "batch_size": 1000,  # number of evaluations before a significance test is performed
+            "max_evaluations": 1000000,  # if no significant result was obtained we cancel the evaluations of this state
         }
-
-        for idx, starting_location in enumerate(self.location):
-            self.oa.set_location(starting_location)
-            if self.queue:
-                job = self.q.enqueue(work_job, self.oa, self.pf, self.states, options, result_ttl=None)
-                self.jobs.append({
-                    "id": idx,
-                    "location": starting_location,
-                    "job": job,
-                })
-            else:
-                print("[Local Mode]: Working job on local machine (" + str(idx) + ")")
-                self.jobs.append({
-                    "id": idx,
-                    "location": starting_location,
-                    "result": work_job(self.oa, self.pf, self.states, options),
-                })
-                print("[Local Mode]: Finished job (" + str(idx) + ")")
-
         if self.queue:
-            registry = ScheduledJobRegistry(queue=self.q)
-            # print(registry.get_job_ids())
+            for idx, location_ in enumerate(self.location):
+                self.q.enqueue(
+                    work_job,
+                    args=[self.oa, self.pf, location_, self.states, options],
+                    meta={"location": location_},
+                    result_ttl=None
+                )
+                if idx % 1000 == 0:
+                    self.q.start()
+
+        else:
+            for idx, starting_location in enumerate(self.location):
+                print("[Local Mode]: Working job on local machine (" + str(idx) + "/" + str(len(self.location)) + ")")
+                self.results.append(work_job(self.oa, self.pf, starting_location, self.states, options))
+                print("[Local Mode]: Finished job (" + str(idx) + "/" + str(len(self.location)) + ")")
 
     def init_queue(self, redis_connection):
         try:
@@ -86,6 +89,18 @@ class DriftAnalysis:
 
     def get_locations(self):
         return [{"id": idx, "location": loc} for idx, loc in enumerate(self.location)]
+
+    def is_finished(self):
+        if self.queue:
+            return self.q.is_finished()
+        else:
+            return True
+
+    def get_results(self):
+        if self.queue:
+            self.q.get_finished_jobs()
+        else:
+            return self.results
 
     def get_new_results(self):
         new_results = []

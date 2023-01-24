@@ -1,22 +1,18 @@
 import sys
 from DriftAnalysisFramework import PotentialFunctions, OptimizationAlgorithms, TargetFunctions
-import math
 # sys.path.insert(0, '/home/stephan/DriftAnalysis/')
 
 from scipy.stats import t, ttest_1samp
 import numpy as np
 
 
-def work_job(oa, pf, location, states, options, global_state_array=None):
+def work_job(oa, pf, states, options):
     results = []
 
     # set up the state counting logic
     total_combinations = 1
     keys = []
     counter = []
-
-    # set location
-    oa.set_location(location)
 
     for idx, (key, state) in enumerate(states.items()):
         keys.append(key)
@@ -26,7 +22,6 @@ def work_job(oa, pf, location, states, options, global_state_array=None):
     # loop through all the states
     current_state = {}
     for state_idx in range(0, total_combinations):
-        print("Starting new state " + str(state_idx) + "/" + str(total_combinations))
 
         # create the current state
         for key_idx, key in enumerate(keys):
@@ -50,34 +45,36 @@ def work_job(oa, pf, location, states, options, global_state_array=None):
             batch_samples = np.zeros(options["batch_size"])
 
             for idx in range(options["batch_size"]):
+                sample_data = {}
+
                 # iterate and save the follow up state
                 follow_up_state = oa.iterate(current_state)
 
                 # calculate the difference in potential
                 batch_samples[idx] = pf.potential(follow_up_state) - pf.potential(current_state)
 
-                if options["save_follow_up_states"]:
-                    sample_data = {}
-                    # save the drift for the frontend
-                    sample_data["drift"] = batch_samples[idx]
+                # save the drift for the frontend
+                sample_data["drift"] = batch_samples[idx]
 
-                    # save potential for debugging
-                    sample_data["potential"] = pf.potential(follow_up_state)
+                # save potential for debugging
+                sample_data["potential"] = pf.potential(follow_up_state)
 
-                    # save the follow up state
-                    sample_data["follow_up_state"] = follow_up_state
-                    sample_data["success"] = follow_up_state["m"].all() == current_state["m"].all()
+                # save the follow up state
+                sample_data["follow_up_state"] = follow_up_state
+                sample_data["success"] = follow_up_state["m"].all() == current_state["m"].all()
 
-                    # save the sample data
-                    state_data.append(sample_data)
+                # TODO strip the follow up data in case of unsuccessful iteration
+                # save the sample data
+                state_data.append(sample_data)
 
             # add samples of this batch to the overall samples
             all_samples = np.concatenate((all_samples, batch_samples))
 
-            is_significant, confident_mean, true_precision = has_significance(all_samples)
+            # check significance
+            significance = has_drift_ttest(all_samples)
 
-            # if we reached desired precision or we reached the max evaluations
-            if is_significant or all_samples.size > options["max_evaluations"]:
+            # if we find significance in either direction or we reached the max evaluations
+            if significance[0] or all_samples.size > options["max_evaluations"]:
                 break
 
         # counter logic to access all state combinations
@@ -87,41 +84,30 @@ def work_job(oa, pf, location, states, options, global_state_array=None):
                 if counter_idx + 1 < len(counter): counter[counter_idx + 1] += 1
                 counter[counter_idx] = 0
 
-        result = {
-            "state_idx": state_idx,
+        results.append({
+            "id": state_idx,
             "state": current_state.copy(),
+            "samples": state_data,
             "potential": pf.potential(current_state),
-            "raw_drift": np.mean(all_samples),
-            "confident_drift": confident_mean,
-            "precision": true_precision,
+            "drift": np.mean(all_samples),
+            "significance": {
+                "drift": significance[1],
+                "no_drift": significance[2],
+            },
             "number_samples": all_samples.size,
-        }
-
-        if options["save_follow_up_states"]:
-            result["samples"] = state_data
-
-        results.append(result)
-        print(all_samples.size)
+        })
 
     return results
 
 
-def has_significance(sample, precision=1, confidence=0.05):
-    mean = np.mean(sample)
-    if mean != 0:
-        true_precision = (0 - int(math.log10(abs(mean)))) + precision
-    else:
-        true_precision = 1
+def has_precision(sample, precision, confidence = 0.05):
+    deviation = (1 / (10 ** precision))
+    popmean_plus = np.around(np.mean(sample), precision) + deviation
+    popmean_minus = np.around(np.mean(sample), precision) - deviation
 
-    rounded_mean = np.around(mean, true_precision)
-    deviation = (1 / (10 ** true_precision))
-    popmean_plus = rounded_mean + deviation
-    popmean_minus = rounded_mean - deviation
-
-    is_precise = ttest_1samp(sample, popmean_plus, alternative="less").pvalue < confidence and \
-                 ttest_1samp(sample, popmean_minus, alternative="greater").pvalue < confidence
-
-    return is_precise, rounded_mean, true_precision
+    return \
+        ttest_1samp(sample, popmean_plus, alternative="less").pvalue < confidence and \
+        ttest_1samp(sample, popmean_minus, alternative="greater").pvalue < confidence
 
 
 def has_drift_ttest(sample):

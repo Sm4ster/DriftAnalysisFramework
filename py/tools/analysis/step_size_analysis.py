@@ -50,7 +50,6 @@ for distance_idx, distance in enumerate(distance_sequence):
             state = {
                 "sigma": 3,
                 "cov_m": np.array([[1 / sigma_var, 0], [0, sigma_var]]),
-                "p_succ": 1
             }
 
             q.enqueue(analyze_step_size, args=[state, algorithm, {"alg_iterations": alg_iterations, "cutoff": cutoff}],
