@@ -8,12 +8,15 @@ class Expression:
     derivations = None
     variables = {}
 
-    def __init__(self, expression, constants):
-        self.expression = expression
+    def __init__(self, potential, constants):
+        print(potential)
+        self.expression = potential["expression"]
         self.variables.update(constants)
 
         self.mjs = MathJS()
         self.mjs.update(constants)
+        if "constants" in potential:
+            self.mjs.update(potential["constants"])
         self.mjs.update({
             "dim": 2
         })

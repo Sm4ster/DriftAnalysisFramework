@@ -61,3 +61,26 @@ class SuccessProbability:
 		return self.results[sigma]
 
 
+def get_ul_tuple():
+	## determine u and l ##
+	sr = SuccessProbability("probability", dimension=2, r=0, start=0, stop=4, resolution=10)
+
+
+	alpha = 2
+	# get candidates
+	pl_candidates = dict(
+		(k, sr.results[k]) for k in sr.get_result_array()[1] if sr.results[k] > 1 / 5 and sr.results[k] < 1 / 2)
+	pu_candidates = dict(
+		(k, sr.results[k]) for k in sr.get_result_array()[1] if sr.results[k] > 0 and sr.results[k] < 1 / 5)
+
+	ul_candidates = []
+	for pl_idx in pl_candidates.keys():
+		for pu_idx in pu_candidates.keys():
+			if (pu_idx / pl_idx - alpha ** (5 / 4) > 0):
+				ul_candidates.append(((pl_idx, pu_idx), pu_idx / pl_idx - alpha ** (5 / 4)))
+
+	ul_candidates.sort(key=lambda x: x[1])
+	return ul_candidates[0][0]
+
+def sigma_star():
+	return 1

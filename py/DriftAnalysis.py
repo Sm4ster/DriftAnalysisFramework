@@ -41,6 +41,7 @@ class DriftAnalysis:
         self.oa = oa_class(self.tf, config['constants'])
 
         # initialize a potential function
+        print(config["potential"])
         self.pf = PotentialFunctions.Expression(config["potential"], config["constants"])
 
         # generate states

@@ -74,7 +74,8 @@ def work_job(oa, pf, location, states, options, global_state_array=None):
             # add samples of this batch to the overall samples
             all_samples = np.concatenate((all_samples, batch_samples))
 
-            is_significant, confident_mean, true_precision = has_significance(all_samples)
+            is_significant, confident_mean, true_precision, p_values = has_significance(all_samples)
+            print(is_significant, confident_mean, true_precision, p_values)
 
             # if we reached desired precision or we reached the max evaluations
             if is_significant or all_samples.size > options["max_evaluations"]:
@@ -118,10 +119,11 @@ def has_significance(sample, precision=1, confidence=0.05):
     popmean_plus = rounded_mean + deviation
     popmean_minus = rounded_mean - deviation
 
-    is_precise = ttest_1samp(sample, popmean_plus, alternative="less").pvalue < confidence and \
-                 ttest_1samp(sample, popmean_minus, alternative="greater").pvalue < confidence
+    p_values = (ttest_1samp(sample, popmean_plus, alternative="less").pvalue, ttest_1samp(sample, popmean_minus, alternative="greater").pvalue)
 
-    return is_precise, rounded_mean, true_precision
+    is_precise = p_values[0] < confidence and p_values[1] < confidence
+
+    return is_precise, rounded_mean, true_precision, p_values
 
 
 def has_drift_ttest(sample):

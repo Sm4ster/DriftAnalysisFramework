@@ -2,20 +2,37 @@ import numpy as np
 import uuid
 from DriftAnalysis import DriftAnalysis
 from redis import Redis
+from DriftAnalysisFramework import AnalysisTools
 
 r = Redis(host='nash.ini.rub.de', port=6379, db=0, password='4xEhjbGNkNPr8UkBQbWL9qmPpXpAeCKMF2G2')
 run_id = str(uuid.uuid4())
 
 # potential functions
-baseline = "log(norm(m))"
-# AAG = "log(norm(m)) + max(0, v*log((alpha * l * norm(m))/(2 * sigma)), v*log(((alpha^(1/4)) * sigma * 2)/(u * norm(m))))"
-# FG = "log(norm(m)) + v_1 + max(0, log(sigma/(c*sigma_*)), log(sigma_*/(c*sigma))) + v_2 * log(sigma_22)^2"
+
+baseline = {"expression": "log(norm(m))"}
+
+
+ul_tuple = AnalysisTools.get_ul_tuple()
+AAG = {
+    "expression": "log(norm(m)) + max(0, v*log((alpha * l * norm(m))/(2 * sigma)), v*log(((alpha^(1/4)) * sigma * 2)/(u * norm(m))))",
+    "constants": {
+        "v": 0.1,
+        "u": ul_tuple[0],
+        "l": ul_tuple[1]
+    }
+}
+
+# FG = {
+#     "expression": "log(norm(m)) + v_1 + max(0, log(sigma/(c*sigma_*)), log(sigma_*/(c*sigma))) + v_2 * log(sigma_22)^2",
+#     "functions": AnalysisTools.sigma_star
+# }
 
 OPO_config = {
     "algorithm": "1+1-ES",
     "constants": {
         "alpha": 2
     },
+    "potential": AAG,
     "variables": {
         "sigma": {
             "variation": True,
@@ -27,6 +44,8 @@ OPO_config = {
         }
     }
 }
+
+print(OPO_config)
 CMA_config = {
     "algorithm": "CMA-ES",
     "constants": {
@@ -94,9 +113,8 @@ config = {
             }
         ]
     },
-    "potential": baseline,
 }
-config.update(CMA_config)
+config.update(OPO_config)
 
 analysis = DriftAnalysis(config, run_id)
 analysis.start()
