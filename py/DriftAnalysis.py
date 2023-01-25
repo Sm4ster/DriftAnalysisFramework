@@ -3,7 +3,6 @@ from worker_module import work_job
 from rq.registry import ScheduledJobRegistry
 from tools.database.JobQueue import JobQueue
 from definitions import ALGORITHM_PATH
-
 import json
 from rq import Queue
 import numpy as np
@@ -41,8 +40,14 @@ class DriftAnalysis:
         self.oa = oa_class(self.tf, config['constants'])
 
         # initialize a potential function
-        print(config["potential"])
-        self.pf = PotentialFunctions.Expression(config["potential"], config["constants"])
+        if "mode" not in config["potential"]:
+            raise ("[ERROR] Please specify the mode as 'expression' or 'function'")
+        if config["potential"]["mode"] == "expression":
+            self.pf = PotentialFunctions.Expression(config["potential"], config["constants"])
+        elif config["potential"]["mode"] == "function":
+            self.pf = PotentialFunctions.Function(config["potential"], config["constants"])
+        else:
+            raise ("[ERROR] Unknown mode. Please use 'expression' or 'function'")
 
         # generate states
         self.states, self.min_max["states"] = self.generate_states(config["variables"])
@@ -57,7 +62,7 @@ class DriftAnalysis:
         # location_idxs = list(range(self.location.shape[0]))
         # print("results\n", np.array(np.meshgrid(self.states["sigma"], location_idxs)).T.reshape(-1, 2))
 
-    def start(self):
+    def start(self, verbosity=0):
         options = {
             "save_follow_up_states": False,
             "matrices": self.matrices,
@@ -75,11 +80,13 @@ class DriftAnalysis:
                 )
                 if idx % 1000 == 0:
                     self.q.start()
+            self.q.start()
 
         else:
             for idx, starting_location in enumerate(self.location):
                 print("[Local Mode]: Working job on local machine (" + str(idx) + "/" + str(len(self.location)) + ")")
-                self.results.append(work_job(self.oa, self.pf, starting_location, self.states, options))
+                self.results.append(
+                    work_job(self.oa, self.pf, starting_location, self.states, options, verbosity=verbosity))
                 print("[Local Mode]: Finished job (" + str(idx) + "/" + str(len(self.location)) + ")")
 
     def init_queue(self, redis_connection):
@@ -152,6 +159,7 @@ class DriftAnalysis:
         return raw_state_list, min_max
 
     def generate_sequence(self, distribution, params, quantity, scale="linear"):
+        sequence = None
         if distribution == "grid":
             sequence = np.linspace(params["min"], params["max"], quantity)
         if distribution == "uniform":

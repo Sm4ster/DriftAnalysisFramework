@@ -55,7 +55,7 @@ class SuccessProbability:
 		return results, self.result_x
 
 	def get_min(self):
-		return min(self.results, key=self.results.get)
+		return np.min(list(self.results.values()))
 
 	def get(self, sigma):
 		return self.results[sigma]

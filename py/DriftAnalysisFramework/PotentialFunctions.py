@@ -9,14 +9,15 @@ class Expression:
     variables = {}
 
     def __init__(self, potential, constants):
-        print(potential)
         self.expression = potential["expression"]
         self.variables.update(constants)
 
         self.mjs = MathJS()
         self.mjs.update(constants)
+
         if "constants" in potential:
             self.mjs.update(potential["constants"])
+
         self.mjs.update({
             "dim": 2
         })
@@ -30,3 +31,19 @@ class Expression:
 
         # Evaluate an expression
         return self.mjs.eval(self.expression)
+
+
+class Function:
+    dimension = 2
+    constants = None
+    function = None
+
+    def __init__(self, potential, constants):
+        self.constants = constants
+        self.function = potential["function"]
+
+        if "constants" in potential:
+            self.constants.update(potential["constants"])
+
+    def potential(self, state):
+        return self.function(state, self.constants)

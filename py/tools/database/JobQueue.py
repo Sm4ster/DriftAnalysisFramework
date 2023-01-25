@@ -3,12 +3,13 @@ from rq import Queue
 from rq.registry import FinishedJobRegistry, CanceledJobRegistry, FailedJobRegistry
 from rq.job import Job
 from datetime import datetime, timedelta
+import dill
 import uuid
 
 
 def get_queue(name):
     r = Redis(host='nash.ini.rub.de', port=6379, db=0, password='4xEhjbGNkNPr8UkBQbWL9qmPpXpAeCKMF2G2')
-    return Queue(name, connection=r)
+    return Queue(name, connection=r, serializer=dill)
 
 
 class JobQueue:
@@ -23,7 +24,7 @@ class JobQueue:
         self.name = name
         r = Redis(host='nash.ini.rub.de', port=6379, db=0, password='4xEhjbGNkNPr8UkBQbWL9qmPpXpAeCKMF2G2')
         self.connection = r
-        self.q = Queue(name, connection=r)
+        self.q = Queue(name, connection=r, serializer=dill)
 
     def enqueue(self, *args, **kwargs):
         job_id = str(uuid.uuid4())
@@ -36,7 +37,9 @@ class JobQueue:
 
 
     def start(self):
-        self.q.enqueue_many(self.pipeline)
+        print(self.pipeline)
+        a = self.q.enqueue_many(self.pipeline)
+        print(a)
         self.pipeline = []
 
     def is_finished(self):

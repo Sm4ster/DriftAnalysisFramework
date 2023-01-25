@@ -7,7 +7,7 @@ from scipy.stats import t, ttest_1samp
 import numpy as np
 
 
-def work_job(oa, pf, location, states, options, global_state_array=None):
+def work_job(oa, pf, location, states, options, global_state_array=None, verbosity=0):
     results = []
 
     # set up the state counting logic
@@ -26,7 +26,7 @@ def work_job(oa, pf, location, states, options, global_state_array=None):
     # loop through all the states
     current_state = {}
     for state_idx in range(0, total_combinations):
-        print("Starting new state " + str(state_idx) + "/" + str(total_combinations))
+        if verbosity > 0: print("Starting new state " + str(state_idx) + "/" + str(total_combinations))
 
         # create the current state
         for key_idx, key in enumerate(keys):
@@ -75,10 +75,14 @@ def work_job(oa, pf, location, states, options, global_state_array=None):
             all_samples = np.concatenate((all_samples, batch_samples))
 
             is_significant, confident_mean, true_precision, p_values = has_significance(all_samples)
-            print(is_significant, confident_mean, true_precision, p_values)
+            if verbosity > 2: print(is_significant, confident_mean, true_precision, p_values)
 
             # if we reached desired precision or we reached the max evaluations
-            if is_significant or all_samples.size > options["max_evaluations"]:
+            if is_significant:
+                break
+
+            if all_samples.size > options["max_evaluations"]:
+                if verbosity > 0: print("Max evaluations reached, no significance detected")
                 break
 
         # counter logic to access all state combinations
@@ -102,7 +106,7 @@ def work_job(oa, pf, location, states, options, global_state_array=None):
             result["samples"] = state_data
 
         results.append(result)
-        print(all_samples.size)
+        if verbosity > 1: print("Number of samples: " + str(all_samples.size))
 
     return results
 
