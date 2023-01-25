@@ -9,7 +9,7 @@ import uuid
 
 def get_queue(name):
     r = Redis(host='nash.ini.rub.de', port=6379, db=0, password='4xEhjbGNkNPr8UkBQbWL9qmPpXpAeCKMF2G2')
-    return Queue(name, connection=r, serializer=dill)
+    return Queue(name, connection=r)
 
 
 class JobQueue:
@@ -24,7 +24,7 @@ class JobQueue:
         self.name = name
         r = Redis(host='nash.ini.rub.de', port=6379, db=0, password='4xEhjbGNkNPr8UkBQbWL9qmPpXpAeCKMF2G2')
         self.connection = r
-        self.q = Queue(name, connection=r, serializer=dill)
+        self.q = Queue(name, connection=r)
 
     def enqueue(self, *args, **kwargs):
         job_id = str(uuid.uuid4())

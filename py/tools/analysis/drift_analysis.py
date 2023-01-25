@@ -13,17 +13,14 @@ run_id = str(uuid.uuid4())
 baseline = {
     "mode": "function",
     "expression": "log(norm(m))",
-    "function": lambda state, constants: np.log(np.linalg.norm(state["m"]))
+    "function": "baseline"
 }
 
 # ul_tuple = AnalysisTools.get_ul_tuple()
 AAG = {
     "mode": "function",
     "expression": "log(norm(m)) + max(0, v*log((alpha * l * norm(m))/(2 * sigma)), v*log(((alpha^(1/4)) * sigma * 2)/(u * norm(m))))",
-    "function": lambda state, constants: np.log(np.linalg.norm(state["m"])) + np.max([0,
-        constants["v"] * np.log((constants["alpha"] * constants["l"] * np.linalg.norm(state["m"])) / (2 * state["sigma"])),
-        constants["v"] * np.log((np.power(constants["alpha"], 1 / 4) * state["sigma"] * 2) / (constants["u"] * np.linalg.norm(state["m"])))
-        ]),
+    "function": "AAG",
     "constants": {
         "v": 0.001680723622387344,
         "u": 1.3,
@@ -34,7 +31,7 @@ AAG = {
 FG = {
     "mode": "function",
     "expression": "log(norm(m)) + v_1 + max(0, log(sigma/(c*sigma_*)), log(sigma_*/(c*sigma))) + v_2 * log(sigma_22)^2",
-    "functions": AnalysisTools.sigma_star
+    "functions": "FG"
 }
 
 # @formatter:on

@@ -45,5 +45,24 @@ class Function:
         if "constants" in potential:
             self.constants.update(potential["constants"])
 
+    # @formatter:off
+    def baseline(self, state, constants):
+        return np.log(np.linalg.norm(state["m"]))
+
+    def AAG(self, state, constants):
+        return np.log(np.linalg.norm(state["m"])) + np.max([0,
+        constants["v"] * np.log((constants["alpha"] * constants["l"] * np.linalg.norm(state["m"])) / (2 * state["sigma"])),
+        constants["v"] * np.log((np.power(constants["alpha"], 1 / 4) * state["sigma"] * 2) / (constants["u"] * np.linalg.norm(state["m"])))
+        ])
+
+    def FG(self, state, constants):
+        return np.log(np.linalg.norm(state["m"]))
+    # @formatter:on
+
     def potential(self, state):
-        return self.function(state, self.constants)
+        if self.function == "baseline":
+            return self.baseline(state, self.constants)
+        if self.function == "AAG":
+            return self.AAG(state, self.constants)
+        if self.function == "FG":
+            return self.FG(state, self.constants)
