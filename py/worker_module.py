@@ -1,6 +1,7 @@
 import sys
 from DriftAnalysisFramework import PotentialFunctions, OptimizationAlgorithms, TargetFunctions
 import math
+import dill
 # sys.path.insert(0, '/home/stephan/DriftAnalysis/')
 
 from scipy.stats import t, ttest_1samp
