@@ -31,18 +31,18 @@ AAG = {
 FG = {
     "mode": "function",
     "expression": "log(norm(m)) + v_1 + max(0, log(sigma/(c*sigma_*)), log(sigma_*/(c*sigma))) + v_2 * log(sigma_22)^2",
-    "functions": "FG"
+    "function": "FG"
 }
 
 # @formatter:on
-
+potential_functions = [baseline, AAG]
 
 OPO_config = {
     "algorithm": "1+1-ES",
     "constants": {
         "alpha": 2
     },
-    "potential": AAG,
+    "potential": potential_functions,
     "variables": {
         "sigma": {
             "variation": True,
@@ -125,18 +125,20 @@ config = {
 }
 config.update(OPO_config)
 
-analysis = DriftAnalysis(config, run_id, redis_connection=r)
+analysis = DriftAnalysis(config, run_id)
 analysis.start(verbosity=1)
 
 if analysis.is_finished():
-    drifts = np.empty(len(analysis.results) * len(analysis.results[0]))
+    for pf_idx, pf in enumerate(potential_functions):
+        drifts = np.empty(len(analysis.results) * len(analysis.results[0]))
 
-    # slice out the results
-    for location_idx, location_result in enumerate(analysis.results):
-        for state_idx, state_result in enumerate(location_result):
-            drifts[location_idx * len(analysis.results[0]) + state_idx] = state_result["confident_drift"]
-
-    print("Mean drift " + str(drifts.mean()))
-    print("Minimal drift " + str(np.amax(drifts)))
-    print("Drift range " + str(np.amax(drifts) - np.amin(drifts)))
-    print("Variance " + str(drifts.var()))
+        # slice out the results
+        for location_idx, location_result in enumerate(analysis.results):
+            for state_idx, state_result in enumerate(location_result):
+                drifts[location_idx * len(analysis.results[0]) + state_idx] = state_result["confident_drift"][pf_idx]
+        print(pf["function"])
+        print("Mean drift " + str(drifts.mean()))
+        print("Minimal drift " + str(np.amax(drifts)))
+        print("Drift range " + str(np.amax(drifts) - np.amin(drifts)))
+        print("Variance " + str(drifts.var()))
+        print("\n")

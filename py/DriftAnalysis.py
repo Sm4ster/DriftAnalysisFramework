@@ -19,6 +19,7 @@ class DriftAnalysis:
     matrices = None
     queue = False
     min_max = {}
+    pf = []
 
     def __init__(self, config, uuid, redis_connection=None):
         self.uuid = uuid
@@ -40,14 +41,16 @@ class DriftAnalysis:
         self.oa = oa_class(self.tf, config['constants'])
 
         # initialize a potential function
-        if "mode" not in config["potential"]:
-            raise ("[ERROR] Please specify the mode as 'expression' or 'function'")
-        if config["potential"]["mode"] == "expression":
-            self.pf = PotentialFunctions.Expression(config["potential"], config["constants"])
-        elif config["potential"]["mode"] == "function":
-            self.pf = PotentialFunctions.Function(config["potential"], config["constants"])
-        else:
-            raise ("[ERROR] Unknown mode. Please use 'expression' or 'function'")
+        for potential in config["potential"]:
+            if "mode" not in potential:
+                raise ("[ERROR] Please specify the mode as 'expression' or 'function'")
+
+            if potential["mode"] == "expression":
+                self.pf.append(PotentialFunctions.Expression(potential, config["constants"]))
+            elif potential["mode"] == "function":
+                self.pf.append(PotentialFunctions.Function(potential, config["constants"]))
+            else:
+                raise ("[ERROR] Unknown mode. Please use 'expression' or 'function'")
 
         # generate states
         self.states, self.min_max["states"] = self.generate_states(config["variables"])
@@ -76,7 +79,7 @@ class DriftAnalysis:
                     work_job,
                     args=[self.oa, self.pf, location_, self.states, options],
                     meta={"location": location_},
-                    result_ttl=None
+                    result_ttl=86400
                 )
                 if idx % 1000 == 0:
                     self.q.start()
