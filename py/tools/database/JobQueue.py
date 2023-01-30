@@ -3,7 +3,7 @@ from rq import Queue
 from rq.registry import FinishedJobRegistry, CanceledJobRegistry, FailedJobRegistry
 from rq.job import Job
 from datetime import datetime, timedelta
-import dill
+import pickle
 import uuid
 
 
@@ -20,11 +20,15 @@ class JobQueue:
     connection = None
 
 
-    def __init__(self, name):
+    def __init__(self, name, file=None):
         self.name = name
         r = Redis(host='nash.ini.rub.de', port=6379, db=0, password='4xEhjbGNkNPr8UkBQbWL9qmPpXpAeCKMF2G2')
         self.connection = r
         self.q = Queue(name, connection=r)
+
+        with open(file, 'rb') as f:
+            self.jobs_ids = pickle.load(f)
+
 
     def enqueue(self, *args, **kwargs):
         job_id = str(uuid.uuid4())
@@ -50,6 +54,10 @@ class JobQueue:
             return Job.fetch_many(self.jobs_ids, connection=self.connection)
         else:
             return Job.fetch_many(jobs_ids, connection=self.connection)
+
+    def save_to_file(self, filename):
+        with open(filename, 'wb') as f:
+            pickle.dump(self.jobs_ids, f)
 
     def get_canceled_jobs(self):
         return CanceledJobRegistry(queue=self.q)

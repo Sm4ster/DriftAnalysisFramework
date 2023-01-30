@@ -12,7 +12,7 @@ class DriftAnalysis:
     uuid = None
     dim = 2
     states = {}
-    location = []
+    locations = []
     location_uuids = []
     results = []
     q = None
@@ -53,32 +53,49 @@ class DriftAnalysis:
                 raise ("[ERROR] Unknown mode. Please use 'expression' or 'function'")
 
         # generate states
-        self.states, self.min_max["states"] = self.generate_states(config["variables"])
+        states, self.min_max["states"] = self.generate_states(config["variables"])
 
         # generate locations
-        self.location, self.min_max["location"] = self.generate_locations(config["location"])
+        if config["location"]["type"] == "grid":
+            locations, self.min_max["location"] = self.generate_grid_locations(config["location"])
+        if config["location"]["type"] == "arc":
+            locations = self.generate_arc_locations(config["location"])
 
-        # generate state array
+        states = list(states.items())
+        var_arrays = [var[1] for var in states]
+        self.keys = {var[0]: idx for idx, var in enumerate(states)}
+        self.keys["m"] = len(states)
+        state_array = np.array(np.meshgrid(*var_arrays)).T.reshape(-1, len(var_arrays))
+        # The order is important. The m vector always stands at the end as it is of variable length.
+        # This convention is relied upon, do no change unless you have considered that.
+        self.states = np.concatenate(
+            (np.tile(state_array, (locations.shape[0], 1)), np.repeat(locations, state_array.shape[0], axis=0)), axis=1)
 
-        # print("states\n", self.states["sigma"])
-        # print("locations\n", self.location)
-        # location_idxs = list(range(self.location.shape[0]))
-        # print("results\n", np.array(np.meshgrid(self.states["sigma"], location_idxs)).T.reshape(-1, 2))
-
-    def start(self, verbosity=0):
+    def start(self, job_chunk=10000, verbosity=0):
         options = {
             "save_follow_up_states": False,
             "matrices": self.matrices,
-            # parameters for the batches
+
+            "wait_all": False,
+            # If true, potential functions are evaluated until all potential functions become significant
             "batch_size": 1000,  # number of evaluations before a significance test is performed
+            "socket_size": 10000,  # number of samples that are taken before significance tests start
             "max_evaluations": 1000000,  # if no significant result was obtained we cancel the evaluations of this state
+
+            "deviation": 0.1,  # This is the factor against which the significance is tested.
+            "confidence": 0.05  # confidence level of the t-test
         }
+
+        number_jobs = int(np.ceil(self.states.shape[0] / job_chunk))
+
         if self.queue:
-            for idx, location_ in enumerate(self.location):
+            for idx in range(number_jobs):
+                lower = idx * job_chunk
+                upper = lower + job_chunk
                 self.q.enqueue(
                     work_job,
-                    args=[self.oa, self.pf, location_, self.states, options],
-                    meta={"location": location_},
+                    args=[self.oa, self.pf, self.states[lower:upper], self.keys, options],
+                    meta={"indexes": (lower, upper)},
                     result_ttl=86400
                 )
                 if idx % 1000 == 0:
@@ -86,20 +103,16 @@ class DriftAnalysis:
             self.q.start()
 
         else:
-            for idx, starting_location in enumerate(self.location):
-                print("[Local Mode]: Working job on local machine (" + str(idx) + "/" + str(len(self.location)) + ")")
+            for idx in range(number_jobs):
+                lower = idx * job_chunk
+                upper = lower + job_chunk
+                print("[Local Mode]: Working job on local machine (" + str(idx) + "/" + str(number_jobs) + ")")
                 self.results.append(
-                    work_job(self.oa, self.pf, starting_location, self.states, options, verbosity=verbosity))
-                print("[Local Mode]: Finished job (" + str(idx) + "/" + str(len(self.location)) + ")")
-
-    def init_queue(self, redis_connection):
-        try:
-            self.q = Queue("drift_analysis", connection=redis_connection)
-        except:
-            raise Exception("cannot make connection to redis server")
+                    work_job(self.oa, self.pf, self.states[lower:upper], self.keys, options, verbosity=verbosity))
+                print("[Local Mode]: Finished job (" + str(idx) + "/" + str(number_jobs) + ")")
 
     def get_locations(self):
-        return [{"id": idx, "location": loc} for idx, loc in enumerate(self.location)]
+        return [{"id": idx, "location": loc} for idx, loc in enumerate(self.locations)]
 
     def is_finished(self):
         if self.queue:
@@ -113,32 +126,7 @@ class DriftAnalysis:
         else:
             return self.results
 
-    def get_new_results(self):
-        new_results = []
-
-        for job_wrapper in self.jobs:
-            # continue if the job in the queue doesn't have any results yet
-            if job_wrapper:
-                if self.queue and job_wrapper["job"].result is None:
-                    continue
-                new_results.append({
-                    "id": job_wrapper["id"],
-                    "location": job_wrapper["location"],
-                    "data": job_wrapper["job"].result if self.queue else job_wrapper["result"]
-                })
-
-        return new_results
-
-    def remove_results(self, job_ids):
-        for job_id in job_ids:
-            if self.jobs[job_id]:
-                self.jobs[job_id]["job"].delete()
-            self.jobs[job_id] = None
-
-    def all_jobs_in_results(self):
-        return all(v is None for v in self.jobs)
-
-    def generate_locations(self, config):
+    def generate_grid_locations(self, config):
         sequences = []
         min_max = []
         for idx, el in enumerate(config["vector"]):
@@ -147,6 +135,20 @@ class DriftAnalysis:
             sequences.append(sequence)
 
         return np.array(np.meshgrid(*sequences)).T.reshape(-1, len(config["vector"])), min_max
+
+    # TODO MAKE THIS WORK FOR MULTIPLE DIMENSIONS
+    def generate_arc_locations(self, config):
+        distance_sequence = self.generate_sequence(config["distance"]["distribution"], config["distance"],
+                                                   config["distance"]["quantity"], config["distance"]["scale"])
+        locations = None
+        for idx, el in enumerate(config["angles"][:1]):
+            angle_sequence = self.generate_sequence(el["distribution"], el, el["quantity"], el["scale"])
+            locations = np.array([[np.cos(angle), np.sin(angle)] for angle in angle_sequence])
+
+        # print(np.repeat(locations, distance_sequence.shape[0], axis=0))
+        # print(np.tile(np.tile(distance_sequence, locations.shape[0]), (2,1)).T)
+        return np.repeat(locations, distance_sequence.shape[0], axis=0) * np.tile(np.tile(distance_sequence, locations.shape[0]), (2,1)).T
+
 
     def generate_states(self, state_variables):
         raw_state_list = {}

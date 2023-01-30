@@ -8,30 +8,23 @@ from scipy.stats import t, ttest_1samp
 import numpy as np
 
 
-def work_job(oa, pfs, location, states, options, global_state_array=None, verbosity=0):
-    results = []
+def work_job(oa, pfs, states, keys, options, global_state_array=None, verbosity=0):
 
-    # set up the state counting logic
-    total_combinations = 1
-    keys = []
-    counter = []
-
-    # set location
-    oa.set_location(location)
-
-    for idx, (key, state) in enumerate(states.items()):
-        keys.append(key)
-        counter.append(0)
-        total_combinations *= len(state)
+    final_results = []
+    socket_samples_done = False
+    current_state = {}
 
     # loop through all the states
-    current_state = {}
-    for state_idx in range(0, total_combinations):
-        if verbosity > 0: print("Starting new state " + str(state_idx) + "/" + str(total_combinations))
+    state_idx = 0
+    for state in states:
+        if verbosity > 0: print("Starting new state " + str(state_idx) + "/" + str(states.shape[0]))
+
+        # set location
+        oa.set_location(state[keys["m"]:])
 
         # create the current state
-        for key_idx, key in enumerate(keys):
-            current_state[key] = states[key][counter[key_idx]]
+        for key, key_idx in keys.items():
+            current_state[key] = state[key_idx]
         current_state['m'] = oa.get_location()
 
         # calculate the derivations
@@ -50,17 +43,8 @@ def work_job(oa, pfs, location, states, options, global_state_array=None, verbos
         # create a list of idxs so we can be efficient with data and still remember where to save results
         pf_idxs = list(range(len(pfs)))
 
-        potential_result = []
-        raw_drift_result = []
-        confident_drift_result = []
-        precision_result = []
-        number_samples_result = []
-        for pf_idx, pf in enumerate(pfs):
-            potential_result.append(None)
-            raw_drift_result.append(None)
-            confident_drift_result.append(None)
-            precision_result.append(None)
-            number_samples_result.append(None)
+        # create a list for the results to be laid in later
+        results = [None] * len(pf_idxs)
 
         while True:
             batch_samples = np.zeros([options["batch_size"], len(pf_idxs)])
@@ -71,7 +55,8 @@ def work_job(oa, pfs, location, states, options, global_state_array=None, verbos
 
                 # calculate the difference in potential
                 for idx_, pf_idx in enumerate(pf_idxs):
-                    batch_samples[idx][idx_] = pfs[pf_idx].potential(follow_up_state) - pfs[pf_idx].potential(current_state)
+                    batch_samples[idx][idx_] = pfs[pf_idx].potential(follow_up_state) - pfs[pf_idx].potential(
+                        current_state)
 
                 # TODO THIS DOES NOT WORK WITH MULTIPLE POTENTIAL FUNCTIONS
                 # if options["save_follow_up_states"]:
@@ -95,76 +80,76 @@ def work_job(oa, pfs, location, states, options, global_state_array=None, verbos
             # add samples of this batch to the overall samples
             all_samples = np.concatenate((all_samples, batch_samples))
 
-            for idx_, pf_idx in enumerate(pf_idxs):
-                is_significant, confident_mean, true_precision, p_values = has_significance(all_samples[:, idx_])
-                if verbosity > 2: print(is_significant, confident_mean, true_precision, p_values)
+            if not socket_samples_done:
+                if all_samples.shape[0] >= options["socket_size"]: socket_samples_done = True
+            else:
+                significance = []
+                for idx_, pf_idx in enumerate(pf_idxs):
+                    significance.append(
+                        has_significance(all_samples[:, idx_], options["deviation"], options["confidence"]))
 
-                # if we reached desired precision or we reached the max evaluations
-                if is_significant or all_samples[:,idx_].size > options["max_evaluations"]:
-                    if all_samples[:,idx_].size > options["max_evaluations"]:
-                        print("Max evaluations reached, no significance detected")
-                    else:
-                        if verbosity > 1: print("Number of samples: " + str(all_samples.size))
+                # If wait_all mode is on this only gets executed when full significance is achieved
+                # If wait all mode is off this gets executed and samples are removed from the respective variables
+                if all_samples.shape[0] >= options["max_evaluations"] or all(significance) or not options["wait_all"]:
+                    remove_idxs = []
+                    for idx_, pf_idx in enumerate(pf_idxs):
+                        # if we reached desired precision or we reached the max evaluations
+                        if significance[idx_] or all_samples.shape[0] > options["max_evaluations"]:
+                            if all_samples[:, idx_].size > options["max_evaluations"]:
+                                print("Max evaluations reached, no significance detected")
+                            else:
+                                if verbosity > 1: print("Number of samples: " + str(all_samples.size))
 
-                    # make sure to save the results for the potential function that just became significant
-                    potential_result[pf_idx] = pfs[pf_idx].potential(current_state)
-                    raw_drift_result[pf_idx] = np.mean(all_samples[:, idx_])
-                    confident_drift_result[pf_idx] = confident_mean
-                    precision_result[pf_idx] = true_precision
-                    number_samples_result[pf_idx] = all_samples.size
+                            # make sure to save the results for the potential function that just became significant
+                            results[pf_idx] = {
+                                "potential": pfs[pf_idx].potential(current_state),
+                                "drift": np.mean(all_samples[:, idx_]),
+                                "number_samples": all_samples.size,
+                                "significant": significance[idx_],
+                            }
 
+                            if not options["wait_all"]:
+                                remove_idxs.append(idx_)
 
-                    all_samples = np.delete(all_samples, idx_, axis=1)
-                    pf_idxs.pop(idx_)
+                    # the sorting is important, otherwise we will mix up the indices
+                    remove_idxs.sort(reverse=True)
+                    for idx_ in remove_idxs:
+                        all_samples = np.delete(all_samples, idx_, axis=1)
+                        pf_idxs.pop(idx_)
 
-            if len(pf_idxs) == 0:
-                break
-
-        result = []
+                if all(significance) or all_samples.shape[0] >= options["max_evaluations"]:
+                    break
 
         result = {
             "state_idx": state_idx,
             "state": current_state.copy(),
-            "potential": potential_result,
-            "raw_drift": raw_drift_result,
-            "confident_drift": confident_drift_result,
-            "precision": precision_result,
-            "number_samples": number_samples_result,
+            "results": results
         }
 
         if options["save_follow_up_states"]:
             result["samples"] = state_data
 
-        results.append(result)
+        final_results.append(result)
+        state_idx += 1
 
-        # counter logic to access all state combinations
-        counter[0] += 1
-        for counter_idx in range(0, len(counter)):
-            if counter[counter_idx] == len(states[keys[counter_idx]]):
-                if counter_idx + 1 < len(counter): counter[counter_idx + 1] += 1
-                counter[counter_idx] = 0
-
-    return results
+    return final_results
 
 
-def has_significance(sample, precision=1, confidence=0.05):
+def has_significance(sample, deviation=0.1, confidence=0.05):
     mean = np.mean(sample)
-    if mean != 0:
-        true_precision = (0 - int(math.log10(abs(mean)))) + precision
-    else:
-        true_precision = 1
 
-    rounded_mean = np.around(mean, true_precision)
-    deviation = (1 / (10 ** true_precision))
-    popmean_plus = rounded_mean + deviation
-    popmean_minus = rounded_mean - deviation
+    if mean == 0:
+        return True
+
+    popmean_plus = mean + abs(deviation * mean)
+    popmean_minus = mean - abs(deviation * mean)
 
     p_values = (ttest_1samp(sample, popmean_plus, alternative="less").pvalue,
                 ttest_1samp(sample, popmean_minus, alternative="greater").pvalue)
 
     is_precise = p_values[0] < confidence and p_values[1] < confidence
 
-    return is_precise, rounded_mean, true_precision, p_values
+    return is_precise
 
 
 def has_drift_ttest(sample):
