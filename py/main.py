@@ -2,7 +2,7 @@ import asyncio, uuid, pickle
 from redis import Redis
 
 from fastapi import FastAPI, WebSocket
-from DriftAnalysis import DriftAnalysis
+from DriftAnalysisFramework.DriftAnalysis import DriftAnalysis
 from datetime import datetime
 
 app = FastAPI()

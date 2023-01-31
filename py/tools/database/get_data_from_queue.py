@@ -1,6 +1,5 @@
-import matplotlib.pyplot as plt
 import numpy as np
-from tools.database.JobQueue import JobQueue
+from DriftAnalysisFramework.JobQueue import JobQueue
 
 q = JobQueue("step_size_analysis")
 

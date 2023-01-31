@@ -1,10 +1,8 @@
 from DriftAnalysisFramework import TargetFunctions, OptimizationAlgorithms, PotentialFunctions
 from worker_module import work_job
-from rq.registry import ScheduledJobRegistry
-from tools.database.JobQueue import JobQueue
+from DriftAnalysisFramework.JobQueue import JobQueue
 from definitions import ALGORITHM_PATH
 import json
-from rq import Queue
 import numpy as np
 
 

@@ -1,8 +1,7 @@
 import numpy as np
 import uuid
-from DriftAnalysis import DriftAnalysis
+from DriftAnalysisFramework.DriftAnalysis import DriftAnalysis
 from redis import Redis
-import pickle
 import time
 
 r = Redis(host='nash.ini.rub.de', port=6379, db=0, password='4xEhjbGNkNPr8UkBQbWL9qmPpXpAeCKMF2G2')
@@ -24,8 +23,8 @@ AAG = {
     "function": "AAG",
     "constants": {
         "v": 0.001680723622387344,
-        "u": 1.3,
-        "l": 3.1
+        "u": 3.1,
+        "l": 1.3
     }
 }
 
@@ -81,7 +80,7 @@ CMA_config = {
         "d": 2,
         "p_target": 0.1818,
         "c_cov": 0.2,
-        "alpha": 1/2
+        "alpha": 1 / 2
     },
     "potential": potential_functions,
     "variables": {
@@ -133,7 +132,7 @@ CMA_config = {
                 "scale": "linear",
                 "quantity": 5,
                 "min": 0,
-                "max": np.pi/4
+                "max": np.pi / 4
             },
         ],
     },
@@ -152,11 +151,11 @@ config.update(OPO_config)
 analysis = DriftAnalysis(config, run_id, queue=True)
 analysis.start(job_chunk=5, verbosity=1)
 
-# analysis.save_jobs_ids()
-# analysis.q = None
+# plotting.save_jobs_ids()
+# plotting.q = None
 #
 # with open("OPO-1", 'wb') as f:
-#     pickle.dump(analysis, f)
+#     pickle.dump(plotting, f)
 
 
 while not analysis.is_finished():

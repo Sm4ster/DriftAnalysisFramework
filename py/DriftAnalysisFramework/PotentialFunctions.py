@@ -1,5 +1,5 @@
 import numpy as np
-from mathjspy import MathJS
+#from mathjspy import MathJS
 
 
 class Expression:
@@ -12,25 +12,25 @@ class Expression:
         self.expression = potential["expression"]
         self.variables.update(constants)
 
-        self.mjs = MathJS()
-        self.mjs.update(constants)
+       # self.mjs = MathJS()
+      #  self.mjs.update(constants)
 
-        if "constants" in potential:
-            self.mjs.update(potential["constants"])
+       # if "constants" in potential:
+        #    self.mjs.update(potential["constants"])
 
-        self.mjs.update({
-            "dim": 2
-        })
+      #  self.mjs.update({
+      #      "dim": 2
+     #   })
 
     def potential(self, state):
         # merge all state variables into the dictionary
         self.variables.update(state)
 
         # Set variables used in equations from a dictionary
-        self.mjs.update(self.variables)
+      #  self.mjs.update(self.variables)
 
         # Evaluate an expression
-        return self.mjs.eval(self.expression)
+    #   return self.mjs.eval(self.expression)
 
 
 class Function:

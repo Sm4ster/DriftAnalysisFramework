@@ -1,9 +1,8 @@
 import numpy as np
 import time
 import pickle
-from DriftAnalysis import DriftAnalysis
 
-with open("OPO-1", 'rb') as f:
+with open("../plotting/OPO-1", 'rb') as f:
     analysis = pickle.load(f)
 
 analysis.load_job_ids()

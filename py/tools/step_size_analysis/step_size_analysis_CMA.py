@@ -4,7 +4,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from worker_module import analyze_step_size
 import time
-from tools.database.JobQueue import JobQueue
+from DriftAnalysisFramework.JobQueue import JobQueue
 
 # Globals
 distance_sequence = np.geomspace(1, 100, 10)
