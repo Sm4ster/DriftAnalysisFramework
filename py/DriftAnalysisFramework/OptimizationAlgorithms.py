@@ -1,6 +1,5 @@
 import numpy as np
 
-
 class OnePlusOne_ES:
     m = None
 
@@ -98,4 +97,4 @@ class CMA_ES:
         # step 3: update the global step size
         sigma_t = sigma_t * np.exp((1 / self.d) * ((p_succ - self.p_target) / (1 - self.p_target)))
 
-        return {"m": m_t, "sigma": sigma_t, "cov_m": cov_m, "p_succ": p_succ}
+        return {"m": m_t, "sigma": sigma_t, "cov_m": cov_m, "p_succ": p_succ, "alpha": alpha}

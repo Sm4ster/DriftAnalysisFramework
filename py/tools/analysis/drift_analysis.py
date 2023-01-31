@@ -3,6 +3,7 @@ import uuid
 from DriftAnalysis import DriftAnalysis
 from redis import Redis
 import pickle
+import time
 
 r = Redis(host='nash.ini.rub.de', port=6379, db=0, password='4xEhjbGNkNPr8UkBQbWL9qmPpXpAeCKMF2G2')
 run_id = str(uuid.uuid4())
@@ -46,9 +47,9 @@ OPO_config = {
     "variables": {
         "sigma": {
             "variation": True,
-            "min": 0.01,
-            "max": 10,
-            "quantity": 6,
+            "min": 0.001,
+            "max": 100,
+            "quantity": 100,
             "scale": "linear",
             "distribution": "grid"
         }
@@ -59,16 +60,16 @@ OPO_config = {
             {
                 "distribution": "grid",
                 "scale": "linear",
-                "quantity": 2,
-                "min": 0,
+                "quantity": 1,
+                "min": 1,
                 "max": 1
             },
             {
                 "distribution": "grid",
                 "scale": "linear",
-                "quantity": 2,
-                "min": 1,
-                "max": 2
+                "quantity": 1,
+                "min": 0,
+                "max": 0
             }
         ],
     },
@@ -79,8 +80,8 @@ CMA_config = {
     "constants": {
         "d": 2,
         "p_target": 0.1818,
-        "alpha": 0.1818,
-        "c_cov": 0.2
+        "c_cov": 0.2,
+        "alpha": 1/2
     },
     "potential": potential_functions,
     "variables": {
@@ -146,27 +147,31 @@ config = {
     },
 
 }
-config.update(CMA_config)
+config.update(OPO_config)
 
-analysis = DriftAnalysis(config, run_id)
-# analysis.start(job_chunk=5, verbosity=1)
+analysis = DriftAnalysis(config, run_id, queue=True)
+analysis.start(job_chunk=5, verbosity=1)
 
-# with open("test", 'wb') as f:
+# analysis.save_jobs_ids()
+# analysis.q = None
+#
+# with open("OPO-1", 'wb') as f:
 #     pickle.dump(analysis, f)
 
-# if analysis.is_finished():
-#     print(analysis.results)
-#     for pf_idx, pf in enumerate(potential_functions):
-#         drifts = np.empty(len(analysis.results) * len(analysis.results[0]))
-#
-#         # slice out the results
-#         for location_idx, location_result in enumerate(analysis.results):
-#             for state_idx, state_result in enumerate(location_result):
-#                 drifts[location_idx * len(analysis.results[0]) + state_idx] = state_result["results"][pf_idx]["drift"]
-#
-#         print(pf["function"])
-#         print("Mean drift " + str(drifts.mean()))
-#         print("Minimal drift " + str(np.amax(drifts)))
-#         print("Drift range " + str(np.amax(drifts) - np.amin(drifts)))
-#         print("Variance " + str(drifts.var()))
-#         print("\n")
+
+while not analysis.is_finished():
+    time.sleep(5)
+
+analysis.get_results()
+for pf_idx, pf in enumerate(analysis.pf):
+    drifts = np.empty(len(analysis.results))
+
+    # slice out the results
+    for state_idx, state_result in enumerate(analysis.results):
+        drifts[state_idx] = state_result["results"][pf_idx]["drift"]
+
+    print("Mean drift " + str(drifts.mean()))
+    print("Minimal drift " + str(np.amax(drifts)))
+    print("Drift range " + str(np.amax(drifts) - np.amin(drifts)))
+    print("Variance " + str(drifts.var()))
+    print("\n")

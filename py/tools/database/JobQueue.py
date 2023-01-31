@@ -26,8 +26,9 @@ class JobQueue:
         self.connection = r
         self.q = Queue(name, connection=r)
 
-        with open(file, 'rb') as f:
-            self.jobs_ids = pickle.load(f)
+        if file:
+            with open(file, 'rb') as f:
+                self.jobs_ids = pickle.load(f)
 
 
     def enqueue(self, *args, **kwargs):
@@ -41,13 +42,12 @@ class JobQueue:
 
 
     def start(self):
-        print(self.pipeline)
-        a = self.q.enqueue_many(self.pipeline)
-        print(a)
+        self.q.enqueue_many(self.pipeline)
         self.pipeline = []
 
     def is_finished(self):
-        return FinishedJobRegistry(queue=self.q).count == len(self.jobs_ids)
+        print(FinishedJobRegistry(queue=self.q).count)
+        return FinishedJobRegistry(queue=self.q).count >= len(self.jobs_ids)
 
     def get_jobs(self, jobs_ids=None):
         if jobs_ids == None:
@@ -66,7 +66,7 @@ class JobQueue:
         return FailedJobRegistry(queue=self.q)
 
     def get_finished_jobs(self):
-        return FinishedJobRegistry(queue=self.q)
+        return self.get_jobs(FinishedJobRegistry(queue=self.q).get_job_ids())
 
     def open(self):
         return len(self.q)

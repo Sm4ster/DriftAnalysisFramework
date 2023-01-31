@@ -21,7 +21,7 @@ class DriftAnalysis:
     min_max = {}
     pf = []
 
-    def __init__(self, config, uuid, redis_connection=None):
+    def __init__(self, config, uuid, queue=False):
         self.uuid = uuid
 
         with open(ALGORITHM_PATH + config["algorithm"] + '.json', 'r') as f:
@@ -29,7 +29,7 @@ class DriftAnalysis:
         self.matrices = oa_definition["matrices"]
 
         # if necessary init the queue
-        if redis_connection:
+        if queue:
             self.q = JobQueue("drift_analysis")
             self.queue = True
 
@@ -90,6 +90,7 @@ class DriftAnalysis:
 
         if self.queue:
             for idx in range(number_jobs):
+                print("[Queue Mode]: Queueing Jobs (" + str(idx) + "/" + str(number_jobs) + ")")
                 lower = idx * job_chunk
                 upper = lower + job_chunk
                 self.q.enqueue(
@@ -122,7 +123,14 @@ class DriftAnalysis:
 
     def get_results(self):
         if self.queue:
-            self.q.get_finished_jobs()
+            result_list = []
+            jobs = self.q.get_jobs()
+            for job in jobs:
+                for result in job.result:
+                    result_list.append(result)
+
+            self.results = result_list
+            return result_list
         else:
             return self.results
 
@@ -147,8 +155,8 @@ class DriftAnalysis:
 
         # print(np.repeat(locations, distance_sequence.shape[0], axis=0))
         # print(np.tile(np.tile(distance_sequence, locations.shape[0]), (2,1)).T)
-        return np.repeat(locations, distance_sequence.shape[0], axis=0) * np.tile(np.tile(distance_sequence, locations.shape[0]), (2,1)).T
-
+        return np.repeat(locations, distance_sequence.shape[0], axis=0) * np.tile(
+            np.tile(distance_sequence, locations.shape[0]), (2, 1)).T
 
     def generate_states(self, state_variables):
         raw_state_list = {}
@@ -176,3 +184,12 @@ class DriftAnalysis:
             return np.power(2, sequence).astype(np.dtype)
         else:
             return sequence
+
+    def save_jobs_ids(self):
+        self.job_ids = self.q.jobs_ids
+        print(self.job_ids)
+
+    def load_job_ids(self):
+        self.q = JobQueue("drift_analysis")
+        self.q.jobs_ids = self.job_ids
+        print(self.job_ids)

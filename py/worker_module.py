@@ -2,6 +2,7 @@ import sys
 from DriftAnalysisFramework import PotentialFunctions, OptimizationAlgorithms, TargetFunctions
 import math
 import copy
+import time
 # sys.path.insert(0, '/home/stephan/DriftAnalysis/')
 
 from scipy.stats import t, ttest_1samp
@@ -58,31 +59,14 @@ def work_job(oa, pfs, states, keys, options, global_state_array=None, verbosity=
                     batch_samples[idx][idx_] = pfs[pf_idx].potential(follow_up_state) - pfs[pf_idx].potential(
                         current_state)
 
-                # TODO THIS DOES NOT WORK WITH MULTIPLE POTENTIAL FUNCTIONS
-                # if options["save_follow_up_states"]:
-                #     sample_data = {}
-                #     # save the drift for the frontend
-                #     sample_data["drift"] = batch_samples[idx]
-                #
-                #     # save potential for debugging
-                #     potential_data = []
-                #     for idx_, pf_idx in enumerate(pf_idxs):
-                #         potential_data.append(pfs[pf_idx].potential(follow_up_state))
-                #     sample_data["potential"] = potential_data
-                #
-                #     # save the follow up state
-                #     sample_data["follow_up_state"] = follow_up_state
-                #     sample_data["success"] = follow_up_state["m"].all() == current_state["m"].all()
-                #
-                #     # save the sample data
-                #     state_data.append(sample_data)
-
             # add samples of this batch to the overall samples
             all_samples = np.concatenate((all_samples, batch_samples))
 
             if not socket_samples_done:
-                if all_samples.shape[0] >= options["socket_size"]: socket_samples_done = True
+                if all_samples.shape[0] >= options["socket_size"]:
+                    socket_samples_done = True
             else:
+
                 significance = []
                 for idx_, pf_idx in enumerate(pf_idxs):
                     significance.append(
