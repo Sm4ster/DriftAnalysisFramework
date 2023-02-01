@@ -19,7 +19,7 @@ while getopts ":n:b:" opt; do
 done
 
 
-if [ "$burst" != false ]; then
+if [ burst != false ]; then
   echo "Burst Mode"
   declare -a workers;
   for ((core=1; core <= cores; core++))
