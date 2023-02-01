@@ -2,6 +2,7 @@ import numpy as np
 import uuid
 from DriftAnalysisFramework.DriftAnalysis import DriftAnalysis
 from redis import Redis
+import pickle
 import time
 
 r = Redis(host='nash.ini.rub.de', port=6379, db=0, password='4xEhjbGNkNPr8UkBQbWL9qmPpXpAeCKMF2G2')
@@ -46,9 +47,9 @@ OPO_config = {
     "variables": {
         "sigma": {
             "variation": True,
-            "min": 0.001,
-            "max": 100,
-            "quantity": 100,
+            "min": 0.00235,
+            "max": 235,
+            "quantity": 100000,
             "scale": "linear",
             "distribution": "grid"
         }
@@ -151,26 +152,26 @@ config.update(OPO_config)
 analysis = DriftAnalysis(config, run_id, queue=True)
 analysis.start(job_chunk=5, verbosity=1)
 
-# plotting.save_jobs_ids()
-# plotting.q = None
+analysis.save_jobs_ids()
+analysis.q = None
+
+with open("OPO-1", 'wb') as f:
+    pickle.dump(analysis, f)
+
+
+# while not analysis.is_finished():
+#     time.sleep(5)
 #
-# with open("OPO-1", 'wb') as f:
-#     pickle.dump(plotting, f)
-
-
-while not analysis.is_finished():
-    time.sleep(5)
-
-analysis.get_results()
-for pf_idx, pf in enumerate(analysis.pf):
-    drifts = np.empty(len(analysis.results))
-
-    # slice out the results
-    for state_idx, state_result in enumerate(analysis.results):
-        drifts[state_idx] = state_result["results"][pf_idx]["drift"]
-
-    print("Mean drift " + str(drifts.mean()))
-    print("Minimal drift " + str(np.amax(drifts)))
-    print("Drift range " + str(np.amax(drifts) - np.amin(drifts)))
-    print("Variance " + str(drifts.var()))
-    print("\n")
+# analysis.get_results()
+# for pf_idx, pf in enumerate(analysis.pf):
+#     drifts = np.empty(len(analysis.results))
+#
+#     # slice out the results
+#     for state_idx, state_result in enumerate(analysis.results):
+#         drifts[state_idx] = state_result["results"][pf_idx]["drift"]
+#
+#     print("Mean drift " + str(drifts.mean()))
+#     print("Minimal drift " + str(np.amax(drifts)))
+#     print("Drift range " + str(np.amax(drifts) - np.amin(drifts)))
+#     print("Variance " + str(drifts.var()))
+#     print("\n")

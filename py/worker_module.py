@@ -1,5 +1,5 @@
 import sys
-from DriftAnalysisFramework import PotentialFunctions, OptimizationAlgorithms, TargetFunctions
+from DriftAnalysisFramework import PotentialFunctions, OptimizationAlgorithms, TargetFunctions, AnalysisTools
 import math
 import copy
 import time
@@ -10,7 +10,6 @@ import numpy as np
 
 
 def work_job(oa, pfs, states, keys, options, global_state_array=None, verbosity=0):
-
     final_results = []
     socket_samples_done = False
     current_state = {}
@@ -170,3 +169,13 @@ def analyze_step_size(state, algorithm, options):
     sigma_array = np.split(sigma_array, [options["cutoff"], options["alg_iterations"]])[1]
 
     return sigma_array.mean(), sigma_array.var(), sigma_array.max() - sigma_array.min()
+
+
+def potential_analysis(SP, alpha, A, v, l, u, p_l, p_u):
+    SP.init()
+    p_star = SP.get_min(l, u)
+
+    B_1 = A * p_star - (5 / 4) * v * np.log(alpha)
+    B_2 = v * np.log(alpha) * ((5 * p_l - 1) / 4)
+    B_3 = v * np.log(alpha) * ((1 - 5 * p_u) / 4)
+    return min(B_1, B_2, B_3)

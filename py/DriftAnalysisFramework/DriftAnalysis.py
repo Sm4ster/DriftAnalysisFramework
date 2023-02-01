@@ -39,6 +39,7 @@ class DriftAnalysis:
         self.oa = oa_class(self.tf, config['constants'])
 
         # initialize a potential function
+        self.pf_names = []
         for potential in config["potential"]:
             if "mode" not in potential:
                 raise ("[ERROR] Please specify the mode as 'expression' or 'function'")
@@ -49,6 +50,7 @@ class DriftAnalysis:
                 self.pf.append(PotentialFunctions.Function(potential, config["constants"]))
             else:
                 raise ("[ERROR] Unknown mode. Please use 'expression' or 'function'")
+            self.pf_names.append(potential["function"])
 
         # generate states
         states, self.min_max["states"] = self.generate_states(config["variables"])

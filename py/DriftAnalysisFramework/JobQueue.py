@@ -37,7 +37,7 @@ class JobQueue:
         while job_id in self.jobs_ids:
             job_id = uuid.uuid4()
 
-        self.pipeline.append(Queue.prepare_data(*args, **kwargs, job_id=job_id))
+        self.pipeline.append(Queue.prepare_data(*args, **kwargs, job_id=job_id, timeout="1h"))
         self.jobs_ids.append(job_id)
 
 
@@ -46,7 +46,7 @@ class JobQueue:
         self.pipeline = []
 
     def is_finished(self):
-        print(FinishedJobRegistry(queue=self.q).count)
+        print(FinishedJobRegistry(queue=self.q).count, len(self.jobs_ids), FinishedJobRegistry(queue=self.q).count >= len(self.jobs_ids))
         return FinishedJobRegistry(queue=self.q).count >= len(self.jobs_ids)
 
     def get_jobs(self, jobs_ids=None):
