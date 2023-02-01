@@ -6,43 +6,17 @@ else
   cores=$(grep -c ^processor /proc/cpuinfo)-2
 fi
 
-burst = false
-while getopts ":n:b:" opt; do
-  case $opt in
-    n) niceness="$OPTARG"
-    ;;
-    b) burst=true
-    ;;
-    \?) echo "Invalid option -$OPTARG" >&2
-    ;;
-  esac
+
+
+declare -a workers;
+for ((core=1; core <= cores; core++))
+do
+  /home/franksyj/.local/bin/rq worker step_size_analysis drift_analysis --url redis://:4xEhjbGNkNPr8UkBQbWL9qmPpXpAeCKMF2G2@nash.ini.rub.de:6379 --path /home/franksyj/DriftAnalysisFramework/py/ &
+  workers[core]=$!;
+  echo "Started Core $core with process $!";
 done
 
-
-if [ burst != false ]; then
-  echo "Burst Mode"
-  declare -a workers;
-  for ((core=1; core <= cores; core++))
-  do
-    /home/franksyj/.local/bin/rq worker --burst step_size_analysis drift_analysis --url redis://:4xEhjbGNkNPr8UkBQbWL9qmPpXpAeCKMF2G2@nash.ini.rub.de:6379 --path /home/franksyj/DriftAnalysisFramework/py/ &
-    workers[core]=$!;
-    echo "Started Core $core with process $!";
-  done
-
-  /home/franksyj/.local/bin/rq worker --burst step_size_analysis drift_analysis --url redis://:4xEhjbGNkNPr8UkBQbWL9qmPpXpAeCKMF2G2@nash.ini.rub.de:6379 --path /home/franksyj/DriftAnalysisFramework/py/
-
-else
-  declare -a workers;
-  for ((core=1; core <= cores; core++))
-  do
-    /home/franksyj/.local/bin/rq worker step_size_analysis drift_analysis --url redis://:4xEhjbGNkNPr8UkBQbWL9qmPpXpAeCKMF2G2@nash.ini.rub.de:6379 --path /home/franksyj/DriftAnalysisFramework/py/ &
-    workers[core]=$!;
-    echo "Started Core $core with process $!";
-  done
-
-  /home/franksyj/.local/bin/rq worker step_size_analysis drift_analysis --url redis://:4xEhjbGNkNPr8UkBQbWL9qmPpXpAeCKMF2G2@nash.ini.rub.de:6379 --path /home/franksyj/DriftAnalysisFramework/py/
-fi
-
+/home/franksyj/.local/bin/rq worker step_size_analysis drift_analysis --url redis://:4xEhjbGNkNPr8UkBQbWL9qmPpXpAeCKMF2G2@nash.ini.rub.de:6379 --path /home/franksyj/DriftAnalysisFramework/py/
 
 function kill_workers()
 {
