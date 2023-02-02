@@ -14,6 +14,9 @@ while not analysis.is_finished():
 
 analysis.get_results()
 
+# save the results
+np.save("../../data/OPO-0.npy", analysis.results)
+
 for pf_idx, pf in enumerate(analysis.pf_names):
 
     drifts = np.empty(len(analysis.results))

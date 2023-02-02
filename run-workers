@@ -11,12 +11,12 @@ fi
 declare -a workers;
 for ((core=1; core <= cores; core++))
 do
-  /home/franksyj/.local/bin/rq worker step_size_analysis drift_analysis --url redis://:4xEhjbGNkNPr8UkBQbWL9qmPpXpAeCKMF2G2@nash.ini.rub.de:6379 --path /home/franksyj/DriftAnalysisFramework/py/ &
+  /home/franksyj/.local/bin/rq worker lu_search step_size_analysis drift_analysis --url redis://:4xEhjbGNkNPr8UkBQbWL9qmPpXpAeCKMF2G2@nash.ini.rub.de:6379 --path /home/franksyj/DriftAnalysisFramework/py/ &
   workers[core]=$!;
   echo "Started Core $core with process $!";
 done
 
-/home/franksyj/.local/bin/rq worker step_size_analysis drift_analysis --url redis://:4xEhjbGNkNPr8UkBQbWL9qmPpXpAeCKMF2G2@nash.ini.rub.de:6379 --path /home/franksyj/DriftAnalysisFramework/py/
+/home/franksyj/.local/bin/rq worker lu_search step_size_analysis drift_analysis --url redis://:4xEhjbGNkNPr8UkBQbWL9qmPpXpAeCKMF2G2@nash.ini.rub.de:6379 --path /home/franksyj/DriftAnalysisFramework/py/
 
 function kill_workers()
 {

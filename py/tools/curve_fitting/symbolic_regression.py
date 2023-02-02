@@ -3,17 +3,25 @@ import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 
-results = np.load("../../data/sigma_data_pi_2023_01_20.npy")
+results = np.load("../../data/sigma_data_pi_2023_01_21.npy")
 
+curve_idx = 0
+distance_idx = 0
 
 # a = np.array([[[1,1,1,1,1],[2,2,2,2,2],[3,3,3,3,3]],[[11,11,11,11,11],[22,22,22,22,22],[33,33,33,33,33]]], dtype=object)
 # print(a.reshape((6,5)))
 # data = results.reshape((10000, 5))
 
-data=results[99]
+# This is the curve
+data=results[curve_idx][distance_idx]
 
 ql = feyn.QLattice()
 train = pd.DataFrame(data[:, :2], columns=[ "sigma*", "sigma_var"]) # "angle", "dir_cond_number", "x", "y",
+train = train.drop(train[train.sigma_var < 10].index)
+
+print(train)
+
+
 models = ql.auto_run(train, output_name='sigma*')
 
 for idx, model in enumerate(models):

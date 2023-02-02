@@ -7,7 +7,6 @@ import numpy as np
 
 
 class DriftAnalysis:
-    uuid = None
     dim = 2
     states = {}
     locations = []
@@ -96,7 +95,7 @@ class DriftAnalysis:
                 self.q.enqueue(
                     work_job,
                     args=[self.oa, self.pf, self.states[lower:upper], self.keys, options],
-                    meta={"indexes": (lower, upper)},
+                    meta={"indexes": (lower, upper), "run_id": self.uuid},
                     result_ttl=86400
                 )
                 if idx % 1000 == 0:
@@ -126,8 +125,13 @@ class DriftAnalysis:
             result_list = []
             jobs = self.q.get_jobs()
             for job in jobs:
-                for result in job.result:
-                    result_list.append(result)
+                if job.result:
+                    for result in job.result:
+                        result_list.append(result)
+                else:
+                    job.refresh()
+                    print(job.get_status(), job.meta, job.enqueued_at, job.origin)
+                    # self.q.q.failed_job_registry.requeue(job.id)
 
             self.results = result_list
             return result_list
@@ -187,9 +191,8 @@ class DriftAnalysis:
 
     def save_jobs_ids(self):
         self.job_ids = self.q.jobs_ids
-        print(self.job_ids)
+
 
     def load_job_ids(self):
         self.q = JobQueue("drift_analysis")
         self.q.jobs_ids = self.job_ids
-        print(self.job_ids)

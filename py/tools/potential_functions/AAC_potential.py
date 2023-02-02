@@ -11,7 +11,7 @@ A = 1 / d
 r_dash = 1 - np.exp(- np.log(alpha) / (d * np.log(alpha) - 1))
 SP_r_dash = AT.SuccessProbability("probability", d, r=r_dash)
 
-q = JQ.JobQueue("potential_analysis")
+q = JQ.JobQueue("lu_search")
 
 lu_list = AT.get_ul_tuple(d, alpha)
 print(len(lu_list))
@@ -26,7 +26,6 @@ for lu in lu_list:
 
     SP = AT.SuccessProbability("probability", d, r=(1 - np.exp(-(A / (1 - v)))), init=False)
 
-    # maybe i need to deliver the analysis
     q.enqueue(
         potential_analysis,
         args=[SP, alpha, A, v, l, u, p_l, p_u],
