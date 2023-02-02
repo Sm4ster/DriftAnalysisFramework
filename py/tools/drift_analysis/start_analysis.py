@@ -3,7 +3,7 @@ import uuid
 from DriftAnalysisFramework.DriftAnalysis import DriftAnalysis
 from redis import Redis
 import pickle
-import time
+from sklearn.neighbors import KNeighborsRegressor
 
 r = Redis(host='nash.ini.rub.de', port=6379, db=0, password='4xEhjbGNkNPr8UkBQbWL9qmPpXpAeCKMF2G2')
 run_id = str(uuid.uuid4())
@@ -23,16 +23,28 @@ AAG = {
     "expression": "log(norm(m)) + max(0, v*log((alpha * l * norm(m))/(2 * sigma)), v*log(((alpha^(1/4)) * sigma * 2)/(u * norm(m))))",
     "function": "AAG",
     "constants": {
-        "v": 0.001680723622387344,
-        "u": 3.1,
-        "l": 1.3
+        "v": 0.0011010189219219733,
+        "u": 4.0,
+        "l": 0.75
     }
 }
+
+results = np.load("../../data/sigma_data_test_run.npy")
+
+y = [item[0] for item in results]
+X = [item[1:] for item in results]
+
+# create the regressor object
+knn = KNeighborsRegressor(n_neighbors=1)
+
+# fit the model to the training data
+knn.fit(X, y)
 
 FG = {
     "mode": "function",
     "expression": "log(norm(m)) + v_1 + max(0, log(sigma/(c*sigma_*)), log(sigma_*/(c*sigma))) + v_2 * log(sigma_22)^2",
-    "function": "FG"
+    "function": "FG",
+    "extras": knn
 }
 
 # @formatter:on
@@ -47,9 +59,9 @@ OPO_config = {
     "variables": {
         "sigma": {
             "variation": True,
-            "min": 0.00235,
-            "max": 235,
-            "quantity": 100000,
+            "min": 2.35 / 1000,
+            "max": 2.35 * 100,
+            "quantity": 10000,
             "scale": "linear",
             "distribution": "grid"
         }

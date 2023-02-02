@@ -46,7 +46,7 @@ class DriftAnalysis:
             if potential["mode"] == "expression":
                 self.pf.append(PotentialFunctions.Expression(potential, config["constants"]))
             elif potential["mode"] == "function":
-                self.pf.append(PotentialFunctions.Function(potential, config["constants"]))
+                if "extras" in config: self.pf.append(PotentialFunctions.Function(potential, config["constants"], config["extras"]))
             else:
                 raise ("[ERROR] Unknown mode. Please use 'expression' or 'function'")
             self.pf_names.append(potential["function"])
@@ -96,7 +96,7 @@ class DriftAnalysis:
                     work_job,
                     args=[self.oa, self.pf, self.states[lower:upper], self.keys, options],
                     meta={"indexes": (lower, upper), "run_id": self.uuid},
-                    result_ttl=86400
+                    result_ttl=864000
                 )
                 if idx % 1000 == 0:
                     self.q.start()

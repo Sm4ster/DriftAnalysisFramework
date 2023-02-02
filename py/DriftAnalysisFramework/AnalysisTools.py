@@ -14,7 +14,7 @@ class SuccessProbability:
     results = {}
     result_x = None
 
-    def __init__(self, mode, dimension, r=0.0, start=0.0, stop=8.0, resolution=100, init=True):
+    def __init__(self, mode, dimension, r=0.0, start=0.0, stop=8.0, resolution=150, init=True):
         if (mode not in ["rate", "probability"]): raise Exception("The mode has to be 'rate' or 'probability'")
         if (dimension < 2): raise Exception("The dimension has to be at least 2")
         if (r < 0 or r > 1): raise Exception("r has to be between 0 and 1")
@@ -83,7 +83,7 @@ class SuccessProbability:
 
 def get_ul_tuple(d, alpha=2):
     ## determine u and l ##
-    sr = SuccessProbability("probability", dimension=d, r=0, start=0, stop=4, resolution=5)
+    sr = SuccessProbability("probability", dimension=d, r=0, start=0, stop=6, resolution=12)
 
     # get candidates
     pl_candidates = dict(

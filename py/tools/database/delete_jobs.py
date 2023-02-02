@@ -10,6 +10,7 @@ queues = (
     Queue('step_size_analysis', connection=r),
     Queue('default', connection=r),
     Queue('failed', connection=r),
+    Queue('lu_search', connection=r),
 )
 
 for q in queues:
