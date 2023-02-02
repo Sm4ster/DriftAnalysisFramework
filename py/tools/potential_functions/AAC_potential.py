@@ -42,11 +42,6 @@ results = []
 for job in jobs:
     results.append(job.result)
 
-    # p_star = AT.SuccessProbability("probability", d, r=(1 - np.exp(-(A / (1 - v))))).get_min(l,u)
-    #
-    # B_1 = A * p_star - (5 / 4) * v * np.log(alpha)
-    # B_2 = v * np.log(alpha) * ((5 * p_l - 1) / 4)
-    # B_3 = v * np.log(alpha) * ((1 - 5 * p_u) / 4)
-    # print(l, u, min(B_1, B_2, B_3))
+print(results)
 
 

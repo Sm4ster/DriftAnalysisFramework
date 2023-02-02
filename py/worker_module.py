@@ -171,11 +171,17 @@ def analyze_step_size(state, algorithm, options):
     return sigma_array.mean(), sigma_array.var(), sigma_array.max() - sigma_array.min()
 
 
-def potential_analysis(SP, alpha, A, v, l, u, p_l, p_u):
+def potential_analysis(SP,  alpha, A, v, l, u, p_l, p_u):
+    print(SP)
     SP.init()
     p_star = SP.get_min(l, u)
+
+    print(p_star)
 
     B_1 = A * p_star - (5 / 4) * v * np.log(alpha)
     B_2 = v * np.log(alpha) * ((5 * p_l - 1) / 4)
     B_3 = v * np.log(alpha) * ((1 - 5 * p_u) / 4)
-    return min(B_1, B_2, B_3)
+    result = min(B_1, B_2, B_3)
+    print(result, B_1, B_2, B_3)
+
+    return result
