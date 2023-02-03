@@ -30,10 +30,12 @@ AAG = {
 }
 
 results = np.load("../../data/sigma_data_test_run.npy")
-
+print(results.shape)
 y = [item[0] for item in results]
 X = [item[1:] for item in results]
 
+print(X.shape)
+# print(X, y)
 # create the regressor object
 knn = KNeighborsRegressor(n_neighbors=1)
 
@@ -48,14 +50,14 @@ FG = {
 }
 
 # @formatter:on
-potential_functions = [baseline, AAG]
+
 
 OPO_config = {
     "algorithm": "1+1-ES",
     "constants": {
         "alpha": 2
     },
-    "potential": potential_functions,
+    "potential": [baseline, AAG],
     "variables": {
         "sigma": {
             "variation": True,
@@ -95,40 +97,24 @@ CMA_config = {
         "c_cov": 0.2,
         "alpha": 1 / 2
     },
-    "potential": potential_functions,
+    "potential": [baseline, AAG, FG],
     "variables": {
         "sigma": {
             "variation": True,
-            "min": 1,
+            "min": 0.1,
             "max": 10,
             "quantity": 10,
             "scale": "linear",
             "distribution": "grid"
         },
-        "Sigma_11": {
+        "sigma_var": {
             "variation": True,
-            "min": 5,
+            "min": 0.1,
             "max": 10,
             "quantity": 10,
             "scale": "linear",
             "distribution": "grid"
         },
-        "Sigma_12|21": {
-            "variation": True,
-            "min": 1,
-            "max": 10,
-            "quantity": 10,
-            "scale": "linear",
-            "distribution": "grid"
-        },
-        "Sigma_22": {
-            "variation": True,
-            "min": 1,
-            "max": 10,
-            "quantity": 10,
-            "scale": "linear",
-            "distribution": "grid"
-        }
     },
     "location": {
         "type": "arc",
@@ -159,9 +145,9 @@ config = {
     },
 
 }
-config.update(OPO_config)
+config.update(CMA_config)
 
-analysis = DriftAnalysis(config, run_id, queue=True)
+analysis = DriftAnalysis(config, run_id, queue=False)
 analysis.start(job_chunk=5, verbosity=1)
 
 analysis.save_jobs_ids()

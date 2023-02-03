@@ -18,7 +18,7 @@ max_excentricity = 100000
 q = JobQueue("step_size_analysis")
 
 # Experiments
-results = np.empty([angle_sequence.shape[0], sigma_iterations, 4])
+results = np.empty([angle_sequence.shape[0] * sigma_iterations, 4])
 
 target = Sphere(dimension)
 algorithm = CMA_ES(
@@ -50,7 +50,7 @@ for angle_idx, angle in enumerate(angle_sequence):
             "cov_m": np.array([[1 / sigma_var, 0], [0, sigma_var]]),
         }
         q.enqueue(analyze_step_size, args=[state, algorithm, {"alg_iterations": alg_iterations, "cutoff": cutoff}],
-                  meta={"job_idx": angle_sequence.shape[0] * sigma_iterations * angle_idx, "location": location,
+                  meta={"job_idx": sigma_iterations * angle_idx + sigma_idx, "location": location,
                         "sigma_var": sigma_var},
                   result_ttl=86400)
     q.start()
