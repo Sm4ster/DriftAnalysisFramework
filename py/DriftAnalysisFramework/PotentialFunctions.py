@@ -2,7 +2,6 @@ import numpy as np
 from DriftAnalysisFramework.OptimizationAlgorithms import CMA_ES
 from DriftAnalysisFramework.TargetFunctions import Sphere
 from definitions import DATA_PATH
-from worker_module import analyze_step_size
 
 class Expression:
     dimension = 2
