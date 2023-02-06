@@ -57,7 +57,7 @@ def work_job(oa, pfs, states, keys, options, global_state_array=None, verbosity=
                 # calculate the difference in potential
                 for idx_, pf_idx in enumerate(pf_idxs):
                     batch_samples[idx][idx_] = pfs[pf_idx].potential(follow_up_state) - pfs[pf_idx].potential(
-                        current_state)
+                        current_state, is_normal_form=True)
 
             # add samples of this batch to the overall samples
             all_samples = np.concatenate((all_samples, batch_samples))

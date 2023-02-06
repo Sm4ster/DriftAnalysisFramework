@@ -67,7 +67,7 @@ class DriftAnalysis:
         self.keys["m"] = len(states)
         state_array = np.array(np.meshgrid(*var_arrays)).T.reshape(-1, len(var_arrays))
         # The order is important. The m vector always stands at the end as it is of variable length.
-        # This convention is relied upon, do no change unless you have considered that.
+        # This convention is relied upon, do not change unless you have considered that.
         self.states = np.concatenate(
             (np.tile(state_array, (locations.shape[0], 1)), np.repeat(locations, state_array.shape[0], axis=0)), axis=1)
 
@@ -76,7 +76,7 @@ class DriftAnalysis:
             "save_follow_up_states": False,
             "matrices": self.matrices,
 
-            "wait_all": False,
+            "wait_all": True,
             # If true, potential functions are evaluated until all potential functions become significant
             "batch_size": 1000,  # number of evaluations before a significance test is performed
             "socket_size": 10000,  # number of samples that are taken before significance tests start
@@ -87,7 +87,6 @@ class DriftAnalysis:
         }
 
         number_jobs = int(np.ceil(self.states.shape[0] / job_chunk))
-
         if self.queue:
             for idx in range(number_jobs):
                 print("[Queue Mode]: Queueing Jobs (" + str(idx) + "/" + str(number_jobs) + ")")

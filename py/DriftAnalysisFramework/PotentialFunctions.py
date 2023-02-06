@@ -57,18 +57,65 @@ class Function:
         ])
 
     def FG(self, state, constants):
-        return np.log(np.linalg.norm(state["m"])) + constants["v_1"] + max(0, np.log(state["sigma"]/(constants["c"]*self.sigma_star(state))), np.log(self.sigma_star(state)/(constants["c"] *state["sigma"]))) + constants["v_2"] * np.log(state["sigma_22"])**2
+        return np.log(np.linalg.norm(state["m"])) + constants["v_1"] + max(0, np.log(state["sigma"]/(constants["c"]*state["sigma_star"])), np.log(state["sigma_star"]/(constants["c"] *state["sigma"]))) + constants["v_2"] * np.log(state["sigma_var"])**2
     # @formatter:on
 
-    def potential(self, state):
+    def potential(self, state, is_normal_form=False):
         if self.function == "baseline":
             return self.baseline(state, self.constants)
         if self.function == "AAG":
-            state["sigma_star"] = self.sigma_star(state)
             return self.AAG(state, self.constants)
         if self.function == "FG":
+            state["sigma_star"], state["sigma_var"] = self.sigma_star(state, is_normal_form)
             return self.FG(state, self.constants)
 
-    def sigma_star(self, state):
+    def sigma_star(self, state, is_normal_form):
+        if not is_normal_form:
+            m, C, sigma = self.transform_state_to_normal_form(state["m"], state["cov_m"], state["sigma"])
+            sigma_var = C[1][1]
+        else:
+            sigma_var = state["cov_m"][1][1]
+
         # make a prediction for a new point
-        return self.extras.sigma_star.predict([[state["sigma_var"], *state["m"]]])
+        return self.extras["sigma_star"].predict([[sigma_var, *state["m"]]]), sigma_var
+
+    def transform_state_to_normal_form(self, m, C, sigma):
+        # get the the transformation matrix
+        A = np.linalg.eig(C)[1]
+
+        # rotate the coordinate system such that the eigenvalues of
+        # the covariance matrix are parallel to the coordinate axis
+        C_rot = A.T @ C @ A
+        m_rot = A.T @ m
+
+        # calculate the scaling factor which brings the covariance matrix to det = 1
+        scaling_factor = 1 / (np.sqrt(np.linalg.det(C_rot)))
+
+        m_normal = np.dot(m_rot, scaling_factor)
+        C_normal = np.dot(C_rot, scaling_factor)
+
+        # The distance factor sets norm(m) = 1. To keep the proportion between the distance
+        # of the center to the optimum and the spread of the distribution we adjust sigma.
+        distance_factor = 1 / np.linalg.norm(m_normal)
+
+        m_normal = m_normal * distance_factor
+        sigma_normal = sigma * distance_factor
+
+        # We transform m to (cos, sin)
+        x_flip = np.array([[-1, 0], [0, 1]])
+        y_flip = np.array([[1, 0], [0, -1]])
+        axis_swap = np.array([[0, 1], [1, 0]])
+
+        if m_normal[0] < 0:
+            C_normal = x_flip @ C_normal @ x_flip.T
+            m_normal = x_flip @ m_normal
+
+        if m_normal[1] < 0:
+            C_normal = y_flip @ C_normal @ y_flip.T
+            m_normal = y_flip @ m_normal
+
+        if m_normal[0] < np.cos(np.pi / 4):
+            C_normal = axis_swap @ C_normal @ axis_swap.T
+            m_normal = axis_swap @ m_normal
+
+        return m_normal, C_normal, sigma_normal

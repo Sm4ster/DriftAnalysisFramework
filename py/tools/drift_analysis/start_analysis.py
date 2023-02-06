@@ -46,12 +46,17 @@ FG = {
     "mode": "function",
     "expression": "log(norm(m)) + v_1 + max(0, log(sigma/(c*sigma_*)), log(sigma_*/(c*sigma))) + v_2 * log(sigma_22)^2",
     "function": "FG",
-    "extras": knn
+    "extras": {
+        "sigma_star": knn
+    },
+    "constants": {
+            "v_1": 0.1,
+            "v_2": 0.1,
+            "c": 5.0,
+        }
 }
 
 # @formatter:on
-
-
 OPO_config = {
     "algorithm": "1+1-ES",
     "constants": {
@@ -89,6 +94,7 @@ OPO_config = {
     },
 }
 
+sample_factor = 50
 CMA_config = {
     "algorithm": "CMA-ES",
     "constants": {
@@ -101,17 +107,17 @@ CMA_config = {
     "variables": {
         "sigma": {
             "variation": True,
-            "min": 0.1,
-            "max": 10,
-            "quantity": 10,
+            "min": 1 / 100000,
+            "max": 100000,
+            "quantity": sample_factor,
             "scale": "linear",
             "distribution": "grid"
         },
         "sigma_var": {
             "variation": True,
-            "min": 0.1,
-            "max": 10,
-            "quantity": 10,
+            "min": 1 / 100000,
+            "max": 100000,
+            "quantity": sample_factor,
             "scale": "linear",
             "distribution": "grid"
         },
@@ -121,15 +127,15 @@ CMA_config = {
         "distance": {
             "distribution": "grid",
             "scale": "linear",
-            "quantity": 3,
+            "quantity": 1,
             "min": 1,
-            "max": 3
+            "max": 1
         },
         "angles": [
             {
                 "distribution": "grid",
                 "scale": "linear",
-                "quantity": 5,
+                "quantity": int(np.floor(sample_factor / 2)),
                 "min": 0,
                 "max": np.pi / 4
             },
@@ -150,11 +156,11 @@ config.update(CMA_config)
 analysis = DriftAnalysis(config, run_id, queue=False)
 analysis.start(job_chunk=5, verbosity=3)
 
-analysis.save_jobs_ids()
-analysis.q = None
+# analysis.save_jobs_ids()
+# analysis.q = None
 
-with open("OPO-1", 'wb') as f:
-    pickle.dump(analysis, f)
+# with open("OPO-1", 'wb') as f:
+#     pickle.dump(analysis, f)
 
 
 # while not analysis.is_finished():
