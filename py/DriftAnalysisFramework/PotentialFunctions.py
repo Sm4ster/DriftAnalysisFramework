@@ -1,5 +1,6 @@
 import numpy as np
 
+
 class Expression:
     dimension = 2
     mjs = None
@@ -69,16 +70,20 @@ class Function:
             return self.FG(state, self.constants)
 
     def sigma_star(self, state, is_normal_form):
-        if not is_normal_form:
-            m, C, sigma = self.transform_state_to_normal_form(state["m"], state["cov_m"], state["sigma"])
-            sigma_var = C[1][1]
-        else:
+        if is_normal_form:
             sigma_var = state["cov_m"][1][1]
+            sigma_star = self.data["y"][np.argmin(np.sum((self.data["x"] - [sigma_var, *state["m"]]) ** 2, axis=1))]
+        else:
+            m, C, sigma, scaling_factor, distance_factor = self.transform_state_to_normal_form(state["m"],
+                                                                                               state["cov_m"],
+                                                                                               state["sigma"])
+            sigma_var = C[1][1]
+            sigma_star = self.data["y"][np.argmin(np.sum((self.data["x"] - [sigma_var, *m]) ** 2, axis=1))] / (
+                    np.sqrt(scaling_factor) * distance_factor)
 
-
-        #implement nearest neighbors myself, because deserialization does not work well
+        # implement nearest neighbors myself, because deserialization does not work well
         # make a prediction for a new point
-        return self.data["y"][np.argmin(np.sum((self.data["x"] - [sigma_var, *state["m"]]) ** 2, axis=1))], sigma_var
+        return sigma_star, sigma_var
 
     def transform_state_to_normal_form(self, m, C, sigma):
         # get the the transformation matrix
@@ -119,4 +124,4 @@ class Function:
             C_normal = axis_swap @ C_normal @ axis_swap.T
             m_normal = axis_swap @ m_normal
 
-        return m_normal, C_normal, sigma_normal
+        return m_normal, C_normal, sigma_normal, scaling_factor, distance_factor
