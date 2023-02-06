@@ -94,7 +94,7 @@ OPO_config = {
     },
 }
 
-sample_factor = 50
+sample_factor = 65
 CMA_config = {
     "algorithm": "CMA-ES",
     "constants": {
@@ -153,14 +153,14 @@ config = {
 }
 config.update(CMA_config)
 
-analysis = DriftAnalysis(config, run_id, queue=False)
+analysis = DriftAnalysis(config, run_id, queue=True)
 analysis.start(job_chunk=5, verbosity=3)
 
-# analysis.save_jobs_ids()
-# analysis.q = None
+analysis.save_jobs_ids()
+analysis.q = None
 
-# with open("OPO-1", 'wb') as f:
-#     pickle.dump(analysis, f)
+with open("CMA-Test-35000", 'wb') as f:
+    pickle.dump(analysis, f)
 
 
 # while not analysis.is_finished():
