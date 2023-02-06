@@ -116,7 +116,7 @@ class DriftAnalysis:
         sequences = []
         min_max = []
         for idx, el in enumerate(config["vector"]):
-            sequence = self.generate_sequence(el["distribution"], el, el["quantity"], el["scale"])
+            sequence = self.generate_sequence(el, el["quantity"], el["scale"])
             min_max.append({"min": sequence.min(), "max": sequence.max()})
             sequences.append(sequence)
 
@@ -124,11 +124,11 @@ class DriftAnalysis:
 
     # TODO MAKE THIS WORK FOR MULTIPLE DIMENSIONS
     def generate_arc_locations(self, config):
-        distance_sequence = self.generate_sequence(config["distance"]["distribution"], config["distance"],
+        distance_sequence = self.generate_sequence(config["distance"],
                                                    config["distance"]["quantity"], config["distance"]["scale"])
         locations = None
         for idx, el in enumerate(config["angles"][:1]):
-            angle_sequence = self.generate_sequence(el["distribution"], el, el["quantity"], el["scale"])
+            angle_sequence = self.generate_sequence(el, el["quantity"], el["scale"])
             locations = np.array([[np.cos(angle), np.sin(angle)] for angle in angle_sequence])
 
         # print(np.repeat(locations, distance_sequence.shape[0], axis=0))
@@ -141,7 +141,7 @@ class DriftAnalysis:
         min_max = {}
         for key, variable in state_variables.items():
             if variable["variation"]:
-                sequence = self.generate_sequence(variable["distribution"], variable, variable["quantity"],
+                sequence = self.generate_sequence(variable, variable["quantity"],
                                                   variable["scale"])
                 raw_state_list[key] = sequence
                 min_max[key] = {"min": sequence.min(), "max": sequence.max()}
@@ -149,19 +149,12 @@ class DriftAnalysis:
                 raw_state_list[key] = np.array([variable["value"]])
         return raw_state_list, min_max
 
-    def generate_sequence(self, distribution, params, quantity, scale="linear"):
-        sequence = None
-        if distribution == "grid":
-            sequence = np.linspace(params["min"], params["max"], quantity)
-        if distribution == "uniform":
-            sequence = np.random.default_rng().uniform(params["min"], params["max"], size=quantity)
-        if distribution == "normal":
-            sequence = np.random.default_rng().normal(params["mean"], params["variance"], size=quantity)
-
+    def generate_sequence(self, params, quantity, scale="linear"):
+        if scale == "linear":
+            return np.linspace(params["min"], params["max"], quantity)
         if scale == "logarithmic":
-            return np.power(2, sequence).astype(np.dtype)
-        else:
-            return sequence
+            return np.geomspace(params["min"], params["max"], quantity)
+
 
     def save_jobs_ids(self):
         self.job_ids = self.q.jobs_ids

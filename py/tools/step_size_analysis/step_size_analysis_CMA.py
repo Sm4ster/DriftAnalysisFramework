@@ -41,9 +41,7 @@ for angle_idx, angle in enumerate(angle_sequence):
     location = [np.cos(angle), np.sin(angle)]
     algorithm.set_location(location)
 
-    sigma_sequence = np.concatenate(
-        (1 / (np.flip(np.geomspace(1, max_excentricity, num=int(sigma_iterations / 2)))),
-         np.geomspace(1, max_excentricity, num=int(sigma_iterations / 2))))
+    sigma_sequence = np.geomspace(1/max_excentricity, max_excentricity, num=sigma_iterations)
     for sigma_idx, sigma_var in enumerate(sigma_sequence):
         state = {
             "sigma": 3,

@@ -56,21 +56,18 @@ OPO_config = {
             "max": 2.35 * 100,
             "quantity": 10000,
             "scale": "linear",
-            "distribution": "grid"
         }
     },
     "location": {
         "type": "grid",
         "vector": [
             {
-                "distribution": "grid",
                 "scale": "linear",
                 "quantity": 1,
                 "min": 1,
                 "max": 1
             },
             {
-                "distribution": "grid",
                 "scale": "linear",
                 "quantity": 1,
                 "min": 0,
@@ -96,22 +93,19 @@ CMA_config = {
             "min": 1 / 100000,
             "max": 100000,
             "quantity": sample_factor,
-            "scale": "linear",
-            "distribution": "grid"
+            "scale": "logarithmic"
         },
         "sigma_var": {
             "variation": True,
             "min": 1 / 100000,
             "max": 100000,
             "quantity": sample_factor,
-            "scale": "linear",
-            "distribution": "grid"
+            "scale": "logarithmic"
         },
     },
     "location": {
         "type": "arc",
         "distance": {
-            "distribution": "grid",
             "scale": "linear",
             "quantity": 1,
             "min": 1,
@@ -119,7 +113,6 @@ CMA_config = {
         },
         "angles": [
             {
-                "distribution": "grid",
                 "scale": "linear",
                 "quantity": int(np.floor(sample_factor / 2)),
                 "min": 0,
