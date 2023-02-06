@@ -1,5 +1,5 @@
 import numpy as np
-
+import sklearn
 
 class Expression:
     dimension = 2
@@ -37,11 +37,11 @@ class Function:
     constants = None
     function = None
 
-    def __init__(self, potential, constants, extras=None):
+    def __init__(self, potential, constants, data=None):
         self.constants = constants
         self.function = potential["function"]
 
-        self.extras = extras
+        self.data = data
 
         if "constants" in potential:
             self.constants.update(potential["constants"])
@@ -76,8 +76,10 @@ class Function:
         else:
             sigma_var = state["cov_m"][1][1]
 
+
+        #implement nearest neighbors myself, because deserialization does not work well
         # make a prediction for a new point
-        return self.extras["sigma_star"].predict([[sigma_var, *state["m"]]]), sigma_var
+        return self.data["y"][np.argmin(np.sum((self.data["x"] - [sigma_var, *state["m"]]) ** 2, axis=1))], sigma_var
 
     def transform_state_to_normal_form(self, m, C, sigma):
         # get the the transformation matrix

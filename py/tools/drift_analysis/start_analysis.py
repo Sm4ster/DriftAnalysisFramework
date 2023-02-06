@@ -30,24 +30,18 @@ AAG = {
 }
 
 results = np.load("../../data/sigma_data_56000_samples.npy")
-print(results.shape)
+
 y = np.array([item[0] for item in results])
 X = np.array([item[1:] for item in results])
 
-print(X.shape)
-# print(X, y)
-# create the regressor object
-knn = KNeighborsRegressor(n_neighbors=1)
-
-# fit the model to the training data
-knn.fit(X, y)
 
 FG = {
     "mode": "function",
     "expression": "log(norm(m)) + v_1 + max(0, log(sigma/(c*sigma_*)), log(sigma_*/(c*sigma))) + v_2 * log(sigma_22)^2",
     "function": "FG",
-    "extras": {
-        "sigma_star": knn
+    "data": {
+        "x": X,
+        "y": y
     },
     "constants": {
             "v_1": 0.1,
@@ -153,7 +147,7 @@ config = {
 }
 config.update(CMA_config)
 
-analysis = DriftAnalysis(config, run_id, queue=True)
+analysis = DriftAnalysis(config, run_id, queue=False)
 analysis.start(job_chunk=5, verbosity=3)
 
 analysis.save_jobs_ids()
@@ -161,7 +155,6 @@ analysis.q = None
 
 with open("CMA-Test-35000", 'wb') as f:
     pickle.dump(analysis, f)
-
 
 # while not analysis.is_finished():
 #     time.sleep(5)
