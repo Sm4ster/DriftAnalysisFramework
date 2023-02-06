@@ -1,5 +1,8 @@
 import numpy as np
-
+from DriftAnalysisFramework.OptimizationAlgorithms import CMA_ES
+from DriftAnalysisFramework.TargetFunctions import Sphere
+from definitions import DATA_PATH
+from worker_module import analyze_step_size
 
 class Expression:
     dimension = 2
@@ -36,12 +39,17 @@ class Function:
     dimension = 2
     constants = None
     function = None
+    raw_data = {}
+    data = {}
 
     def __init__(self, potential, constants, data=None):
         self.constants = constants
         self.function = potential["function"]
 
-        self.data = data
+        if data != None:
+            for data_point in data:
+                self.raw_data[data_point[0]] = np.load( DATA_PATH + data_point[1])
+
 
         if "constants" in potential:
             self.constants.update(potential["constants"])
@@ -70,15 +78,21 @@ class Function:
             return self.FG(state, self.constants)
 
     def sigma_star(self, state, is_normal_form):
+        if not "sigma_star" in self.data:
+            y = np.array([item[0] for item in self.raw_data["sigma_star"]])
+            X = np.array([item[1:] for item in self.raw_data["sigma_star"]])
+            self.data["sigma_star"] = {"x": X, "y": y}
+
+
         if is_normal_form:
             sigma_var = state["cov_m"][1][1]
-            sigma_star = self.data["y"][np.argmin(np.sum((self.data["x"] - [sigma_var, *state["m"]]) ** 2, axis=1))]
+            sigma_star = self.data["sigma_star"]["y"][np.argmin(np.sum((self.data["sigma_star"]["x"] - [sigma_var, *state["m"]]) ** 2, axis=1))]
         else:
             m, C, sigma, scaling_factor, distance_factor = self.transform_state_to_normal_form(state["m"],
                                                                                                state["cov_m"],
                                                                                                state["sigma"])
             sigma_var = C[1][1]
-            sigma_star = self.data["y"][np.argmin(np.sum((self.data["x"] - [sigma_var, *m]) ** 2, axis=1))] / (
+            sigma_star = self.data["sigma_star"]["y"][np.argmin(np.sum((self.data["sigma_star"]["x"] - [sigma_var, *m]) ** 2, axis=1))] / (
                     np.sqrt(scaling_factor) * distance_factor)
 
         # implement nearest neighbors myself, because deserialization does not work well
@@ -125,3 +139,20 @@ class Function:
             m_normal = axis_swap @ m_normal
 
         return m_normal, C_normal, sigma_normal, scaling_factor, distance_factor
+
+    def real_simulation(self, m, C, sigma):
+        target = Sphere(2)
+        algorithm = CMA_ES(
+            target,
+            {
+                "d": 2,
+                "p_target": 0.1818,
+                "c_cov": 0.2,
+                "c_p": 0.8333,
+                "alpha": 2
+            }
+        )
+
+        algorithm.set_location(m)
+        return analyze_step_size({"sigma": sigma, "cov_m": C}, algorithm,
+                                         {"alg_iterations": 100000, "cutoff": 20000})

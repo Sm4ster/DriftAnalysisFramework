@@ -20,37 +20,12 @@ class DriftAnalysis:
 
     def __init__(self, config, uuid, queue=False):
         self.uuid = uuid
-
-        with open(ALGORITHM_PATH + config["algorithm"] + '.json', 'r') as f:
-            oa_definition = json.load(f)
-        self.matrices = oa_definition["matrices"]
+        self.config = config
 
         # if necessary init the queue
         if queue:
             self.q = JobQueue("drift_analysis")
             self.queue = True
-
-        # initialize the target function
-        self.tf = TargetFunctions.convex_quadratic(self.dim, config["target"])
-
-        # initialize the algorithm
-        oa_class = getattr(OptimizationAlgorithms, oa_definition['python_class'])
-        self.oa = oa_class(self.tf, config['constants'])
-
-        # initialize a potential function
-        self.pf_names = []
-        for potential in config["potential"]:
-            if "mode" not in potential:
-                raise ("[ERROR] Please specify the mode as 'expression' or 'function'")
-
-            if potential["mode"] == "expression":
-                self.pf.append(PotentialFunctions.Expression(potential, config["constants"]))
-            elif potential["mode"] == "function":
-                if "data" in potential: self.pf.append(PotentialFunctions.Function(potential, config["constants"], potential["data"]))
-                else: self.pf.append(PotentialFunctions.Function(potential, config["constants"]))
-            else:
-                raise ("[ERROR] Unknown mode. Please use 'expression' or 'function'")
-            self.pf_names.append(potential["function"])
 
         # generate states
         states, self.min_max["states"] = self.generate_states(config["variables"])
@@ -74,7 +49,6 @@ class DriftAnalysis:
     def start(self, job_chunk=10000, verbosity=0):
         options = {
             "save_follow_up_states": False,
-            "matrices": self.matrices,
 
             "wait_all": True,
             # If true, potential functions are evaluated until all potential functions become significant
@@ -94,7 +68,7 @@ class DriftAnalysis:
                 upper = lower + job_chunk
                 self.q.enqueue(
                     work_job,
-                    args=[self.oa, self.pf, self.states[lower:upper], self.keys, options],
+                    args=[self.config, self.states[lower:upper], self.keys, options],
                     meta={"indexes": (lower, upper), "run_id": self.uuid},
                     result_ttl=864000
                 )
@@ -108,7 +82,7 @@ class DriftAnalysis:
                 upper = lower + job_chunk
                 print("[Local Mode]: Working job on local machine (" + str(idx) + "/" + str(number_jobs) + ")")
                 self.results.append(
-                    work_job(self.oa, self.pf, self.states[lower:upper], self.keys, options, verbosity=verbosity))
+                    work_job(self.config, self.states[lower:upper], self.keys, options, verbosity=verbosity))
                 print("[Local Mode]: Finished job (" + str(idx) + "/" + str(number_jobs) + ")")
 
     def get_locations(self):

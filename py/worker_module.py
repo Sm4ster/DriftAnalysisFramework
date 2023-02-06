@@ -3,13 +3,42 @@ from DriftAnalysisFramework import PotentialFunctions, OptimizationAlgorithms, T
 import math
 import copy
 import time
+import json
+from definitions import ALGORITHM_PATH
 # sys.path.insert(0, '/home/stephan/DriftAnalysis/')
 
 from scipy.stats import t, ttest_1samp
 import numpy as np
 
 
-def work_job(oa, pfs, states, keys, options, global_state_array=None, verbosity=0):
+def work_job(config, states, keys, options, global_state_array=None, verbosity=0):
+
+    # initialize the target function
+    tf = TargetFunctions.convex_quadratic(2, config["target"])
+
+    # initialize the algorithm
+    with open(ALGORITHM_PATH + config["algorithm"] + '.json', 'r') as f:
+        oa_definition = json.load(f)
+    matrices = oa_definition["matrices"]
+    oa_class = getattr(OptimizationAlgorithms, oa_definition['python_class'])
+    oa = oa_class(tf, config['constants'])
+
+    # initialize a potential function
+    pfs = []
+    for potential in config["potential"]:
+        if "mode" not in potential:
+            raise ("[ERROR] Please specify the mode as 'expression' or 'function'")
+
+        if potential["mode"] == "expression":
+            pfs.append(PotentialFunctions.Expression(potential, config["constants"]))
+        elif potential["mode"] == "function":
+            if "data" in potential:
+                pfs.append(PotentialFunctions.Function(potential, config["constants"], potential["data"]))
+            else:
+                pfs.append(PotentialFunctions.Function(potential, config["constants"]))
+        else:
+            raise ("[ERROR] Unknown mode. Please use 'expression' or 'function'")
+
 
     final_results = []
     socket_samples_done = False
@@ -29,7 +58,7 @@ def work_job(oa, pfs, states, keys, options, global_state_array=None, verbosity=
         current_state['m'] = oa.get_location()
 
         # calculate the derivations
-        for matrix in options["matrices"]:
+        for matrix in matrices:
             # type matrix becomes a numpy matrix and gets stored in matrices as it cannot be used in the potential
             # equation itself. However it can be a predecessor for another derived value.
             matrix_definition = replace_array_values(matrix["definition"], current_state)

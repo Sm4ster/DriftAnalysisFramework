@@ -28,20 +28,13 @@ AAG = {
     }
 }
 
-results = np.load("../../data/sigma_data_56000_samples.npy")
-
-y = np.array([item[0] for item in results])
-X = np.array([item[1:] for item in results])
-
-
 FG = {
     "mode": "function",
     "expression": "log(norm(m)) + v_1 + max(0, log(sigma/(c*sigma_*)), log(sigma_*/(c*sigma))) + v_2 * log(sigma_22)^2",
     "function": "FG",
-    "data": {
-        "x": X,
-        "y": y
-    },
+    "data": [
+        ("sigma_star", "sigma_data_56000_samples.npy")
+    ],
     "constants": {
             "v_1": 0.1,
             "v_2": 0.1,
@@ -146,7 +139,7 @@ config = {
 }
 config.update(CMA_config)
 
-analysis = DriftAnalysis(config, run_id, queue=True)
+analysis = DriftAnalysis(config, run_id, queue=False)
 analysis.start(job_chunk=5, verbosity=3)
 
 analysis.save_jobs_ids()
