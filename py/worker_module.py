@@ -10,6 +10,7 @@ import numpy as np
 
 
 def work_job(oa, pfs, states, keys, options, global_state_array=None, verbosity=0):
+
     final_results = []
     socket_samples_done = False
     current_state = {}
@@ -146,10 +147,15 @@ def replace_array_values(array, variables):
     # init return array with length of array
     return_array = [None] * len(array)
     for key, entry in enumerate(array):
-        if isinstance(entry, list):
+        if isinstance(entry, list) and entry[0] != "converted":
             return_array[key] = replace_array_values(entry, variables)
+        elif type(entry) == int or type(entry) == float:
+            return_array[key] = entry
         else:
-            if entry in variables:
+            if isinstance(entry, list):
+                if entry[2] == "inv":
+                    return_array[key] = 1 / variables[entry[1]]
+            elif entry in variables:
                 return_array[key] = variables[entry]
             else:
                 raise AttributeError('Key is not available: {0}'.format(entry))
@@ -163,7 +169,6 @@ def analyze_step_size(state, algorithm, options):
         next_state = algorithm.iterate(state)
         sigma_array[idx] = next_state["sigma"]
         state["sigma"] = next_state["sigma"]
-        state["p_succ"] = next_state["p_succ"]
 
     # remove the first few iterations just to be sure to catch no starting bias
     sigma_array = np.split(sigma_array, [options["cutoff"], options["alg_iterations"]])[1]
@@ -171,7 +176,7 @@ def analyze_step_size(state, algorithm, options):
     return sigma_array.mean(), sigma_array.var(), sigma_array.max() - sigma_array.min()
 
 
-def potential_analysis(SP,  alpha, A, v, l, u, p_l, p_u):
+def potential_analysis(SP, alpha, A, v, l, u, p_l, p_u):
     print(SP)
     SP.init()
     p_star = SP.get_min(l, u)

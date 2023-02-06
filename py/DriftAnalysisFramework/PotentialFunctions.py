@@ -64,7 +64,7 @@ class Function:
         if self.function == "baseline":
             return self.baseline(state, self.constants)
         if self.function == "AAG":
-            state["sigma_star"] = self.sigma_star(state["m"], state["sigma"], state["sigma_var"])
+            state["sigma_star"] = self.sigma_star(state)
             return self.AAG(state, self.constants)
         if self.function == "FG":
             return self.FG(state, self.constants)

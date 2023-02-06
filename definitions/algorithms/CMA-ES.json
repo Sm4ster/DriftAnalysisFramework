@@ -27,57 +27,9 @@
       }
     },
     {
-      "code": "Sigma_11",
-      "symbol": "\\Sigma_{11}",
+      "code": "sigma_var",
+      "symbol": "\\Sigma_{var}",
       "variation_enabled": false,
-      "bottom_bias": true,
-      "fields": {
-        "field_1": {
-          "default": 1,
-          "validation": "required|numeric|gt:0"
-        },
-        "field_2": {
-          "default": 10,
-          "validation": "required|numeric|gt:0"
-        },
-        "quantity": {
-          "default": 10,
-          "validation": "required|numeric|gt:0"
-        }
-      },
-      "defaults": {
-        "distribution": "uniform",
-        "scale": "linear"
-      }
-    },
-    {
-      "code": "Sigma_12|21",
-      "symbol": "\\Sigma_{12|21}",
-      "variation_enabled": false,
-      "bottom_bias": true,
-      "fields": {
-        "field_1": {
-          "default": 1,
-          "validation": "required|numeric|gt:0"
-        },
-        "field_2": {
-          "default": 10,
-          "validation": "required|numeric|gt:0"
-        },
-        "quantity": {
-          "default": 10,
-          "validation": "required|numeric|gt:0"
-        }
-      },
-      "defaults": {
-        "distribution": "uniform",
-        "scale": "linear"
-      }
-    },
-    {
-      "code": "Sigma_22",
-      "symbol": "\\Sigma_{22}",
-      "variation_enabled": true,
       "bottom_bias": true,
       "fields": {
         "field_1": {
@@ -104,12 +56,16 @@
       "name": "cov_m",
       "definition": [
         [
-          "Sigma_11",
-          "Sigma_12|21"
+          [
+            "converted",
+            "sigma_var",
+            "inv"
+          ],
+          0
         ],
         [
-          "Sigma_12|21",
-          "Sigma_22"
+          0,
+          "sigma_var"
         ]
       ]
     }

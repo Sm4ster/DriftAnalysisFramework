@@ -29,10 +29,10 @@ AAG = {
     }
 }
 
-results = np.load("../../data/sigma_data_test_run.npy")
+results = np.load("../../data/sigma_data_56000_samples.npy")
 print(results.shape)
-y = [item[0] for item in results]
-X = [item[1:] for item in results]
+y = np.array([item[0] for item in results])
+X = np.array([item[1:] for item in results])
 
 print(X.shape)
 # print(X, y)
@@ -148,7 +148,7 @@ config = {
 config.update(CMA_config)
 
 analysis = DriftAnalysis(config, run_id, queue=False)
-analysis.start(job_chunk=5, verbosity=1)
+analysis.start(job_chunk=5, verbosity=3)
 
 analysis.save_jobs_ids()
 analysis.q = None

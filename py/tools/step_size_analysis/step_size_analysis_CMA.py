@@ -7,8 +7,8 @@ import time
 from DriftAnalysisFramework.JobQueue import JobQueue
 
 # Globals
-angle_sequence = np.linspace(0, (np.pi / 4), 7)
-sigma_iterations = 80
+angle_sequence = np.linspace(0, (np.pi / 4), 70)
+sigma_iterations = 800
 alg_iterations = 100000
 cutoff = 20000
 
@@ -67,7 +67,7 @@ for job in q.get_finished_jobs():
     print(result)
     results[job.meta["job_idx"]] = result[0], job.meta["sigma_var"], job.meta["location"][0], job.meta["location"][1]
 
-np.save("sigma_data_test_run", results)
+np.save("sigma_data_35000_samples", results)
 print("saved data")
 
 q.empty()
