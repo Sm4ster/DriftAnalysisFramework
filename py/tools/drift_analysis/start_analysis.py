@@ -147,7 +147,7 @@ config = {
 }
 config.update(CMA_config)
 
-analysis = DriftAnalysis(config, run_id, queue=False)
+analysis = DriftAnalysis(config, run_id, queue=True)
 analysis.start(job_chunk=5, verbosity=3)
 
 analysis.save_jobs_ids()

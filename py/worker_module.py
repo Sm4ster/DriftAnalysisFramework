@@ -3,7 +3,6 @@ from DriftAnalysisFramework import PotentialFunctions, OptimizationAlgorithms, T
 import math
 import copy
 import time
-import sklearn
 # sys.path.insert(0, '/home/stephan/DriftAnalysis/')
 
 from scipy.stats import t, ttest_1samp

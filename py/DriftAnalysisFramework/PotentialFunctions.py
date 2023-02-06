@@ -1,5 +1,4 @@
 import numpy as np
-import sklearn
 
 class Expression:
     dimension = 2
