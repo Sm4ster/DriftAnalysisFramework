@@ -3,7 +3,6 @@ import uuid
 from DriftAnalysisFramework.DriftAnalysis import DriftAnalysis
 from redis import Redis
 import pickle
-from sklearn.neighbors import KNeighborsRegressor
 
 r = Redis(host='nash.ini.rub.de', port=6379, db=0, password='4xEhjbGNkNPr8UkBQbWL9qmPpXpAeCKMF2G2')
 run_id = str(uuid.uuid4())
