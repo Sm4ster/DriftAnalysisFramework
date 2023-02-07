@@ -1,6 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
-
+plt.rcParams['pdf.fonttype'] = 42
+plt.rcParams['ps.fonttype'] = 42
 
 # def f0(sigmavar):
 #     params = [ 2.17139551e-05, -9.68610759e+00,  1.19851080e+01,  8.05184732e-02, 2.39198346e+02]
@@ -44,14 +45,12 @@ def f(sigma_var):
     else:
         return f2(sigma_var, *input[12:17])
 
-
-plt.figure(dpi=600)
 # 0.00057 - 0.002*log(1.5e-6*sigma22 - 0.099)
 results = np.load("../../data/sigma_data_pi_2023_01_21.npy")
 distance_sequence = np.geomspace(1, 100, 10)
-curve_idxs = [0]
+curve_idxs = [0,1,2,5,9]
 distance_idxs = [0]
-plot_functions = True
+plot_functions = False
 plot_helping_lines = False
 
 # x axis array, we take the 0th one, since it is as good as any
@@ -61,7 +60,8 @@ x_axis = results[0][0][:, x_axis_idx]
 # Plot the ground truth lines
 for distance_idx in distance_idxs:
     for curve_idx in curve_idxs:
-        plt.loglog(x_axis, results[curve_idx][distance_idx][:, 0], label='truth', linestyle='-', lw=0.2)
+        angle = int(results[curve_idx][distance_idx][0][2] * 180/np.pi)
+        plt.loglog(x_axis, results[curve_idx][distance_idx][:, 0], label=r'$\alpha=$' + str(angle) + r'$^\circ$', linestyle='-', lw=0.5)
 
 # Plot functions
 if plot_functions:
@@ -84,4 +84,4 @@ if plot_helping_lines:
     plt.vlines(x=50, ymin=10 ** (-6), ymax=10, color='g', linestyle='--')
 
 plt.legend()
-plt.show()
+plt.savefig("stable_sigma.svg", format="svg")

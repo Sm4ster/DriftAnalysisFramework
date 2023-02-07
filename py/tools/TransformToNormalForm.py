@@ -33,14 +33,14 @@ m_rot = A.T @ m
 # calculate the scaling factor which brings the covariance matrix to det = 1
 scaling_factor = 1 / (np.sqrt(np.linalg.det(C_rot)))
 
-m_normal = np.dot(m_rot, scaling_factor)
+m_scaled = np.dot(m_rot, scaling_factor)
 C_normal = np.dot(C_rot, scaling_factor)
 
 # The distance factor sets norm(m) = 1. To keep the proportion between the distance
 # of the center to the optimum and the spread of the distribution we adjust sigma.
-distance_factor = 1 / np.linalg.norm(m_normal)
+distance_factor = 1 / np.linalg.norm(m_scaled)
 
-m_normal = m_normal * distance_factor
+m_normal = m_scaled * distance_factor
 sigma_normal = sigma * distance_factor
 
 # We transform m to (cos, sin)

@@ -2,22 +2,13 @@ import numpy as np
 import time
 import pickle
 
-with open("CMA-debug", 'rb') as f:
+with open("CMA-Test-35000", 'rb') as f:
     analysis = pickle.load(f)
 
-analysis.load_job_ids()
 
-print(analysis.uuid)
 
-# while not analysis.is_finished():
-#     print("Isnt finished yet")
-#     time.sleep(5)
-
-results = analysis.get_results()
-
-# save the results
-np.save("../../data/CMA-debug.npy", analysis.results)
-
+# load the results
+results = np.load("../../data/CMA-0.npy", allow_pickle=True)
 
 for pf_idx, pf in enumerate(analysis.config["potential"]):
     none_states = 0

@@ -36,8 +36,8 @@ FG = {
         ("sigma_star", "sigma_data_56000_samples.npy")
     ],
     "constants": {
-            "v_1": 0.1,
-            "v_2": 0.1,
+            "v_1": 0.01,
+            "v_2": 0.01,
             "c": 5.0,
         }
 }
@@ -77,7 +77,7 @@ OPO_config = {
     },
 }
 
-sample_factor = 65
+sample_factor = 10
 CMA_config = {
     "algorithm": "CMA-ES",
     "constants": {
@@ -138,7 +138,7 @@ analysis.start(job_chunk=5, verbosity=3)
 analysis.save_jobs_ids()
 analysis.q = None
 
-with open("CMA-Test-35000", 'wb') as f:
+with open("CMA-debug", 'wb') as f:
     pickle.dump(analysis, f)
 
 # while not analysis.is_finished():

@@ -107,7 +107,7 @@ def work_job(config, states, keys, options, global_state_array=None, verbosity=0
                     remove_idxs = []
                     for idx_, pf_idx in enumerate(pf_idxs):
                         # if we reached desired precision or we reached the max evaluations
-                        if significance[idx_] or all_samples.shape[0] > options["max_evaluations"]:
+                        if significance[idx_] or all_samples.shape[0] >= options["max_evaluations"]:
                             if all_samples[:, idx_].size > options["max_evaluations"]:
                                 print("Max evaluations reached, no significance detected")
                             else:

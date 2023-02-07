@@ -1,6 +1,6 @@
 from redis import Redis
 from rq import Queue
-from rq.registry import FinishedJobRegistry
+from rq.registry import FinishedJobRegistry, FailedJobRegistry
 from datetime import datetime, timedelta
 
 r = Redis(host='nash.ini.rub.de', port=6379, db=0, password='4xEhjbGNkNPr8UkBQbWL9qmPpXpAeCKMF2G2')
@@ -16,6 +16,7 @@ queues = (
 for q in queues:
     print(FinishedJobRegistry(queue=q).get_job_ids())
     q.empty()
-    time = datetime.now() + timedelta(days=5)
+    time = datetime.now() + timedelta(days=10)
     FinishedJobRegistry(queue=q).cleanup(time.timestamp())
-    print(FinishedJobRegistry(queue=q).get_job_ids())
+    FailedJobRegistry(queue=q).cleanup(time.timestamp())
+

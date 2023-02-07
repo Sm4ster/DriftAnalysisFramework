@@ -37,7 +37,7 @@ class JobQueue:
         while job_id in self.jobs_ids:
             job_id = uuid.uuid4()
 
-        self.pipeline.append(Queue.prepare_data(*args, **kwargs, job_id=job_id, timeout="1h"))
+        self.pipeline.append(Queue.prepare_data(*args, **kwargs, job_id=job_id, timeout="3h"))
         self.jobs_ids.append(job_id)
 
 
