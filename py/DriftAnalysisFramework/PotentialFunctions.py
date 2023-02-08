@@ -64,17 +64,17 @@ class Function:
         ])
 
     def FG(self, state, constants):
-        return np.log(np.linalg.norm(state["m"])) + constants["v_1"] + max(0, np.log(state["sigma"]/(constants["c"]*state["sigma_star"])), np.log(state["sigma_star"]/(constants["c"] *state["sigma"]))) + constants["v_2"] * np.log(state["sigma_var"])**2
+        return np.log(np.linalg.norm(state["m"])) + constants["v_1"] + max(0, np.log(state["sigma"]/(constants["c"]*state["sigma_star"])), np.log(state["sigma_star"]/(constants["c"] * state["sigma"]))) + constants["v_2"] * np.log(state["sigma_var"])**2
     # @formatter:on
 
     def potential(self, state, is_normal_form=False):
         if self.function == "baseline":
-            return self.baseline(state, self.constants)
+            return self.baseline(state, self.constants), 0
         if self.function == "AAG":
-            return self.AAG(state, self.constants)
+            return self.AAG(state, self.constants), 0
         if self.function == "FG":
-            state["sigma_star"], state["sigma_var"] = self.sigma_star(state, is_normal_form)
-            return self.FG(state, self.constants)
+            state["sigma_star"], state["sigma_var"], error = self.sigma_star(state, is_normal_form)
+            return self.FG(state, self.constants), error
 
     def sigma_star(self, state, is_normal_form):
         if not "sigma_star" in self.data:
@@ -86,6 +86,7 @@ class Function:
         if is_normal_form:
             sigma_var = state["cov_m"][1][1]
             sigma_star = self.data["sigma_star"]["y"][np.argmin(np.sum((self.data["sigma_star"]["x"] - [sigma_var, *state["m"]]) ** 2, axis=1))]
+            error = np.sum((self.data["sigma_star"]["x"][np.argmin(np.sum((self.data["sigma_star"]["x"] - [sigma_var, *state["m"]]) ** 2, axis=1))]  - [sigma_var, *state["m"]]) ** 2)
         else:
             m, C, sigma, scaling_factor, distance_factor = self.transform_state_to_normal_form(state["m"],
                                                                                                state["cov_m"],
@@ -93,10 +94,11 @@ class Function:
             sigma_var = C[1][1]
             sigma_star = self.data["sigma_star"]["y"][np.argmin(np.sum((self.data["sigma_star"]["x"] - [sigma_var, *m]) ** 2, axis=1))] / (
                     np.sqrt(scaling_factor) * distance_factor)
+            error = np.sum((self.data["sigma_star"]["x"][np.argmin(np.sum((self.data["sigma_star"]["x"] - [sigma_var, *m]) ** 2, axis=1))] - [sigma_var, *m]) ** 2)
 
         # implement nearest neighbors myself, because deserialization does not work well
         # make a prediction for a new point
-        return sigma_star, sigma_var
+        return sigma_star, sigma_var, error
 
     def transform_state_to_normal_form(self, m, C, sigma):
         # get the the transformation matrix

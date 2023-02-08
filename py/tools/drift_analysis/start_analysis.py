@@ -36,8 +36,8 @@ FG = {
         ("sigma_star", "sigma_data_56000_samples.npy")
     ],
     "constants": {
-            "v_1": 0.01,
-            "v_2": 0.01,
+            "v_1": 0.001,
+            "v_2": 0.00,
             "c": 5.0,
         }
 }
@@ -132,7 +132,10 @@ config = {
 }
 config.update(CMA_config)
 
-analysis = DriftAnalysis(config, run_id, queue=True)
+analysis = DriftAnalysis(config, run_id, queue=False)
+
+analysis.states = np.array([[0.0001291549665014884, 599.4842503189421, 1., 0.]])
+
 analysis.start(job_chunk=5, verbosity=3)
 
 analysis.save_jobs_ids()
