@@ -77,7 +77,7 @@ def work_job(config, states, keys, options, global_state_array=None, verbosity=0
 
         while True:
             batch_samples = np.zeros([options["batch_size"], len(pf_idxs)])
-            batch_errors = np.zeros([options["batch_size"], len(pf_idxs), 2])
+            # batch_errors = np.zeros([options["batch_size"], len(pf_idxs), 2])
 
             for idx in range(options["batch_size"]):
                 # iterate and save the follow up state
@@ -87,12 +87,12 @@ def work_job(config, states, keys, options, global_state_array=None, verbosity=0
                 for idx_, pf_idx in enumerate(pf_idxs):
                     follow_up_potential = pfs[pf_idx].potential(follow_up_state)
                     current_potential = pfs[pf_idx].potential(current_state, is_normal_form=True)
-                    batch_samples[idx][idx_] = follow_up_potential[0] - current_potential[0]
-                    batch_errors[idx][idx_] = current_potential[1], follow_up_potential[1]
+                    batch_samples[idx][idx_] = follow_up_potential - current_potential
+                    # batch_errors[idx][idx_] = current_potential[1], follow_up_potential[1]
 
             # add samples of this batch to the overall samples
             all_samples = np.concatenate((all_samples, batch_samples))
-            all_errors = np.concatenate((all_errors, batch_errors))
+            # all_errors = np.concatenate((all_errors, batch_errors))
 
             if not socket_samples_done:
                 if all_samples.shape[0] >= options["socket_size"]:
@@ -120,8 +120,8 @@ def work_job(config, states, keys, options, global_state_array=None, verbosity=0
                             results[pf_idx] = {
                                 "potential": pfs[pf_idx].potential(current_state),
                                 "drift": np.mean(all_samples[:, idx_]),
-                                "errors": (np.mean(all_errors[:, idx_, 0]), np.mean(all_errors[:, idx_, 1])),
-                                "number_samples": all_samples.size,
+                                #"errors": (np.mean(all_errors[:, idx_, 0]), np.mean(all_errors[:, idx_, 1])),
+                                "number_samples": all_samples.shape[0],
                                 "significant": significance[idx_],
                             }
 
