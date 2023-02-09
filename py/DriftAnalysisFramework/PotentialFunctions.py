@@ -1,7 +1,6 @@
 import numpy as np
-from DriftAnalysisFramework.OptimizationAlgorithms import CMA_ES
-from DriftAnalysisFramework.TargetFunctions import Sphere
 from definitions import DATA_PATH
+
 
 class Expression:
     dimension = 2
@@ -47,8 +46,7 @@ class Function:
 
         if data != None:
             for data_point in data:
-                self.raw_data[data_point[0]] = np.load( DATA_PATH + data_point[1])
-
+                self.raw_data[data_point[0]] = np.load(DATA_PATH + data_point[1])
 
         if "constants" in potential:
             self.constants.update(potential["constants"])
@@ -69,36 +67,38 @@ class Function:
 
     def potential(self, state, is_normal_form=False):
         if self.function == "baseline":
-            return self.baseline(state, self.constants), 0
+            return self.baseline(state, self.constants)
         if self.function == "AAG":
-            return self.AAG(state, self.constants), 0
+            return self.AAG(state, self.constants)
         if self.function == "FG":
-            state["sigma_star"], state["sigma_var"], error = self.sigma_star(state, is_normal_form)
-            return self.FG(state, self.constants), error
+            state["sigma_star"], state["sigma_var"] = self.sigma_star(state, is_normal_form)
+            return self.FG(state, self.constants)
 
     def sigma_star(self, state, is_normal_form):
         if not "sigma_star" in self.data:
-            y = np.array([item[0] for item in self.raw_data["sigma_star"]])
-            X = np.array([item[1:] for item in self.raw_data["sigma_star"]])
-            self.data["sigma_star"] = {"x": X, "y": y}
+            # prep data
+            self.data = np.empty([self.raw_data["sigma_star"].shape[0], 3])
+            self.data[:, :2] = self.raw_data["sigma_star"][:, :2]
+            self.data[:, 2] = np.arccos(self.raw_data["sigma_star"][:, 2])
 
+            # extract relevant data
+            self.kappa_array = np.sort(np.unique(self.data[:, 1]))
+            self.alpha_array = np.sort(np.unique(self.data[:, 2]))
 
         if is_normal_form:
             sigma_var = state["cov_m"][1][1]
-            sigma_star = self.data["sigma_star"]["y"][np.argmin(np.sum((self.data["sigma_star"]["x"] - [sigma_var, *state["m"]]) ** 2, axis=1))]
-            error = np.sum((self.data["sigma_star"]["x"][np.argmin(np.sum((self.data["sigma_star"]["x"] - [sigma_var, *state["m"]]) ** 2, axis=1))]  - [sigma_var, *state["m"]]) ** 2)
+            sigma_star = self.get_sigma_star(state)
         else:
             m, C, sigma, scaling_factor, distance_factor = self.transform_state_to_normal_form(state["m"],
                                                                                                state["cov_m"],
                                                                                                state["sigma"])
             sigma_var = C[1][1]
-            sigma_star = self.data["sigma_star"]["y"][np.argmin(np.sum((self.data["sigma_star"]["x"] - [sigma_var, *m]) ** 2, axis=1))] / (
-                    np.sqrt(scaling_factor) * distance_factor)
-            error = np.sum((self.data["sigma_star"]["x"][np.argmin(np.sum((self.data["sigma_star"]["x"] - [sigma_var, *m]) ** 2, axis=1))] - [sigma_var, *m]) ** 2)
+            sigma_star = self.get_sigma_star({"m": m, "sigma_var": sigma_var}) / (
+                        np.sqrt(scaling_factor) * distance_factor)
 
         # implement nearest neighbors myself, because deserialization does not work well
         # make a prediction for a new point
-        return sigma_star, sigma_var, error
+        return sigma_star, sigma_var
 
     def transform_state_to_normal_form(self, m, C, sigma):
         # get the the transformation matrix
@@ -141,19 +141,48 @@ class Function:
 
         return m_normal, C_normal, sigma_normal, scaling_factor, distance_factor
 
-    def real_simulation(self, m, C, sigma):
-        target = Sphere(2)
-        algorithm = CMA_ES(
-            target,
-            {
-                "d": 2,
-                "p_target": 0.1818,
-                "c_cov": 0.2,
-                "c_p": 0.8333,
-                "alpha": 2
-            }
-        )
+    def get_sigma_star(self, state):
+        target_alpha = np.arccos(state["m"][0])
+        target_kappa = state["sigma_var"]
+        print(target_alpha, target_kappa)
+        # extract searched data
+        alpha = self.find_closest_values(self.alpha_array, target_alpha)
+        kappa = self.find_closest_values(self.kappa_array, target_kappa)
+        print(alpha, kappa)
+        lower_alpha_idx = np.where(self.data[:, 2] == alpha[0])
+        upper_alpha_idx = np.where(self.data[:, 2] == alpha[1])
+        lower_kappa_idx = np.where(self.data[:, 1] == kappa[0])
+        upper_kappa_idx = np.where(self.data[:, 1] == kappa[1])
+        print(np.intersect1d(lower_alpha_idx, lower_kappa_idx))
+        values = [
+            self.data[np.intersect1d(lower_alpha_idx, lower_kappa_idx)][0][0],
+            self.data[np.intersect1d(upper_alpha_idx, lower_kappa_idx)][0][0],
+            self.data[np.intersect1d(lower_alpha_idx, upper_kappa_idx)][0][0],
+            self.data[np.intersect1d(upper_alpha_idx, upper_kappa_idx)][0][0]
+        ]
+        return self.interpolate(alpha, kappa, values, [target_alpha, target_kappa])
 
-        algorithm.set_location(m)
-        return analyze_step_size({"sigma": sigma, "cov_m": C}, algorithm,
-                                         {"alg_iterations": 100000, "cutoff": 20000})
+    def find_closest_values(self, arr, target):
+        # Find the index of the first value in the array greater than target
+        idx = np.searchsorted(arr, target)
+
+        # Check if the exact value is in the array
+        if target in arr:
+            values = [target, arr[idx - 1 if idx > 0 else idx + 1]]
+            values.sort()
+            return values
+        else:
+            # Get the closest value greater than target
+            greater = arr[idx] if idx < len(arr) else None
+
+            # Get the closest value smaller than target
+            smaller = arr[idx - 1] if idx > 0 else None
+        return [smaller, greater]
+
+    def interpolate(self, x, y, values, target):
+        x_1, x_2, x = x[0], x[1], target[0]
+        y_1, y_2, y = y[0], y[1], target[1]
+
+        return (1 / ((x_2 - x_1) * (y_2 - y_1)) * (
+                values[0] * (x_2 - x) * (y_2 - y) + values[1] * (x - x_1) * (y_2 - y) + values[2] * (x_2 - x) * (
+                y - y_1) + values[3] * (x - x_1) * (y - y_1)))
