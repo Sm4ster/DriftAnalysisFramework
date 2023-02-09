@@ -36,8 +36,8 @@ FG = {
         ("sigma_star", "sigma_data_56000_samples.npy")
     ],
     "constants": {
-            "v_1": 0.001,
-            "v_2": 0.00,
+            "v_1": 0.01,
+            "v_2": 0.01,
             "c": 5.0,
         }
 }
@@ -97,8 +97,8 @@ CMA_config = {
         },
         "sigma_var": {
             "variation": True,
-            "min": 1 / 100000,
-            "max": 100000,
+            "min": 1 / 10000,
+            "max": 10000,
             "quantity": sample_factor,
             "scale": "logarithmic"
         },
@@ -132,9 +132,9 @@ config = {
 }
 config.update(CMA_config)
 
-analysis = DriftAnalysis(config, run_id, queue=False)
+analysis = DriftAnalysis(config, run_id, queue=True)
 
-analysis.states = np.array([[0.0001291549665014884, 599.4842503189421, 1., 0.]])
+# analysis.states = np.array([[0.0001291549665014884, 599.4842503189421, 1., 0.]])
 
 analysis.start(job_chunk=5, verbosity=3)
 
