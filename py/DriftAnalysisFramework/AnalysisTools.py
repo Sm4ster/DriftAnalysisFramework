@@ -1,5 +1,5 @@
-import scipy.integrate as integrate
-import scipy.special as special
+#import scipy.integrate as integrate
+#import scipy.special as special
 import math
 import warnings
 import numpy as np

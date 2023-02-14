@@ -38,13 +38,14 @@ class Function:
     constants = None
     function = None
     raw_data = {}
-    data = {}
+    data = None
 
     def __init__(self, potential, constants, data=None):
         self.constants = constants
         self.function = potential["function"]
 
         if data != None:
+            self.data = {}
             for data_point in data:
                 self.raw_data[data_point[0]] = np.load(DATA_PATH + data_point[1])
 
@@ -77,24 +78,24 @@ class Function:
     def sigma_star(self, state, is_normal_form):
         if not "sigma_star" in self.data:
             # prep data
-            self.data = np.empty([self.raw_data["sigma_star"].shape[0], 3])
-            self.data[:, :2] = self.raw_data["sigma_star"][:, :2]
-            self.data[:, 2] = np.arccos(self.raw_data["sigma_star"][:, 2])
+            self.data["sigma_star"] = np.empty([self.raw_data["sigma_star"].shape[0], 3])
+            self.data["sigma_star"][:, :2] = self.raw_data["sigma_star"][:, :2]
+            self.data["sigma_star"][:, 2] = np.arccos(self.raw_data["sigma_star"][:, 2])
 
             # extract relevant data
-            self.kappa_array = np.sort(np.unique(self.data[:, 1]))
-            self.alpha_array = np.sort(np.unique(self.data[:, 2]))
+            self.kappa_array = np.sort(np.unique(self.data["sigma_star"][:, 1]))
+            self.alpha_array = np.sort(np.unique(self.data["sigma_star"][:, 2]))
 
         if is_normal_form:
             sigma_var = state["cov_m"][1][1]
-            sigma_star = self.get_sigma_star(state)
+            sigma_star = self.get_sigma_star(state, self.data["sigma_star"])
         else:
             m, C, sigma, scaling_factor, distance_factor = self.transform_state_to_normal_form(state["m"],
                                                                                                state["cov_m"],
                                                                                                state["sigma"])
             sigma_var = C[1][1]
-            sigma_star = self.get_sigma_star({"m": m, "sigma_var": sigma_var}) / (
-                        np.sqrt(scaling_factor) * distance_factor)
+            sigma_star = self.get_sigma_star({"m": m, "sigma_var": sigma_var}, self.data["sigma_star"]) / (
+                    np.sqrt(scaling_factor) * distance_factor)
 
         # implement nearest neighbors myself, because deserialization does not work well
         # make a prediction for a new point
@@ -141,7 +142,7 @@ class Function:
 
         return m_normal, C_normal, sigma_normal, scaling_factor, distance_factor
 
-    def get_sigma_star(self, state):
+    def get_sigma_star(self, state, data):
         target_alpha = np.arccos(state["m"][0])
         target_kappa = state["sigma_var"]
 
@@ -149,16 +150,16 @@ class Function:
         alpha = self.find_closest_values(self.alpha_array, target_alpha)
         kappa = self.find_closest_values(self.kappa_array, target_kappa)
 
-        lower_alpha_idx = np.where(self.data[:, 2] == alpha[0])
-        upper_alpha_idx = np.where(self.data[:, 2] == alpha[1])
-        lower_kappa_idx = np.where(self.data[:, 1] == kappa[0])
-        upper_kappa_idx = np.where(self.data[:, 1] == kappa[1])
+        lower_alpha_idx = np.where(data[:, 2] == alpha[0])
+        upper_alpha_idx = np.where(data[:, 2] == alpha[1])
+        lower_kappa_idx = np.where(data[:, 1] == kappa[0])
+        upper_kappa_idx = np.where(data[:, 1] == kappa[1])
 
         values = [
-            self.data[np.intersect1d(lower_alpha_idx, lower_kappa_idx)][0][0],
-            self.data[np.intersect1d(upper_alpha_idx, lower_kappa_idx)][0][0],
-            self.data[np.intersect1d(lower_alpha_idx, upper_kappa_idx)][0][0],
-            self.data[np.intersect1d(upper_alpha_idx, upper_kappa_idx)][0][0]
+            data[np.intersect1d(lower_alpha_idx, lower_kappa_idx)][0][0],
+            data[np.intersect1d(upper_alpha_idx, lower_kappa_idx)][0][0],
+            data[np.intersect1d(lower_alpha_idx, upper_kappa_idx)][0][0],
+            data[np.intersect1d(upper_alpha_idx, upper_kappa_idx)][0][0]
         ]
         return self.interpolate(alpha, kappa, values, [target_alpha, target_kappa])
 
