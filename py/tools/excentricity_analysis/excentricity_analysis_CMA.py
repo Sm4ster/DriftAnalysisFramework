@@ -5,7 +5,7 @@ import timeit
 
 # Globals
 alpha_samples = 500
-sigma_samples = 500
+sigma_samples = 5000
 
 max_sigma = 2
 alpha_sequence = np.linspace(5, 7, num=alpha_samples)
