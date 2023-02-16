@@ -77,7 +77,7 @@ OPO_config = {
     },
 }
 
-sample_factor = 10
+sample_factor = 12
 CMA_config = {
     "algorithm": "CMA-ES",
     "constants": {
@@ -132,7 +132,7 @@ config = {
 }
 config.update(CMA_config)
 
-analysis = DriftAnalysis(config, run_id, queue=True)
+analysis = DriftAnalysis(config, run_id, queue=False)
 
 # analysis.states = np.array([[0.0001291549665014884, 599.4842503189421, 1., 0.]])
 

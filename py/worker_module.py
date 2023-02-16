@@ -1,8 +1,4 @@
-import sys
-from DriftAnalysisFramework import PotentialFunctions, OptimizationAlgorithms, TargetFunctions, AnalysisTools
-import math
-import copy
-import time
+from DriftAnalysisFramework import PotentialFunctions, OptimizationAlgorithms, TargetFunctions
 import json
 from definitions import ALGORITHM_PATH
 # sys.path.insert(0, '/home/stephan/DriftAnalysis/')
@@ -207,7 +203,6 @@ def analyze_step_size(state, algorithm, options):
     sigma_array = np.split(sigma_array, [options["cutoff"], options["alg_iterations"]])[1]
 
     return sigma_array.mean(), sigma_array.var(), sigma_array.max() - sigma_array.min()
-
 
 def potential_analysis(SP, alpha, A, v, l, u, p_l, p_u):
     print(SP)

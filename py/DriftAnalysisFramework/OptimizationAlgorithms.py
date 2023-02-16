@@ -41,6 +41,7 @@ class OnePlusOne_ES:
 
         return {"m": m_t, "sigma": sigma_t}
 
+
     # def shuffle_state(self):
     #
     # def shuffle_location(self):
@@ -98,3 +99,4 @@ class CMA_ES:
         sigma_t = sigma_t * np.exp((1 / self.d) * ((p_succ - self.p_target) / (1 - self.p_target)))
 
         return {"m": m_t, "sigma": sigma_t, "cov_m": cov_m, "p_succ": p_succ}
+
