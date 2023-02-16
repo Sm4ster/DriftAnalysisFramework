@@ -51,11 +51,11 @@ class DriftAnalysis:
 
             "wait_all": True,
             # If true, potential functions are evaluated until all potential functions become significant
-            "batch_size": 500,  # number of evaluations before a significance test is performed
-            "socket_size": 1000,  # number of samples that are taken before significance tests start
-            "max_evaluations": 20000,  # if no significant result was obtained we cancel the evaluations of this state
+            "batch_size": 1000,  # number of evaluations before a significance test is performed
+            "socket_size": 10000,  # number of samples that are taken before significance tests start
+            "max_evaluations": 500000,  # if no significant result was obtained we cancel the evaluations of this state
 
-            "deviation": 0.1,  # This is the factor against which the significance is tested.
+            "deviation": 0.2,  # This is the factor against which the significance is tested.
             "confidence": 0.05  # confidence level of the t-test
         }
 

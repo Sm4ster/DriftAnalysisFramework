@@ -68,6 +68,8 @@ def transform_state_to_normal_form(self, m, C, sigma):
 
 
 
+
+
 def iterate(alpha, sigma, kappa):
     # create m and C from alpha and kappa
     m = np.array([np.cos(alpha), np.sin(alpha)]).T
@@ -75,7 +77,6 @@ def iterate(alpha, sigma, kappa):
     C = np.empty((len(kappa), 2, 2), dtype=float)
     C[:, 0, 0] = sigma * kappa
     C[:, 1, 1] = sigma * (1 / kappa)
-
 
     # create standard normal samples and transform them
     z = np.random.standard_normal(m.shape)
@@ -93,10 +94,11 @@ def iterate(alpha, sigma, kappa):
             np.array((1 - c_cov)) * C + np.array(c_cov) * np.einsum("ij,ik->ijk", z, z))
     new_C = successful + unsuccessful
 
-    # TODO vectorize the transformation to normal form
+    return new_m, new_sigma, new_C
 
+    # TODO vectorize the transformation to normal form
     # extract alpha and kappa from new_m and new_C
-    return np.arccos(new_m.T[0]), new_sigma, new_C[:,0,0]
+    # return np.arccos(new_m.T[0]), new_sigma, new_C[:,0,0]
 
 
 results = np.zeros(states.shape[1], dtype='float64')
