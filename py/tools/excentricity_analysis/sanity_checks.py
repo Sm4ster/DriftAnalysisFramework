@@ -58,3 +58,15 @@ def iterate_batch(alpha, sigma, kappa, m, C):
     new_C = successful + unsuccessful
 
     return new_m, new_sigma, new_C
+
+
+kappa = 2
+C = np.array([[kappa, 0], [0, 1 / kappa]])
+
+print(np.tile(C, (100000, 1, 1)))
+
+Az_classic = np.random.multivariate_normal(np.zeros(2), C, size=100000)
+
+Az_vectorized = np.vstack(np.tile(C, (100000, 1, 1))).T
+
+print(Az_classic, Az_vectorized)
