@@ -27,14 +27,16 @@ dim = 2
 
 
 def transform_to_normal_unvectorized(m, C, sigma):
-    print("a single C", C)
     # get the the transformation matrix
-    A = np.linalg.eig(C)[1]
+    A = np.linalg.eigh(C)[1]
 
     # rotate the coordinate system such that the eigenvalues of
     # the covariance matrix are parallel to the coordinate axis
     C_rot = A.T @ C @ A
     m_rot = A.T @ m
+
+    print("\nSingle C_rot\n", C_rot)
+    print("\nSingle m_rot\n", m_rot)
 
     # calculate the scaling factor which brings the covariance matrix to det = 1
     scaling_factor = 1 / (np.sqrt(np.linalg.det(C_rot)))
@@ -70,14 +72,17 @@ def transform_to_normal_unvectorized(m, C, sigma):
 
 
 def transform_to_normal_vectorized(m, C, sigma):
-
     # get the the transformation matrix
-    A = np.linalg.eig(C)[1]
+    A = np.linalg.eigh(C)[1]
 
     # rotate the coordinate system such that the eigenvalues of
     # the covariance matrix are parallel to the coordinate axis
-    C_rot = A.T @ C @ A
-    m_rot = A.T @ m
+    A_T = np.transpose(A, [0, 2, 1])
+    C_rot = np.matmul(np.matmul(A_T, C), A)
+    m_rot = np.matmul(A_T, m, axis=0)
+
+    print("All C_rot", C_rot)
+    print("All m_rot", m_rot)
 
     # calculate the scaling factor which brings the covariance matrix to det = 1
     scaling_factor = 1 / (np.sqrt(np.linalg.det(C_rot)))
@@ -179,7 +184,8 @@ def iterate_normal(alpha, sigma, kappa, num=10):
     m = np.array([np.cos(alpha), np.sin(alpha)]).T
 
     # create C from kappa
-    C = np.zeros((num, 2, 2), dtype=float)
+    # C = np.zeros((num, 2, 2), dtype=float)
+    C = np.full((num, 2, 2), 0.5, dtype=float)
     C[:, 0, 0] = kappa
     C[:, 1, 1] = (1 / kappa)
 
@@ -191,7 +197,7 @@ def iterate_normal(alpha, sigma, kappa, num=10):
     states_vectorized = step_vectorized(m, C, sigma, z)
     end_time = time.perf_counter()
     execution_time_vec = end_time - start_time
-    print(f"The execution time of the vectorized iteration is: {execution_time_vec}")
+    # print(f"The execution time of the vectorized iteration is: {execution_time_vec}")
 
     # unvectorized step
     start_time = time.perf_counter()
@@ -202,15 +208,14 @@ def iterate_normal(alpha, sigma, kappa, num=10):
                                                                                                             z[i])
     end_time = time.perf_counter()
     execution_time_unvec = end_time - start_time
-    print(f"The execution time of the unvectorized iteration is: {execution_time_unvec}")
+    # print(f"The execution time of the unvectorized iteration is: {execution_time_unvec}")
 
-    print(f"Performance gain: {execution_time_unvec / execution_time_vec}")
+    # print(f"Performance gain: {execution_time_unvec / execution_time_vec}")
 
     # unvectorized transformation
     start_time = time.perf_counter()
     normal_states_unvectorized = [np.empty([z.shape[0], 2]), np.empty([z.shape[0], 2, 2]), np.empty([z.shape[0]])]
     for i in range(z.shape[0]):
-        print(states_vectorized[2][i].shape)
         normal_states_unvectorized[0][i], normal_states_unvectorized[1][i], normal_states_unvectorized[2][
             i] = transform_to_normal_unvectorized(states_unvectorized[0][i], states_unvectorized[1][i],
                                                   states_unvectorized[2][i])[:3]
@@ -230,4 +235,4 @@ def iterate_normal(alpha, sigma, kappa, num=10):
     # return np.arccos(new_m.T[0]), new_sigma, new_C[:,0,0]
 
 
-iterate_normal(np.linspace(1, 3, num=1000), np.linspace(3, 5, num=1000), np.linspace(5, 7, num=1000), num=1000)
+iterate_normal(np.linspace(1, 3, num=5), np.linspace(3, 5, num=5), np.linspace(5, 7, num=5), num=5)
