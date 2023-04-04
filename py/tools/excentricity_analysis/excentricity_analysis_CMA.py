@@ -27,6 +27,7 @@ dim = 2
 
 
 def transform_to_normal_unvectorized(m, C, sigma):
+    print("\nInputs\n", m, C, sigma)
     # get the the transformation matrix
     A = np.linalg.eigh(C)[1]
 
@@ -35,13 +36,16 @@ def transform_to_normal_unvectorized(m, C, sigma):
     C_rot = A.T @ C @ A
     m_rot = A.T @ m
 
-    print("\nSingle C_rot\n", C_rot)
-    print("\nSingle m_rot\n", m_rot)
+    print("\nSingle A_T\n", A.T)
 
     # calculate the scaling factor which brings the covariance matrix to det = 1
     scaling_factor = 1 / (np.sqrt(np.linalg.det(C_rot)))
 
     m_normal = np.dot(m_rot, scaling_factor)
+    # print("\nSingle C_rot\n", C_rot)
+    # print("\nSingle scaling factor\n", scaling_factor)
+    # print("\nSingle m_normal\n", m_normal)
+
     C_normal = np.dot(C_rot, scaling_factor)
 
     # The distance factor sets norm(m) = 1. To keep the proportion between the distance
@@ -72,20 +76,22 @@ def transform_to_normal_unvectorized(m, C, sigma):
 
 
 def transform_to_normal_vectorized(m, C, sigma):
+    print("\nInputs\n", m, C, sigma)
     # get the the transformation matrix
     A = np.linalg.eigh(C)[1]
 
     # rotate the coordinate system such that the eigenvalues of
     # the covariance matrix are parallel to the coordinate axis
     A_T = np.transpose(A, [0, 2, 1])
-    C_rot = np.matmul(np.matmul(A_T, C), A)
-    m_rot = np.matmul(A_T, m, axis=0)
+    print("\n All A_T\n", A_T)
 
-    print("All C_rot", C_rot)
-    print("All m_rot", m_rot)
+    C_rot = np.matmul(np.matmul(A_T, C), A)
+    m_rot = np.einsum('...ij,...j->...i', A_T, m)
 
     # calculate the scaling factor which brings the covariance matrix to det = 1
     scaling_factor = 1 / (np.sqrt(np.linalg.det(C_rot)))
+    # print("\nAll C_rot\n", C_rot)
+    # print("\nAll scaling factors\n", scaling_factor)
 
     m_normal = np.dot(m_rot, scaling_factor)
     C_normal = np.dot(C_rot, scaling_factor)
@@ -184,8 +190,8 @@ def iterate_normal(alpha, sigma, kappa, num=10):
     m = np.array([np.cos(alpha), np.sin(alpha)]).T
 
     # create C from kappa
-    # C = np.zeros((num, 2, 2), dtype=float)
-    C = np.full((num, 2, 2), 0.5, dtype=float)
+    C = np.zeros((num, 2, 2), dtype=float)
+    # C = np.full((num, 2, 2), 0.5, dtype=float)
     C[:, 0, 0] = kappa
     C[:, 1, 1] = (1 / kappa)
 
@@ -235,4 +241,4 @@ def iterate_normal(alpha, sigma, kappa, num=10):
     # return np.arccos(new_m.T[0]), new_sigma, new_C[:,0,0]
 
 
-iterate_normal(np.linspace(1, 3, num=5), np.linspace(3, 5, num=5), np.linspace(5, 7, num=5), num=5)
+iterate_normal(np.linspace(1, 3, num=5), np.linspace(0.3, 0.5, num=5), np.linspace(5, 7, num=5), num=5)
