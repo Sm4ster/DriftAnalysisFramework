@@ -35,21 +35,28 @@ def transform_to_normal_unvectorized(m, C, sigma):
     C_rot = A.T @ C @ A
     m_rot = A.T @ m
 
+    # make values close to zero equal zero
+    C_rot[np.abs(C_rot) < 1e-16] = 0
+
+    print("\nSingle C_rot\n", C_rot)
+
     # calculate the scaling factor which brings the covariance matrix to det = 1
     scaling_factor = 1 / (np.sqrt(np.linalg.det(C_rot)))
 
     m_normal = np.dot(m_rot, scaling_factor)
     C_normal = np.dot(C_rot, scaling_factor)
 
-    print("\nSingle C_normal\n", C_normal)
-    # print("\nSingle m_normal\n", m_normal)
 
     # The distance factor sets norm(m) = 1. To keep the proportion between the distance
     # of the center to the optimum and the spread of the distribution we adjust sigma.
     distance_factor = 1 / np.linalg.norm(m_normal)
+    print("\nSingle distance_factor\n", distance_factor)
 
     m_normal = m_normal * distance_factor
     sigma_normal = sigma * distance_factor
+
+    print("\nSingle m_normal\n", m_normal)
+    print("\nSingle sigma_normal\n", sigma_normal)
 
     # We transform m to (cos, sin)
     x_flip = np.array([[-1, 0], [0, 1]])
@@ -82,39 +89,50 @@ def transform_to_normal_vectorized(m, C, sigma):
     C_rot = np.matmul(np.matmul(A_T, C), A)
     m_rot = np.einsum('...ij,...j->...i', A_T, m)
 
+    # make values close to zero equal zero
+    C_rot[np.abs(C_rot) < 1e-16] = 0
+
     # calculate the scaling factor which brings the covariance matrix to det = 1
     scaling_factor = 1 / (np.sqrt(np.linalg.det(C_rot)))
 
     m_normal = np.einsum('i,ij->ij', scaling_factor, m_rot)
-    C_normal = np.einsum('i,ijk->ijk', scaling_factor, C_rot) # np.dot(C_rot, scaling_factor, axis=1)
+    C_normal = np.einsum('i,ijk->ijk', scaling_factor, C_rot)
 
-    print("\nAll C_normal\n", C_normal)
-    # print("\nAll m_normal\n", m_normal)
-    # print("\nAll scaling_factors\n", scaling_factor)
+    # print("\nAll C_normal\n", C_normal)
+
 
     # The distance factor sets norm(m) = 1. To keep the proportion between the distance
     # of the center to the optimum and the spread of the distribution we adjust sigma.
-    distance_factor = 1 / np.linalg.norm(m_normal)
+    distance_factor = 1 / np.linalg.norm(m_normal, axis=1)
+    # print("\nAll distance_factor\n", distance_factor)
 
-    m_normal = m_normal * distance_factor
+    m_normal = np.einsum('i,ij->ij', distance_factor, m_normal)
     sigma_normal = sigma * distance_factor
+
+    print("\nAll m_normal\n", m_normal)
+    # print("\nAll sigma_normal\n", sigma_normal)
 
     # We transform m to (cos, sin)
     x_flip = np.array([[-1, 0], [0, 1]])
     y_flip = np.array([[1, 0], [0, -1]])
     axis_swap = np.array([[0, 1], [1, 0]])
 
-    if m_normal[0] < 0:
-        C_normal = x_flip @ C_normal @ x_flip.T
-        m_normal = x_flip @ m_normal
+    flipped_C_normal = np.matmul(np.matmul(x_flip, C_normal), x_flip.T)
+    C_normal = np.where(m_normal[:,0] <= 0, flipped_C_normal, C_normal),
+    print("\nAll C_normal\n", C_normal)
+    # if m_normal[0] < 0:
+    #     C_normal = x_flip @ C_normal @ x_flip.T
+    #     m_normal = x_flip @ m_normal
 
-    if m_normal[1] < 0:
-        C_normal = y_flip @ C_normal @ y_flip.T
-        m_normal = y_flip @ m_normal
+    print((m_normal[:, 1] <= 0).astype(np.float64))
+    # if m_normal[1] < 0:
+    #     C_normal = y_flip @ C_normal @ y_flip.T
+    #     m_normal = y_flip @ m_normal
 
-    if m_normal[0] < np.cos(np.pi / 4):
-        C_normal = axis_swap @ C_normal @ axis_swap.T
-        m_normal = axis_swap @ m_normal
+    print((m_normal[:, 0] <= np.cos(np.pi / 4)).astype(np.float64))
+    # if m_normal[0] < np.cos(np.pi / 4):
+    #     C_normal = axis_swap @ C_normal @ axis_swap.T
+    #     m_normal = axis_swap @ m_normal
 
     return m_normal, C_normal, sigma_normal, scaling_factor, distance_factor
 
@@ -262,4 +280,4 @@ def iterate_normal(alpha, sigma, kappa, num=1000):
 
 
 num = 5
-iterate_normal(np.linspace(1, 3, num=num), np.linspace(0.3, 0.5, num=num), np.linspace(1, 5, num=num))
+iterate_normal(np.linspace(0, np.pi/4, num=num), np.linspace(0.3, 0.5, num=num), np.linspace(1, 2, num=num))
