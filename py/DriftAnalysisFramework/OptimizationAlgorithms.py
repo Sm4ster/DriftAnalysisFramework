@@ -165,6 +165,7 @@ class CMA_ES:
         # vectorized step
         states = self.step(m, C, sigma, z)
 
+
         # vectorized transformation
         m_normal, C_normal, sigma_normal, scaling_factor, distance_factor = self.transform_to_normal(states[0],
                                                                                                      states[1],
@@ -174,7 +175,7 @@ class CMA_ES:
                m_normal, C_normal, scaling_factor, \
                distance_factor, states
 
-    def transform_to_normal(self, m, C, sigma, normal_form=1):
+    def transform_to_normal(self, m, C, sigma, normal_form=0):
         # get the the transformation matrix
         A = np.linalg.eigh(C)[1]
 

@@ -46,7 +46,7 @@ def f(sigma_var):
         return f2(sigma_var, *input[12:17])
 
 # 0.00057 - 0.002*log(1.5e-6*sigma22 - 0.099)
-results = np.load("../../data/sigma_data_pi_2023_01_21.npy")
+results = np.load("../data/sigma_data_pi_2023_01_21.npy")
 distance_sequence = np.geomspace(1, 100, 10)
 curve_idxs = [0,1,2,5,9]
 distance_idxs = [0]
