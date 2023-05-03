@@ -125,7 +125,7 @@ class CMA_ES:
 
         return new_m, new_C, new_sigma
 
-    def iterate_normal(self, alpha, kappa, sigma, num=1000):
+    def iterate(self, alpha, kappa, sigma, num=1000, transform_normal=True):
         # Sanitize parameters #
         # Determine which parameters are arrays and their lengths
         is_array = [isinstance(param, np.ndarray) for param in [alpha, sigma, kappa]]
@@ -165,11 +165,13 @@ class CMA_ES:
         # vectorized step
         states = self.step(m, C, sigma, z)
 
-
         # vectorized transformation
-        m_normal, C_normal, sigma_normal, scaling_factor, distance_factor = self.transform_to_normal(states[0],
-                                                                                                     states[1],
-                                                                                                     states[2])
+        if transform_normal:
+            m_normal, C_normal, sigma_normal, scaling_factor, distance_factor = self.transform_to_normal(states[0],
+                                                                                                         states[1],
+                                                                                                         states[2])
+        else:
+            m_normal, C_normal, sigma_normal, scaling_factor, distance_factor = states[0], states[1], states[2], 1, 1
 
         return np.arccos(m_normal[:, 0]), C_normal[:, 1, 1], sigma_normal, \
                m_normal, C_normal, scaling_factor, \
