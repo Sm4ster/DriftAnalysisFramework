@@ -173,7 +173,7 @@ class CMA_ES:
         else:
             m_normal, C_normal, sigma_normal, scaling_factor, distance_factor = states[0], states[1], states[2], 1, 1
 
-        return np.arccos(m_normal[:, 0]), C_normal[:, 1, 1], sigma_normal, \
+        return np.arccos(m_normal[:, 0]), C_normal[:, 0, 0], sigma_normal, \
                m_normal, C_normal, scaling_factor, \
                distance_factor, states
 

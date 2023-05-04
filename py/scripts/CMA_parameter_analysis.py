@@ -9,16 +9,16 @@ matplotlib.use('Qt5Agg')
 
 
 # Globals
-groove_iteration = 10000
-measured_samples = 10000
+groove_iteration = 100000
+measured_samples = 100000
 
 alpha_samples = 1
 kappa_samples = 500
 sigma_samples = 500
 
 alpha_sequence = np.linspace(0, np.pi / 4, num=alpha_samples)
-kappa_sequence = np.geomspace(1 / 10000, 100000, num=kappa_samples)
-sigma_sequence = np.linspace(1 / 5, 5, num=sigma_samples)
+kappa_sequence = np.geomspace(1 / 1000, 1000, num=kappa_samples)
+sigma_sequence = np.geomspace(1 / 1000, 10000, num=sigma_samples)
 print(alpha_sequence)
 alg = CMA_ES(Sphere(2), {
     "d": 2,
@@ -48,19 +48,24 @@ alg = CMA_ES(Sphere(2), {
 #
 # print(alpha_store)
 
-# # stable kappa experiment
-# alpha, kappa, sigma = np.repeat(alpha_sequence, sigma_samples), 1, np.tile(sigma_sequence, alpha_samples)
-# kappa_store = np.array([measured_samples, alpha_samples * sigma_samples])
-#
-# for i in range(groove_iteration):
-#     print(i)
-#     kappa = alg.iterate_normal(alpha, kappa, sigma)[1]
-#
-# print("cutoff")
-# for i in range(measured_samples):
-#     print(i)
-#     kappa = alg.iterate_normal(alpha, kappa, sigma)[1]
-#     kappa_store[i] = kappa
+# stable kappa experiment
+alpha, kappa, sigma = np.repeat(alpha_sequence, sigma_samples), 1, np.tile(sigma_sequence, alpha_samples)
+kappa_store = np.empty([measured_samples, alpha_samples * sigma_samples])
+
+with alive_bar(groove_iteration, force_tty=True, title="Grooving", bar="notes", title_length=10) as bar:
+    for i in range(groove_iteration):
+        kappa = alg.iterate(alpha, kappa, sigma, transform_normal=False)[1]
+        bar()
+
+with alive_bar(measured_samples, force_tty=True, title="Collecting") as bar:
+    for i in range(measured_samples):
+        kappa = alg.iterate(alpha, kappa, sigma, transform_normal=False)[1]
+        kappa_store[i] = kappa
+        bar()
+
+plt.loglog(sigma_sequence, np.mean(kappa_store, axis=0))
+plt.show()
+
 
 # stable sigma experiment
 alpha, kappa, sigma = np.repeat(alpha_sequence, kappa_samples), np.tile(kappa_sequence, alpha_samples), 1
