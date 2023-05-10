@@ -5,7 +5,7 @@ class OnePlusOne_ES:
     m = None
 
     def __init__(self, target, constants):
-        self.dim = target.dim
+        self.dim = 2
 
         # make target function available
         self.target = target
@@ -52,7 +52,7 @@ class CMA_ES:
 
     def __init__(self, target, constants):
         # dimension
-        self.dim = target.dim
+        self.dim = 2
 
         # constants
         self.d = constants["d"]  # 1 + self.dim / 2
@@ -111,7 +111,7 @@ class CMA_ES:
         x = m + z * sigma_A
 
         # evaluate samples
-        fx = np.linalg.norm(x, axis=1, keepdims=True)
+        fx = self.target.eval(x, keepdims=True)
         success = (fx <= 1).astype(np.float64)
 
         # calculate new m, new sigma and new C

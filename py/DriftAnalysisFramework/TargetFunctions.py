@@ -2,41 +2,36 @@ import numpy as np
 
 
 class Sphere:
-    dim = None
-    optimum = None
-    viable_dims = lambda self, dim: True
-
-    def __init__(self, dim):
-        # init the input
-        if not self.viable_dims(dim):
-            raise Exception("Dimensionality is not valid")
+    def eval(self, x, keepdims=False):
+        if type(x) == list:
+            x = np.array(list)
+        if x.ndim == 1:
+            return np.linalg.norm(x)
+        if x.ndim == 2:
+            return np.linalg.norm(x, axis=1, keepdims=keepdims)
         else:
-            self.dim = dim
-
-        # set optimum as class variable
-        self.optimum = np.zeros(dim)
-
-    def eval(self, x):
-        return abs(np.linalg.norm(x))
+            raise Exception("Input dimensionality is wrong")
 
 
-class convex_quadratic:
-    dim = 2
-    optimum = None
+class ConvexQuadratic:
     norm_matrix = None
 
-    def __init__(self, dim, target):
+    def __init__(self, target):
         # init the input
-        self.dim = dim
         self.norm_matrix = np.array(
             [
                 [target["A"], 1 / 2 * target["B"]],
                 [1 / 2 * target["B"], target["C"]]
             ])
 
-        # set optimum as class variable
-        self.optimum = np.zeros(dim)
 
-    def eval(self, x):
-        return x @ self.norm_matrix @ x
+    def eval(self, x, keepdims=False):
+        if type(x) == list:
+            x = np.array(list)
+        if x.ndim == 1:
+            return x @ self.norm_matrix @ x
+        if x.ndim == 2:
+            return np.sum((x @ self.norm_matrix) * x, axis=1, keepdims=True)
+        else:
+            raise Exception("Input dimensionality is wrong")
 
