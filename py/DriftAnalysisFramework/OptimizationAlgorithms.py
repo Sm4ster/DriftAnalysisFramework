@@ -74,36 +74,10 @@ class CMA_ES:
     def get_location(self):
         return self.m
 
-    def step_unvectorized(self, state):
-        m_t, sigma_t, cov_m = self.m, state["sigma"], state["cov_m"]
-
-        # step 1: draw random sample
-        z = self.rng.multivariate_normal(np.zeros(self.dim), cov_m)
-        x_t = m_t + sigma_t * z
-
-        # step 2: update parameters
-        if self.f(x_t) <= self.f(m_t):
-            # a) Let x <- y
-            m_t = x_t
-            # b) update the success probability
-            p_succ = 1  # (1 - self.c_p) * p_succ + self.c_p
-            # c) omitted
-            # d) update the covariance matrix as in equation (1) without search paths
-            cov_m = (1 - self.c_cov_plus) * cov_m + self.c_cov_plus * np.outer(z, z)
-
-        # Otherwise update the success probability
-        else:
-            p_succ = 0  # (1 - self.c_p) * p_succ
-
-        # step 3: update the global step size
-        sigma_t = sigma_t * np.exp((1 / self.d) * ((p_succ - self.p_target) / (1 - self.p_target)))
-
-        return {"m": m_t, "sigma": sigma_t, "cov_m": cov_m, "p_succ": p_succ}
-
     def step(self, m, C, sigma, z=None):
         if z is None:
             # create standard normal samples and transform them
-            z = np.random.standard_normal(m.shape)
+            z = np.array([np.random.standard_normal(m.shape[0]), np.random.standard_normal(m.shape[0])]).T
 
         # this is equivalent to Az in the normal form, as the matrix C is diagonal,
         # therefore matrix A (with AA = C) is [[sqrt(C_00), 0][0, sqrt(C_11)]]
@@ -125,11 +99,29 @@ class CMA_ES:
 
         return new_m, new_C, new_sigma
 
-    def iterate(self, alpha, kappa, sigma, num=1000, transform_normal=True):
-        # Sanitize parameters #
+    def iterate(self, alpha, kappa, sigma):
+        # Sanitize, transform and expand the parameters
+        m, C, sigma = self.transform_to_parameters(alpha, kappa, sigma)
+
+        # create the random samples
+        z = np.array([np.random.standard_normal(m.shape[0]), np.random.standard_normal(m.shape[0])]).T
+
+        # vectorized step
+        m, C, sigma = self.step(m, C, sigma, z)
+
+        # vectorized transformation
+        alpha, kappa, sigma_normal, transformation_parameters = self.transform_to_normal(m, C, sigma)
+
+        # prepare data for return statement
+        raw_state = {"m": m, "C": C, "sigma": sigma}
+        normal_form = {"alpha": alpha, "kappa": kappa, "sigma": sigma_normal}
+
+        return normal_form, raw_state, transformation_parameters
+
+    def transform_to_parameters(self, alpha, kappa, sigma, num=1000):
         # Determine which parameters are arrays and their lengths
-        is_array = [isinstance(param, np.ndarray) for param in [alpha, sigma, kappa]]
-        array_lengths = [len(param) if is_array[i] else None for i, param in enumerate([alpha, sigma, kappa])]
+        is_array = [isinstance(param, np.ndarray) for param in [alpha, kappa, sigma]]
+        array_lengths = [len(param) if is_array[i] else None for i, param in enumerate([alpha, kappa, sigma])]
 
         if is_array.count(True) > 0:
             # If there are multiple arrays, make sure they have the same length
@@ -146,36 +138,18 @@ class CMA_ES:
             array_length = num
 
         # Expand all numeric parameters to its length
-        alpha, sigma, kappa = [np.tile(param, array_length)[:array_length] if not is_array[i] else param for i, param in
-                               enumerate([alpha, sigma, kappa])]
+        alpha, kappa, sigma = [np.tile(param, array_length)[:array_length] if not is_array[i] else param
+                               for i, param in enumerate([alpha, kappa, sigma])]
 
-        # Start the computations #
         # create m from alpha
         m = np.array([np.cos(alpha), np.sin(alpha)]).T
 
         # create C from kappa
         C = np.zeros((array_length, 2, 2), dtype=float)
-        # C = np.full((num, 2, 2), 0.5, dtype=float)
         C[:, 0, 0] = kappa
         C[:, 1, 1] = (1 / kappa)
 
-        # create the random samples
-        z = np.array([np.random.standard_normal(array_length), np.random.standard_normal(array_length)]).T
-
-        # vectorized step
-        states = self.step(m, C, sigma, z)
-
-        # vectorized transformation
-        if transform_normal:
-            m_normal, C_normal, sigma_normal, scaling_factor, distance_factor = self.transform_to_normal(states[0],
-                                                                                                         states[1],
-                                                                                                         states[2])
-        else:
-            m_normal, C_normal, sigma_normal, scaling_factor, distance_factor = states[0], states[1], states[2], 1, 1
-
-        return np.arccos(m_normal[:, 0]), C_normal[:, 0, 0], sigma_normal, \
-               m_normal, C_normal, scaling_factor, \
-               distance_factor, states
+        return m, C, sigma
 
     def transform_to_normal(self, m, C, sigma, normal_form=0):
         # get the the transformation matrix
@@ -226,4 +200,5 @@ class CMA_ES:
         m_normal[:, 0], m_normal[:, 1] = m_normal[:, 1] * swap + m_normal[:, 0] * (
                 np.array([1]) - swap), m_normal[:, 0] * swap + m_normal[:, 1] * (np.array([1]) - swap)
 
-        return m_normal, C_normal, sigma_normal, scaling_factor, distance_factor
+        return np.arccos(m_normal[:, 0]), C_normal[:, 0, 0], sigma_normal, {"scaling_factor": scaling_factor,
+                                                                            "distance_factor": distance_factor}
