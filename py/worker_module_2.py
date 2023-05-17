@@ -1,14 +1,14 @@
 from DriftAnalysisFramework import PotentialFunctions, OptimizationAlgorithms, TargetFunctions
 import json
 from definitions import ALGORITHM_PATH
-import numexpr as ne
+
 # sys.path.insert(0, '/home/stephan/DriftAnalysis/')
 
 from scipy.stats import t, ttest_1samp
 import numpy as np
 
 
-def work_job(config, states, keys, options, global_state_array=None, verbosity=0):
+def work_job(config, states, keys, options, verbosity=0):
     # initialize the target function
     tf = TargetFunctions.convex_quadratic(2, config["target"])
 
@@ -43,9 +43,6 @@ def work_job(config, states, keys, options, global_state_array=None, verbosity=0
     state_idx = 0
     for state in states:
         if verbosity > 0: print("Starting new state " + str(state_idx) + "/" + str(states.shape[0]))
-
-        # set location
-        oa.set_location(state[keys["m"]:])
 
         # create the current state
         for key, key_idx in keys.items():
@@ -151,9 +148,6 @@ def work_job(config, states, keys, options, global_state_array=None, verbosity=0
 
 def has_significance(sample, deviation=0.1, confidence=0.05):
     mean = np.mean(sample)
-
-    if mean == 0:
-        return True
 
     popmean_plus = mean + abs(deviation * mean)
     popmean_minus = mean - abs(deviation * mean)

@@ -51,28 +51,13 @@ class CMA_ES:
     m = None
 
     def __init__(self, target, constants):
-        # dimension
-        self.dim = 2
+        # make target function available
+        self.target = target
 
         # constants
         self.d = constants["d"]  # 1 + self.dim / 2
         self.p_target = constants["p_target"]  # 2 / 11
         self.c_cov = constants["c_cov"]  # 2 / (np.power(self.dim, 2) + 6)
-
-        # make target function available
-        self.target = target
-        self.f = self.target.eval
-
-        # init rng
-        self.rng = np.random.default_rng()
-
-    def set_location(self, location):
-        if isinstance(location, list):
-            location = np.asarray(location)
-        self.m = location
-
-    def get_location(self):
-        return self.m
 
     def step(self, m, C, sigma, z=None):
         if z is None:
@@ -99,9 +84,9 @@ class CMA_ES:
 
         return new_m, new_C, new_sigma
 
-    def iterate(self, alpha, kappa, sigma):
+    def iterate(self, alpha, kappa, sigma, num=1000, params=False):
         # Sanitize, transform and expand the parameters
-        m, C, sigma = self.transform_to_parameters(alpha, kappa, sigma)
+        m, C, sigma = self.transform_to_parameters(alpha, kappa, sigma, num)
 
         # create the random samples
         z = np.array([np.random.standard_normal(m.shape[0]), np.random.standard_normal(m.shape[0])]).T
@@ -112,11 +97,14 @@ class CMA_ES:
         # vectorized transformation
         alpha, kappa, sigma_normal, transformation_parameters = self.transform_to_normal(m, C, sigma)
 
-        # prepare data for return statement
-        raw_state = {"m": m, "C": C, "sigma": sigma}
-        normal_form = {"alpha": alpha, "kappa": kappa, "sigma": sigma_normal}
+        if params:
+            # prepare data for return statement
+            raw_state = {"m": m, "C": C, "sigma": sigma}
+            normal_form = {"alpha": alpha, "kappa": kappa, "sigma": sigma_normal}
 
-        return normal_form, raw_state, transformation_parameters
+            return normal_form, raw_state, transformation_parameters
+
+        return alpha, kappa, sigma
 
     def transform_to_parameters(self, alpha, kappa, sigma, num=1000):
         # Determine which parameters are arrays and their lengths
