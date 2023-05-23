@@ -1,16 +1,18 @@
 import numpy as np
 import numexpr as ne
+from collections import ChainMap
 from DriftAnalysisFramework.OptimizationAlgorithms import CMA_ES
 from DriftAnalysisFramework.TargetFunctions import Sphere
+from DriftAnalysisFramework.Transformations import CMA_ES as TR
 
 # potential function
-potential_function = "alpha * kappa"
+potential_function = "alpha * kappa + 5.456"
 
 # config
-alpha_samples = 5
-kappa_samples = 5
-sigma_samples = 5
-batch_size = 10
+alpha_samples = 2
+kappa_samples = 2
+sigma_samples = 2
+batch_size = 3
 
 # create states
 alpha_sequence = np.linspace(0, np.pi / 4, num=alpha_samples)
@@ -28,16 +30,24 @@ alg = CMA_ES(Sphere(), {
     "dim": 2
 })
 
-# evaluate the before potential
-alpha, kappa, sigma = states[0][0], states[0][1], states[0][2]
+for i in range(states.shape[0]):
+    # evaluate the before potential
+    alpha, kappa, sigma = states[i][0], states[i][1], states[i][2]
+    m, C, _ = TR.transform_to_parameters(alpha, kappa, sigma)
+    potential_before = ne.evaluate(potential_function)
 
+    print(m, C, alpha, kappa, sigma, potential_before, "\n")
 
-# make step
-alpha, kappa, sigma = alg.iterate(alpha, kappa, sigma, num=batch_size)
+    # make step
+    normal_form, raw_params, raw_params_before, _ = alg.iterate(alpha, kappa, sigma, num=batch_size)
 
-# evaluate the after potential
-potential_after = ne.evaluate(potential_function)
+    # make sure that sigma does not get overwritten and
+    # the raw sigma is available with underscore
+    raw_params["sigma_"] = raw_params["sigma"]
 
-print(alpha, kappa, alpha * kappa, potential_after)
+    # evaluate the after potential
+    potential_after = ne.evaluate(potential_function, dict(ChainMap(normal_form, raw_params)))
 
-# calculate the drift
+    print(normal_form, raw_params, raw_params_before, potential_after, "\n\n")
+
+    # calculate the drift

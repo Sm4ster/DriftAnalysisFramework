@@ -1,4 +1,5 @@
 from DriftAnalysisFramework.OptimizationAlgorithms import CMA_ES
+from DriftAnalysisFramework.Transformations import CMA_ES as TR
 from DriftAnalysisFramework.TargetFunctions import Sphere
 import matplotlib
 import matplotlib.pyplot as plt
@@ -9,7 +10,7 @@ matplotlib.use('Qt5Agg')
 
 # Globals
 groove_iteration = 50000
-measured_samples = 1000000
+measured_samples = 100000
 
 alpha_samples = 1
 kappa_samples = 500
@@ -33,31 +34,12 @@ fig.suptitle('CMA Parameter Analysis')
 fig.text(0.50, 0.95, f'Groove iterations - {groove_iteration}, measured samples - {measured_samples}',
          horizontalalignment='center', wrap=True, fontsize='small')
 
-# stable alpha experiment
-# print("Starting the alpha experiment...")
-#
-# alpha, kappa, sigma = 1, np.repeat(kappa_sequence, sigma_samples), np.tile(sigma_sequence, kappa_samples)
-# alpha_store = np.empty([measured_samples, kappa_samples * sigma_samples])
-#
-# with alive_bar(groove_iteration, force_tty=True, title="Grooving", bar="notes", title_length=10) as bar:
-#     for i in range(groove_iteration):
-#         alpha = alg.iterate_normal(alpha, kappa, sigma)[0]
-#         bar()
-#
-# with alive_bar(measured_samples, force_tty=True, title="Collecting") as bar:
-#     for i in range(measured_samples):
-#         alpha = alg.iterate_normal(alpha, kappa, sigma)[0]
-#         print(alg.iterate_normal(alpha, kappa, sigma)[0])
-#         alpha_store[i] = alpha
-#         bar()
-#
-# print(alpha_store)
 
 # stable kappa experiment
 print("Stable Kappa Experiment")
 
 alpha, kappa, sigma = np.repeat(alpha_sequence, sigma_samples), 1, np.tile(sigma_sequence, alpha_samples)
-m, C, sigma = alg.transform_to_parameters(alpha, kappa, sigma)
+m, C, sigma = TR.transform_to_parameters(alpha, kappa, sigma)
 
 with alive_bar(groove_iteration, force_tty=True, title="Grooving", bar="notes", title_length=10) as bar:
     for i in range(groove_iteration):
@@ -68,7 +50,7 @@ kappa_store = np.empty([measured_samples, alpha_samples * sigma_samples])
 with alive_bar(measured_samples, force_tty=True, title="Collecting") as bar:
     for i in range(measured_samples):
         C = alg.step(m, C, sigma)[1]
-        kappa = alg.transform_to_normal(m, C, sigma)[1]
+        kappa = TR.transform_to_normal(m, C, sigma)[1]
         kappa_store[i] = kappa
         bar()
 
@@ -82,7 +64,7 @@ print("Stable Sigma Experiment")
 
 # prepare algorithm inputs
 alpha, kappa, sigma = np.repeat(alpha_sequence, kappa_samples), np.tile(kappa_sequence, alpha_samples), 1
-m, C, sigma = alg.transform_to_parameters(alpha, kappa, sigma)
+m, C, sigma = TR.transform_to_parameters(alpha, kappa, sigma)
 
 with alive_bar(groove_iteration, force_tty=True, title="Grooving", bar="notes", title_length=10) as bar:
     for i in range(groove_iteration):
