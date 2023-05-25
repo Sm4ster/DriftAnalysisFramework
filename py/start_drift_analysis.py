@@ -31,7 +31,10 @@ alg = CMA_ES(Sphere(), {
     "dim": 2
 })
 
+
 def replace_functions(potential_function, local_dict):
+    potential_function_ = potential_function
+
     pattern = r'(\w+)\((.*)\)'
     matches = re.findall(pattern, potential_function)
 
@@ -41,29 +44,37 @@ def replace_functions(potential_function, local_dict):
         argument = match[1]
 
         # see if the argument has functions in it as well
-        argument_variables = replace_functions(argument, local_dict)
+        variables, _ = replace_functions(argument, local_dict)
 
-        if len(argument_variables) > 0:
-
-        else:
+        if len(variables) == 0:
             variable_name = function_name + "_" + argument
             variable_value = np.exp(local_dict[argument])
+            new_variables.append({"argument": argument, "name": variable_name, "value": variable_value})
 
-            new_variables.append({"name": variable_name, "value": variable_value})
-        print(function_name, variable_value)
+        for variable in variables:
+            local_dict[variable["name"]] = variable["value"]
+            potential_function_ = potential_function_.replace(argument, variable["name"])
 
-    return new_variables
 
+    return new_variables, potential_function_
 
+def evaluate_potential(potential_function, local_dict):
+    variables = replace_functions(potential_function, local_dict)
+
+    for variable in variables:
+        local_dict[variable["name"]] = variable["value"]
+        potential_function_ = potential_function_.replace(argument, variable["name"])
+    local_dict_, potential_function
 
 
 for i in range(states.shape[0]):
     # evaluate the before potential
     alpha, kappa, sigma = states[i][0], states[i][1], states[i][2]
     m, C, _ = TR.transform_to_parameters(alpha, kappa, sigma)
-    potential_before = replace_functions(potential_function, dict(ChainMap()))
+    local_dict = {"alpha": alpha, "kappa": kappa, "sigma": sigma, "sigma_": sigma, "m": m, "C": C}
+    potential_before= evaluate_potential(potential_function, local_dict)
 
-    print(m, C, alpha, kappa, sigma, potential_before, "\n")
+    print(local_dict, local_dict_, potential_function, "\n")
 
     # make step
     normal_form, raw_params, *_ = alg.iterate(alpha, kappa, sigma, num=batch_size)
