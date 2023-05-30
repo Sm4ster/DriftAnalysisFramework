@@ -7,13 +7,13 @@ from DriftAnalysisFramework.TargetFunctions import Sphere
 from DriftAnalysisFramework.Transformations import CMA_ES as TR
 
 # potential function
-potential_function = "exp(norm(m)) + alpha * kappa + 5.456"
+potential_function = "log(norm(m)) + kappa"
 
 # config
-alpha_samples = 2
-kappa_samples = 2
-sigma_samples = 2
-batch_size = 3
+alpha_samples = 20
+kappa_samples = 20
+sigma_samples = 20
+batch_size = 100000
 
 # create states
 alpha_sequence = np.linspace(0, np.pi / 4, num=alpha_samples)
@@ -31,61 +31,55 @@ alg = CMA_ES(Sphere(), {
     "dim": 2
 })
 
+function_dict = {
+    "log": lambda x: np.log(x),
+    "norm": lambda x: np.linalg.norm(x, axis=1)
+}
 
 def replace_functions(potential_function, local_dict):
-    potential_function_ = potential_function
-
     pattern = r'(\w+)\((.*)\)'
     matches = re.findall(pattern, potential_function)
 
-    new_variables = []
     for match in matches:
         function_name = match[0]
-        argument = match[1]
+        raw_argument = match[1]
 
-        # see if the argument has functions in it as well
-        variables, _ = replace_functions(argument, local_dict)
+        # see if the argument has functions in it as well, replace if so
+        argument, _ = replace_functions(raw_argument, local_dict)
+        potential_function = potential_function.replace(raw_argument, argument)
 
-        if len(variables) == 0:
-            variable_name = function_name + "_" + argument
-            variable_value = np.exp(local_dict[argument])
-            new_variables.append({"argument": argument, "name": variable_name, "value": variable_value})
+        # process this match by replacing
+        variable_name = function_name + "_" + argument
+        potential_function = potential_function.replace(function_name + "(" + argument + ")", variable_name)
 
-        for variable in variables:
-            local_dict[variable["name"]] = variable["value"]
-            potential_function_ = potential_function_.replace(argument, variable["name"])
+        # calculate the values and save them in the dict
+        local_dict[variable_name] = function_dict[function_name](local_dict[argument])
 
-
-    return new_variables, potential_function_
-
-def evaluate_potential(potential_function, local_dict):
-    variables = replace_functions(potential_function, local_dict)
-
-    for variable in variables:
-        local_dict[variable["name"]] = variable["value"]
-        potential_function_ = potential_function_.replace(argument, variable["name"])
-    local_dict_, potential_function
+    return potential_function, local_dict
 
 
 for i in range(states.shape[0]):
-    # evaluate the before potential
+    # collect the base variables for the potential function
     alpha, kappa, sigma = states[i][0], states[i][1], states[i][2]
     m, C, _ = TR.transform_to_parameters(alpha, kappa, sigma)
-    local_dict = {"alpha": alpha, "kappa": kappa, "sigma": sigma, "sigma_": sigma, "m": m, "C": C}
-    potential_before= evaluate_potential(potential_function, local_dict)
+    before_dict = {"alpha": alpha, "kappa": kappa, "sigma": sigma, "sigma_raw": sigma, "m": m, "C": C}
 
-    print(local_dict, local_dict_, potential_function, "\n")
+    # evaluate the before potential
+    potential_function_, _ = replace_functions(potential_function, before_dict)
+    potential_before = ne.evaluate(potential_function_, before_dict)
 
     # make step
     normal_form, raw_params, *_ = alg.iterate(alpha, kappa, sigma, num=batch_size)
 
-    # make sure that sigma does not get overwritten and
-    # the raw sigma is available with underscore
-    raw_params["sigma_"] = raw_params["sigma"]
+    # collect base variables (make sure the raw sigma does not get overwritten by the transformed one)
+    raw_params["sigma_raw"] = raw_params["sigma"]
+    after_dict = {**normal_form, **raw_params}
 
     # evaluate the after potential
-    potential_after = ne.evaluate(potential_function, dict(ChainMap(normal_form, raw_params)))
-
-    print(normal_form, raw_params, potential_after, "\n\n")
+    potential_function_, after_dict = replace_functions(potential_function, after_dict)
+    potential_after = ne.evaluate(potential_function_, after_dict)
 
     # calculate the drift
+    drift = potential_after - potential_before
+
+    print(drift.mean())
