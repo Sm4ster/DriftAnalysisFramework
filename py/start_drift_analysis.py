@@ -7,7 +7,7 @@ from DriftAnalysisFramework.TargetFunctions import Sphere
 from DriftAnalysisFramework.Transformations import CMA_ES as TR
 
 # potential function
-potential_function = "log(norm(m)) + kappa"
+potential_function = "log(norm(m) + y, z) + exp(kappa+ ekl(f))"
 
 # config
 alpha_samples = 20
@@ -36,17 +36,98 @@ function_dict = {
     "norm": lambda x: np.linalg.norm(x, axis=1)
 }
 
+
+def parse_expression(expression):
+    parenthesis = 0
+    parsed_expression = []
+    parsed_function = []
+    current_token = ""
+    ignore_operator = False
+
+    for idx, char in enumerate(expression):
+        if char == '(':
+            if parenthesis == 0:
+                parsed_function.append(current_token)
+                current_token = ""
+            else:
+                current_token += char
+            parenthesis += 1
+        elif char == ')':
+            parenthesis -= 1
+            if parenthesis == 0:
+                parsed_function.append(parse_expression(current_token))
+                parsed_expression.append(tuple(parsed_function))
+                parsed_function = []
+                current_token = ""
+            else:
+                current_token += char
+        elif char == ',':
+            if parenthesis == 0:
+                parsed_function.append(parse_expression(current_token))
+                current_token = ""
+            else:
+                current_token += char
+        # identify operators
+        elif parenthesis == 0 and char in "+-*/%&|~^<>!=":
+            if current_token != "":
+                parsed_expression.append(current_token)
+            current_token = ""
+            if not ignore_operator:
+                current_token = char
+
+                # double char operators
+                if char in "<>=!*" and expression[idx+1] in "=<>*":
+                    current_token = expression[idx+1]
+                    ignore_operator = True
+
+                parsed_expression.append(current_token)
+                current_token = ""
+
+                # unary operator
+                # if char == "-":
+            else:
+                ignore_operator = False
+
+        else:
+            current_token += char
+
+    if current_token:
+        parsed_expression.append(current_token)
+
+    if len(parsed_expression) == 1:
+        return parsed_expression[0]
+    else:
+        return parsed_expression
+
+
 def replace_functions(potential_function, local_dict):
-    pattern = r'(\w+)\((.*)\)'
+    pattern = r'(\w+)\(([^()]*\))'
     matches = re.findall(pattern, potential_function)
 
     for match in matches:
         function_name = match[0]
-        raw_argument = match[1]
+        raw_arguments = match[1]
+
+        # Count the number of opening and closing parentheses
+        open_parentheses = raw_arguments.count('(')
+        close_parentheses = raw_arguments.count(')')
+
+        # Find the correct closing parenthesis
+        while close_parentheses < open_parentheses:
+            # Search for the next closing parenthesis
+            next_close_parenthesis = re.search(r'\)', raw_arguments)
+            if next_close_parenthesis:
+                raw_arguments = raw_arguments[next_close_parenthesis.start() + 1:]
+                close_parentheses += 1
+            else:
+                # If no closing parenthesis found, break the loop
+                break
+
+        print(raw_arguments)
 
         # see if the argument has functions in it as well, replace if so
-        argument, _ = replace_functions(raw_argument, local_dict)
-        potential_function = potential_function.replace(raw_argument, argument)
+        argument, _ = replace_functions(raw_arguments, local_dict)
+        potential_function = potential_function.replace(raw_arguments, argument)
 
         # process this match by replacing
         variable_name = function_name + "_" + argument
@@ -58,6 +139,11 @@ def replace_functions(potential_function, local_dict):
     return potential_function, local_dict
 
 
+def evaluate(expression, base_dict):
+    parsed_expression = parse_expression(expression.replace(" ", ""))
+    test = 1
+
+
 for i in range(states.shape[0]):
     # collect the base variables for the potential function
     alpha, kappa, sigma = states[i][0], states[i][1], states[i][2]
@@ -65,8 +151,7 @@ for i in range(states.shape[0]):
     before_dict = {"alpha": alpha, "kappa": kappa, "sigma": sigma, "sigma_raw": sigma, "m": m, "C": C}
 
     # evaluate the before potential
-    potential_function_, _ = replace_functions(potential_function, before_dict)
-    potential_before = ne.evaluate(potential_function_, before_dict)
+    potential_before = evaluate(potential_function, before_dict)
 
     # make step
     normal_form, raw_params, *_ = alg.iterate(alpha, kappa, sigma, num=batch_size)
