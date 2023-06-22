@@ -1,20 +1,24 @@
+import numpy as np
+import pandas as pd
+
 from DriftAnalysisFramework.OptimizationAlgorithms import CMA_ES
 from DriftAnalysisFramework.Transformations import CMA_ES as TR
 from DriftAnalysisFramework.TargetFunctions import Sphere
+
+from alive_progress import alive_bar
+
 import matplotlib
 import matplotlib.pyplot as plt
-import numpy as np
-from alive_progress import alive_bar
 
 matplotlib.use('Qt5Agg')
 
 # Globals
-groove_iteration = 50000
+groove_iteration = 5000
 measured_samples = 100000
 
-alpha_samples = 1
-kappa_samples = 500
-sigma_samples = 500
+alpha_samples = 10
+kappa_samples = 25
+sigma_samples = 25
 
 alpha_sequence = np.linspace(0, np.pi / 4, num=alpha_samples)
 kappa_sequence = np.geomspace(1 / 1000, 1000, num=kappa_samples)
@@ -33,7 +37,6 @@ fig, (ax1, ax2) = plt.subplots(2)
 fig.suptitle('CMA Parameter Analysis')
 fig.text(0.50, 0.95, f'Groove iterations - {groove_iteration}, measured samples - {measured_samples}',
          horizontalalignment='center', wrap=True, fontsize='small')
-
 
 # stable kappa experiment
 print("Stable Kappa Experiment")
@@ -54,7 +57,17 @@ with alive_bar(measured_samples, force_tty=True, title="Collecting") as bar:
         kappa_store[i] = kappa
         bar()
 
-ax1.loglog(sigma_sequence, np.mean(kappa_store, axis=0))
+stable_kappa = pd.DataFrame({
+    "alpha": alpha,
+    "sigma": sigma,
+    "stable_kappa": np.mean(kappa_store, axis=0)
+})
+
+for alpha_value in alpha_sequence:
+    print(stable_kappa)
+    print(stable_kappa[stable_kappa["alpha"] == alpha_value])
+    ax1.loglog(sigma_sequence, stable_kappa[stable_kappa["alpha"] == alpha_value]["stable_kappa"])
+
 ax1.set_title('Stable Kappa Experiment', fontsize='small', loc='left')
 ax1.set_xlabel(r'$\sigma$')
 ax1.set_ylabel(r'$\kappa^*$')
@@ -78,7 +91,15 @@ with alive_bar(measured_samples, force_tty=True, title="Collecting") as bar:
         sigma_store[i] = sigma
         bar()
 
-ax2.loglog(kappa_sequence, np.mean(sigma_store, axis=0))
+stable_sigma = pd.DataFrame({
+    "alpha": alpha,
+    "kappa": kappa,
+    "stable_sigma": np.mean(sigma_store, axis=0)
+})
+
+for alpha_value in alpha_sequence:
+    ax2.loglog(kappa_sequence, stable_sigma[stable_sigma["alpha"] == alpha_value]["stable_sigma"])
+
 ax2.set_title('Stable Sigma Experiment', fontsize='small', loc='left')
 ax2.set_xlabel(r'$\kappa$')
 ax2.set_ylabel(r'$\sigma^*$')

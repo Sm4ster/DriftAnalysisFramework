@@ -4,7 +4,7 @@ import numexpr as ne
 from DriftAnalysisFramework.OptimizationAlgorithms import CMA_ES
 from DriftAnalysisFramework.TargetFunctions import Sphere
 from DriftAnalysisFramework.Transformations import CMA_ES as TR
-from DriftAnalysisFramework.Helpers import replace_operators, replace_functions, parse_expression
+from DriftAnalysisFramework.Helpers import replace_functions, parse_expression, has_significance
 
 # potential function
 potential_function = "log(norm(m))"
@@ -31,12 +31,12 @@ alg = CMA_ES(Sphere(), {
     "dim": 2
 })
 
-potential_expr = parse_expression(potential_function.replace(" ", ""))
+potential_expr = parse_expression(potential_function)
 for i in range(states.shape[0]):
     # collect the base variables for the potential function
     alpha, kappa, sigma = states[i][0], states[i][1], states[i][2]
     m, C, _ = TR.transform_to_parameters(alpha, kappa, sigma)
-    before_dict = {"alpha": alpha, "kappa": kappa, "sigma": sigma, "sigma_raw": sigma, "m": m, "C": C,}
+    before_dict = {"alpha": alpha, "kappa": kappa, "sigma": sigma, "sigma_raw": sigma, "m": m, "C": C}
 
     # evaluate the before potential
     potential_function_, before_dict = replace_functions(potential_expr, before_dict)
@@ -56,4 +56,5 @@ for i in range(states.shape[0]):
     # calculate the drift
     drift = potential_after - potential_before
 
-    print(drift.mean())
+    significance = has_significance(drift)
+    print(drift.mean(), significance)
