@@ -59,24 +59,15 @@ with alive_bar(measured_samples, force_tty=True, title="Collecting") as bar:
         bar()
 
 # store the data in an efficient form to allow for interpolation later
-stable_kappa_array = np.mean(kappa_store, axis=0).reshape(alpha_samples, sigma_samples)
+stable_kappa_data = np.mean(kappa_store, axis=0).reshape(alpha_samples, sigma_samples)
 stable_kappa = pd.DataFrame({
     "alpha": alpha,
     "sigma": sigma,
     "stable_kappa": np.mean(kappa_store, axis=0)
 })
 
-# Test whether the indexing is correct
-for combination in list(itertools.product(range(alpha_samples), range(sigma_samples))):
-    alpha_index, sigma_index = combination
-
-    result = stable_kappa[
-        (stable_kappa['alpha'] == alpha_sequence[alpha_index]) & (stable_kappa['sigma'] == sigma_sequence[sigma_index])]
-    if not (alpha_sequence[alpha_index] == result["alpha"].values[0] and
-            sigma_sequence[sigma_index] == result["sigma"].values[0] and
-            stable_kappa_array[alpha_index][sigma_index] == result["stable_kappa"].values[0]):
-        print("Found a mistake")
-
+# Save variables into a file
+np.savez('./data/stable_kappa.npz', alpha=alpha_sequence, sigma=sigma_sequence, stable_kappa=stable_kappa_data)
 
 for alpha_value in alpha_sequence:
     ax1.loglog(sigma_sequence, stable_kappa[stable_kappa["alpha"] == alpha_value]["stable_kappa"])
@@ -105,25 +96,15 @@ with alive_bar(measured_samples, force_tty=True, title="Collecting") as bar:
         bar()
 
 # store the data in an efficient form to allow for interpolation later
-stable_sigma_array = np.mean(sigma_store, axis=0).reshape(alpha_samples, kappa_samples)
+stable_sigma_data = np.mean(sigma_store, axis=0).reshape(alpha_samples, kappa_samples)
 stable_sigma = pd.DataFrame({
     "alpha": alpha,
     "kappa": kappa,
     "stable_sigma": np.mean(sigma_store, axis=0)
 })
 
-# Test whether the indexing is correct
-for combination in list(itertools.product(range(alpha_samples), range(kappa_samples))):
-    alpha_index, kappa_index = combination
-
-    result = stable_sigma[
-        (stable_sigma['alpha'] == alpha_sequence[alpha_index]) & (stable_sigma['kappa'] == kappa_sequence[kappa_index])]
-    if not (alpha_sequence[alpha_index] == result["alpha"].values[0] and
-            kappa_sequence[kappa_index] == result["kappa"].values[0] and
-            stable_sigma_array[alpha_index][kappa_index] == result["stable_sigma"].values[0]):
-        print("Found a mistake")
-
-# print(stable_sigma_array, stable_sigma)
+# Save variables into a file
+np.savez('./data/stable_sigma.npz', alpha=alpha_sequence, kappa=kappa_sequence, stable_sigma=stable_sigma_data)
 
 for alpha_value in alpha_sequence:
     ax2.loglog(kappa_sequence, stable_sigma[stable_sigma["alpha"] == alpha_value]["stable_sigma"])
