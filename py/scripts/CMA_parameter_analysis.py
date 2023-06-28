@@ -1,5 +1,6 @@
 import numpy as np
 import pandas as pd
+import itertools
 
 from DriftAnalysisFramework.OptimizationAlgorithms import CMA_ES
 from DriftAnalysisFramework.Transformations import CMA_ES as TR
@@ -14,7 +15,7 @@ matplotlib.use('Qt5Agg')
 
 # Globals
 groove_iteration = 5000
-measured_samples = 100000
+measured_samples = 10000
 
 alpha_samples = 10
 kappa_samples = 25
@@ -57,15 +58,27 @@ with alive_bar(measured_samples, force_tty=True, title="Collecting") as bar:
         kappa_store[i] = kappa
         bar()
 
+# store the data in an efficient form to allow for interpolation later
+stable_kappa_array = np.mean(kappa_store, axis=0).reshape(alpha_samples, sigma_samples)
 stable_kappa = pd.DataFrame({
     "alpha": alpha,
     "sigma": sigma,
     "stable_kappa": np.mean(kappa_store, axis=0)
 })
 
+# Test whether the indexing is correct
+for combination in list(itertools.product(range(alpha_samples), range(sigma_samples))):
+    alpha_index, sigma_index = combination
+
+    result = stable_kappa[
+        (stable_kappa['alpha'] == alpha_sequence[alpha_index]) & (stable_kappa['sigma'] == sigma_sequence[sigma_index])]
+    if not (alpha_sequence[alpha_index] == result["alpha"].values[0] and
+            sigma_sequence[sigma_index] == result["sigma"].values[0] and
+            stable_kappa_array[alpha_index][sigma_index] == result["stable_kappa"].values[0]):
+        print("Found a mistake")
+
+
 for alpha_value in alpha_sequence:
-    print(stable_kappa)
-    print(stable_kappa[stable_kappa["alpha"] == alpha_value])
     ax1.loglog(sigma_sequence, stable_kappa[stable_kappa["alpha"] == alpha_value]["stable_kappa"])
 
 ax1.set_title('Stable Kappa Experiment', fontsize='small', loc='left')
@@ -91,11 +104,26 @@ with alive_bar(measured_samples, force_tty=True, title="Collecting") as bar:
         sigma_store[i] = sigma
         bar()
 
+# store the data in an efficient form to allow for interpolation later
+stable_sigma_array = np.mean(sigma_store, axis=0).reshape(alpha_samples, kappa_samples)
 stable_sigma = pd.DataFrame({
     "alpha": alpha,
     "kappa": kappa,
     "stable_sigma": np.mean(sigma_store, axis=0)
 })
+
+# Test whether the indexing is correct
+for combination in list(itertools.product(range(alpha_samples), range(kappa_samples))):
+    alpha_index, kappa_index = combination
+
+    result = stable_sigma[
+        (stable_sigma['alpha'] == alpha_sequence[alpha_index]) & (stable_sigma['kappa'] == kappa_sequence[kappa_index])]
+    if not (alpha_sequence[alpha_index] == result["alpha"].values[0] and
+            kappa_sequence[kappa_index] == result["kappa"].values[0] and
+            stable_sigma_array[alpha_index][kappa_index] == result["stable_sigma"].values[0]):
+        print("Found a mistake")
+
+# print(stable_sigma_array, stable_sigma)
 
 for alpha_value in alpha_sequence:
     ax2.loglog(kappa_sequence, stable_sigma[stable_sigma["alpha"] == alpha_value]["stable_sigma"])
