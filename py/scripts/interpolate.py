@@ -29,17 +29,18 @@ def interpolate_unvectorized(x, y, values, target):
             y - y_1) + values[3] * (x - x_1) * (y - y_1)))
 
 
-def find_closest_values_vectorized(arr, target):
+def find_closest_values_vectorized(given_array, target_values):
     # Find closest values higher than and lower than the given values
-    diff = np.abs(arr - target[:, np.newaxis])
-    sorted_indices = np.argsort(diff, axis=1)
+    h_mask = target_values[:, np.newaxis] >= given_array
+    l_mask = target_values[:, np.newaxis] <= given_array
 
-    # Get the index of the closest value lower than or equal to the given value
-    lower_indices = np.argmax(arr[sorted_indices] <= target[:, np.newaxis], axis=1)
+    h_filtered_values = np.where(h_mask, target_values[:, np.newaxis], np.inf)
+    l_filtered_values = np.where(l_mask, target_values[:, np.newaxis], -np.inf)
 
-    # Get the index of the closest value higher than or equal to the given value
-    higher_indices = np.argmin(arr[sorted_indices] >= target[:, np.newaxis], axis=1)
-    return np.array[[lower_indices, higher_indices]]
+    h_closest_indices = np.argmin(h_filtered_values, axis=0)
+    l_closest_indices = np.argmax(l_filtered_values, axis=0)
+
+    return np.array([l_closest_indices, h_closest_indices])
 
 
 def interpolate_vectorized(x, y, values, target):
@@ -52,7 +53,24 @@ def interpolate_vectorized(x, y, values, target):
             y - y_1) + values[3] * (x - x_1) * (y - y_1)))
 
 
-results = np.load("../../data/sigma_data_56000_samples.npy")
+# Load variables from the file
+data = np.load('../data/stable_parameters.npz')
 
-state = 0.0001291549665014884
+# Access the variables
+alpha = data['alpha']
+kappa = data['kappa']
+sigma = data['sigma']
+stable_kappa = data['stable_kappa']
+stable_sigma = data['stable_sigma']
 
+alpha_samples = 9
+kappa_samples = 24
+sigma_samples = 24
+
+alpha_sequence = np.linspace(0, np.pi / 4, num=alpha_samples)
+kappa_sequence = np.geomspace(1 / 1000, 1000, num=kappa_samples)
+sigma_sequence = np.geomspace(1 / 1000, 10000, num=sigma_samples)
+
+print(find_closest_values_vectorized(alpha_sequence, alpha))
+# print(kappa_sequence, kappa)
+# print(sigma_sequence, sigma)

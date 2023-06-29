@@ -60,21 +60,6 @@ with alive_bar(measured_samples, force_tty=True, title="Collecting") as bar:
 
 # store the data in an efficient form to allow for interpolation later
 stable_kappa_data = np.mean(kappa_store, axis=0).reshape(alpha_samples, sigma_samples)
-stable_kappa = pd.DataFrame({
-    "alpha": alpha,
-    "sigma": sigma,
-    "stable_kappa": np.mean(kappa_store, axis=0)
-})
-
-# Save variables into a file
-np.savez('./data/stable_kappa.npz', alpha=alpha_sequence, sigma=sigma_sequence, stable_kappa=stable_kappa_data)
-
-for alpha_value in alpha_sequence:
-    ax1.loglog(sigma_sequence, stable_kappa[stable_kappa["alpha"] == alpha_value]["stable_kappa"])
-
-ax1.set_title('Stable Kappa Experiment', fontsize='small', loc='left')
-ax1.set_xlabel(r'$\sigma$')
-ax1.set_ylabel(r'$\kappa^*$')
 
 # stable sigma experiment
 print("Stable Sigma Experiment")
@@ -97,17 +82,19 @@ with alive_bar(measured_samples, force_tty=True, title="Collecting") as bar:
 
 # store the data in an efficient form to allow for interpolation later
 stable_sigma_data = np.mean(sigma_store, axis=0).reshape(alpha_samples, kappa_samples)
-stable_sigma = pd.DataFrame({
-    "alpha": alpha,
-    "kappa": kappa,
-    "stable_sigma": np.mean(sigma_store, axis=0)
-})
 
 # Save variables into a file
-np.savez('./data/stable_sigma.npz', alpha=alpha_sequence, kappa=kappa_sequence, stable_sigma=stable_sigma_data)
+np.savez('./data/stable_parameters.npz', alpha=alpha_sequence, kappa=kappa_sequence, sigma=sigma_sequence,
+         stable_kappa=stable_kappa_data, stable_sigma=stable_sigma_data)
 
-for alpha_value in alpha_sequence:
-    ax2.loglog(kappa_sequence, stable_sigma[stable_sigma["alpha"] == alpha_value]["stable_sigma"])
+# Plot the results
+for alpha_index in range(alpha_samples):
+    ax1.loglog(sigma_sequence, stable_kappa_data[alpha_index])
+    ax2.loglog(kappa_sequence, stable_sigma_data[alpha_index])
+
+ax1.set_title('Stable Kappa Experiment', fontsize='small', loc='left')
+ax1.set_xlabel(r'$\sigma$')
+ax1.set_ylabel(r'$\kappa^*$')
 
 ax2.set_title('Stable Sigma Experiment', fontsize='small', loc='left')
 ax2.set_xlabel(r'$\kappa$')
