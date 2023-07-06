@@ -2,9 +2,9 @@ import numpy as np
 import pandas as pd
 import itertools
 
-from DriftAnalysisFramework.OptimizationAlgorithms import CMA_ES
-from DriftAnalysisFramework.Transformations import CMA_ES as TR
-from DriftAnalysisFramework.TargetFunctions import Sphere
+from DriftAnalysisFramework.Optimization import CMA_ES
+from DriftAnalysisFramework.Transformation import CMA_ES as TR
+from DriftAnalysisFramework.Fitness import Sphere
 
 from alive_progress import alive_bar
 

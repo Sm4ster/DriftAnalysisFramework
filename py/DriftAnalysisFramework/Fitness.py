@@ -24,8 +24,7 @@ class ConvexQuadratic:
                 [1 / 2 * target["B"], target["C"]]
             ])
 
-
-    def eval(self, x, keepdims=False):
+    def eval(self, x):
         if type(x) == list:
             x = np.array(list)
         if x.ndim == 1:

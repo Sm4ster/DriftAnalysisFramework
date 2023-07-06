@@ -1,5 +1,5 @@
-from DriftAnalysisFramework.OptimizationAlgorithms import CMA_ES
-from DriftAnalysisFramework.TargetFunctions import Sphere
+from DriftAnalysisFramework.Optimization import CMA_ES
+from DriftAnalysisFramework.Fitness import Sphere
 import numpy as np
 import matplotlib.pyplot as plt
 from worker_module import analyze_step_size

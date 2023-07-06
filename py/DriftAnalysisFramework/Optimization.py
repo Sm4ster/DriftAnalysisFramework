@@ -1,5 +1,5 @@
 import numpy as np
-from DriftAnalysisFramework.Transformations import CMA_ES as CMA_TR
+from DriftAnalysisFramework.Transformation import CMA_ES as CMA_TR
 
 
 class OnePlusOne_ES:
@@ -85,7 +85,7 @@ class CMA_ES:
 
         return new_m, new_C, new_sigma
 
-    def iterate(self, alpha, kappa, sigma, num=1, params=False):
+    def iterate(self, alpha, kappa, sigma, num=1):
         # Sanitize, transform and expand the parameters
         m, C, sigma = CMA_TR.transform_to_parameters(alpha, kappa, sigma, num)
         raw_state_before = {"m": m, "C": C, "sigma": sigma}

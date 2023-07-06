@@ -1,10 +1,9 @@
 import numpy as np
 import numexpr as ne
-from scipy.stats import t, ttest_1samp
+
 
 function_dict = {
-    "norm": lambda x: np.linalg.norm(x, axis=1),
-    "sum": lambda x, y: x + y
+    "norm": lambda x: np.linalg.norm(x, axis=1)
 }
 
 exclude_list = ["where", "sin", "cos", "tan", "arcsin", "arccos", "arctan", "arctan2", "sinh", "cosh", "tanh",
@@ -168,20 +167,3 @@ def replace_functions(potential_function, local_dict):
             expression += token
 
     return expression, local_dict
-
-
-def has_significance(sample, deviation=0.05, confidence=0.01):
-    mean = np.mean(sample)
-
-    if mean == 0:
-        return True
-
-    popmean_plus = mean + abs(deviation * mean)
-    popmean_minus = mean - abs(deviation * mean)
-
-    p_values = (ttest_1samp(sample, popmean_plus, alternative="less").pvalue,
-                ttest_1samp(sample, popmean_minus, alternative="greater").pvalue)
-
-    is_precise = p_values[0] < confidence and p_values[1] < confidence
-
-    return is_precise

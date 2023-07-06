@@ -1,4 +1,4 @@
-from DriftAnalysisFramework import TargetFunctions as tf
+from DriftAnalysisFramework import Fitness as tf
 import numpy as np
 
 def f(x,y):

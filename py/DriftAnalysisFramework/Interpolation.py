@@ -1,6 +1,5 @@
 import numpy as np
 
-
 def closest_values(given_array, target_values):
     # Find closest values higher than and lower than the given values
     h_mask = target_values[:, np.newaxis] >= given_array
@@ -69,41 +68,3 @@ def get_data_value(x, y, x_data, y_data, f_data):
         f_data[l_x_idx, l_y_idx], f_data[l_x_idx, h_y_idx],
         f_data[h_x_idx, l_y_idx], f_data[h_x_idx, h_y_idx]
     )
-
-
-# Load variables from the file
-data = np.load('../data/stable_parameters.npz')
-
-# Access the variables
-alpha = data['alpha']
-kappa = data['kappa']
-sigma = data['sigma']
-stable_kappa = data['stable_kappa']
-stable_sigma = data['stable_sigma']
-
-alpha_samples = 10
-kappa_samples = 10
-sigma_samples = 10
-
-alpha_sequence = np.linspace(0, np.pi / 4, num=alpha_samples)
-kappa_sequence = np.geomspace(1 / 1000, 1000, num=kappa_samples)
-sigma_sequence = np.geomspace(1 / 1000, 1000, num=sigma_samples)
-
-# find the closest values for each sequence
-l_alpha_val, h_alpha_val, l_alpha_idx, h_alpha_idx = closest_values(alpha_sequence, alpha)
-l_kappa_val, h_kappa_val, l_kappa_idx, h_kappa_idx = closest_values(kappa_sequence, kappa)
-l_sigma_val, h_sigma_val, l_sigma_idx, h_sigma_idx = closest_values(sigma_sequence, sigma)
-
-# get the interpolated stable kappa out of the bilinear interpolation
-result = interpolate(
-    alpha_sequence, sigma_sequence, l_alpha_val, l_sigma_val, h_alpha_val, h_sigma_val,
-    stable_kappa[l_alpha_idx, l_sigma_idx], stable_kappa[l_alpha_idx, h_sigma_idx],
-    stable_kappa[h_alpha_idx, l_sigma_idx], stable_kappa[h_alpha_idx, h_sigma_idx]
-)
-
-print(get_data_value(alpha_sequence, sigma_sequence, alpha, sigma, stable_kappa))
-
-print(result)
-
-# print(kappa_sequence, kappa)
-# print(sigma_sequence, sigma)

@@ -1,4 +1,4 @@
-from DriftAnalysisFramework import PotentialFunctions, OptimizationAlgorithms, TargetFunctions
+from DriftAnalysisFramework import PotentialFunctions, Optimization, Fitness
 import json
 from definitions import ALGORITHM_PATH
 import numexpr as ne

@@ -1,5 +1,5 @@
-from DriftAnalysisFramework.OptimizationAlgorithms import OnePlusOne_ES
-from DriftAnalysisFramework.TargetFunctions import Sphere
+from DriftAnalysisFramework.Optimization import OnePlusOne_ES
+from DriftAnalysisFramework.Fitness import Sphere
 import numpy as np
 
 # Globals
