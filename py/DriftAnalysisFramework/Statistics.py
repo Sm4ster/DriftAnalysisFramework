@@ -2,7 +2,7 @@ import numpy as np
 from scipy.stats import ttest_1samp
 
 
-def has_significance(sample, deviation=0.05, confidence=0.01):
+def has_significance(sample, deviation=0.10, confidence=0.05):
     mean = np.mean(sample)
 
     if mean == 0:

@@ -65,19 +65,25 @@ potential_before = ne.evaluate(potential_function_, before_dict)
 # The main loop
 with alive_bar(states.shape[0], force_tty=True, title="Evaluating") as bar:
     for i in range(states.shape[0]):
-        # make step
-        normal_form, raw_params, *_ = alg.iterate(states[i, 0], states[i, 1], states[i, 2], num=batch_size)
+        significant = False
+        drift = np.array([])
+        while not significant:
+            # make step
+            alpha, kappa, sigma = states[i, 0], states[i, 1], states[i, 2]
+            normal_form, raw_params, *_ = alg.iterate(alpha, kappa, sigma, num=batch_size)
 
-        # collect base variables (make sure the raw sigma does not get overwritten by the transformed one)
-        raw_params["sigma_raw"] = raw_params["sigma"]
-        after_dict = {**normal_form, **raw_params}
+            # collect base variables (make sure the raw sigma does not get overwritten by the transformed one)
+            raw_params["sigma_raw"] = raw_params["sigma"]
+            after_dict = {**normal_form, **raw_params}
 
-        # evaluate the after potential
-        potential_function_, after_dict = replace_functions(potential_expr, after_dict)
-        potential_after = ne.evaluate(potential_function_, after_dict)
+            # evaluate the after potential
+            potential_function_, after_dict = replace_functions(potential_expr, after_dict)
+            potential_after = ne.evaluate(potential_function_, after_dict)
 
-        # calculate the drift
-        drift = potential_after - potential_before[i]
+            # calculate the drift
+            drift = np.concatenate((drift, potential_after - potential_before[i]))
 
-        significance = has_significance(drift)
+            significant = has_significance(drift)
+
+        # TODO: Save results into a dataframe
         bar()
