@@ -1,6 +1,4 @@
 import numpy as np
-import pandas as pd
-import itertools
 
 from DriftAnalysisFramework.Optimization import CMA_ES
 from DriftAnalysisFramework.Transformation import CMA_ES as TR

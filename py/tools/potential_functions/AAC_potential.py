@@ -1,7 +1,5 @@
-from DriftAnalysisFramework import AnalysisTools as AT, JobQueue as JQ
+from DriftAnalysisFramework import AnalysisTools as AT
 import numpy as np
-from worker_module import potential_analysis
-import time
 
 d = 2
 alpha = 2

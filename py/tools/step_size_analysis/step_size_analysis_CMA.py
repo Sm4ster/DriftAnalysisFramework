@@ -1,8 +1,7 @@
 from DriftAnalysisFramework.Optimization import CMA_ES
 from DriftAnalysisFramework.Fitness import Sphere
 import numpy as np
-import matplotlib.pyplot as plt
-from worker_module import analyze_step_size
+from old.worker_module import analyze_step_size
 import time
 from DriftAnalysisFramework.JobQueue import JobQueue
 

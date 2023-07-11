@@ -1,5 +1,6 @@
 import numpy as np
 
+
 def closest_values(given_array, target_values):
     # Find closest values higher than and lower than the given values
     h_mask = target_values[:, np.newaxis] >= given_array
@@ -40,8 +41,8 @@ def interpolate(x, y, x1, y1, x2, y2, q11, q12, q21, q22):
                 (q22[non_identical_mask] * x_x1_diff * y_y1_diff))
 
     # Handle identical points and interpolate the other pair
-    x_mask = (x1 == x2) & (y1 != y2)
-    y_mask = (x1 != x2) & (y1 == y2)
+    x_mask = np.array((x1 == x2) & (y1 != y2))
+    y_mask = np.array((x1 != x2) & (y1 == y2))
 
     # Interpolate along y-axis where x-coordinates are identical
     t_y = (y[x_mask] - y1[x_mask]) / (y2[x_mask] - y1[x_mask])
