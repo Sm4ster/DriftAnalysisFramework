@@ -108,7 +108,10 @@ def parse_expression(expression):
         return parsed_expression
 
 
-def replace_functions(potential_function, local_dict):
+def replace_functions(potential_function, local_dict, function_dict_=None):
+    if function_dict_ is None:
+        function_dict_ = function_dict
+
     if type(potential_function) is tuple:
         potential_function = [potential_function]
 
@@ -118,6 +121,7 @@ def replace_functions(potential_function, local_dict):
         # if the token is a tuple replace this function if necessary
         if type(token) is tuple:
             function_name = token[0]
+
             if function_name in exclude_list:
                 argument_list = []
                 for tuple_token in token[1:]:
@@ -130,7 +134,7 @@ def replace_functions(potential_function, local_dict):
 
                 expression += function_name + "(" + ",".join(argument_list) + ")"
 
-            elif function_name in function_dict:
+            elif function_name in function_dict_:
                 argument_name_list = []
                 argument_list = []
                 for tuple_token in token[1:]:
