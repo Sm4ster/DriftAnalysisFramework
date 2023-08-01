@@ -7,18 +7,17 @@ from DriftAnalysisFramework.Fitness import Sphere
 from DriftAnalysisFramework.Interpolation import get_data_value
 from DriftAnalysisFramework.Analysis import DriftAnalysis
 
-
 # potential function
-potential_function = "log(norm(m)) + stable_kappa(alpha, sigma)"
+potential_function = "stable_kappa(alpha, sigma)"
 
 # config
-alpha_samples = 20
-kappa_samples = 20
-sigma_samples = 20
-batch_size = 10000
+alpha_samples = 2
+kappa_samples = 2
+sigma_samples = 2
+batch_size = 10
 
 # create states
-alpha_sequence = np.linspace(0, np.pi / 4, num=alpha_samples)
+alpha_sequence = np.linspace(0, np.pi / 3, num=alpha_samples)
 kappa_sequence = np.geomspace(1 / 10, 10, num=kappa_samples)
 sigma_sequence = np.geomspace(1 / 10, 10, num=sigma_samples)
 
@@ -56,18 +55,16 @@ states = np.vstack(np.meshgrid(alpha_sequence, kappa_sequence, sigma_sequence)).
 # Evaluate the before potential to set up the class
 da.eval_potential(potential_function, states)
 
-with alive_bar(states.shape[0], force_tty=True, title="Evaluating") as bar:
-    # for i in range(states.shape[0]):
-    #     da.eval_drift(i)
-    #     bar()
+# with alive_bar(states.shape[0], force_tty=True, title="Evaluating") as bar:
+    # with ThreadPoolExecutor(max_workers=7) as executor:
+    #     futures = [executor.submit(da.eval_drift, i) for i in range(states.shape[0])]
+    #     for future in futures:
+    #         future.add_done_callback(lambda _: bar())
 
-    # define a callback to call the bar function
-    def callback(future): bar()
-
-    with ThreadPoolExecutor(max_workers=7) as executor:
-        futures = [executor.submit(da.eval_drift, i) for i in range(states.shape[0])]
-        for future in futures:
-            future.add_done_callback(callback)
-
-    results = [future.result() for future in futures]
-
+# # Save results into a file
+# np.savez('./data/drifts.npz', alpha=alpha_sequence, kappa=kappa_sequence, sigma=sigma_sequence,
+#          states=da.states, drifts=da.drifts)
+#
+# print(da.errors)
+# for i in range(da.states.shape[0]):
+#     print(da.states[i], da.drifts[i])

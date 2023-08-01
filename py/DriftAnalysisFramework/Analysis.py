@@ -12,12 +12,16 @@ class DriftAnalysis:
         self.function_dict = function_dict
         self.batch_size = 10000
 
+        self.errors = None
         self.states = None
+        self.drifts = None
         self.potential_expr = None
         self.potential_before = None
 
     def eval_potential(self, potential_function, states):
         self.states = states
+        self.drifts = np.zeros(states.shape[0])
+        self.errors = []
 
         # Evaluate the expression once
         self.potential_expr = parse_expression(potential_function)
@@ -30,6 +34,8 @@ class DriftAnalysis:
         # evaluate the before potential
         potential_function_, before_dict = replace_functions(self.potential_expr, before_dict)
         self.potential_before = ne.evaluate(potential_function_, before_dict)
+
+        # print(self.potential_before)
 
     def eval_drift(self, i):
         significant = False
@@ -51,4 +57,13 @@ class DriftAnalysis:
             drift = np.concatenate((drift, potential_after - self.potential_before[i]))
 
             significant = has_significance(drift)
-            # TODO: Save results into a dataframe
+
+            if drift.shape[0] > 100 * self.batch_size:
+                # print(f"Significance could not be achieved in state {i}, aborting at {drift.shape[0]} evaluations. Drift: {np.mean(drift)}, variance: {np.var(drift)}")
+                # print(drift, potential_after, self.potential_before)
+                self.drifts[i] = np.mean(drift)
+                self.errors.append(f"Significance could not be achieved in state {i}, aborting at {drift.shape[0]} evaluations. Drift: {np.mean(drift)}, variance: {np.var(drift)}")
+                return
+
+        self.drifts[i] = np.mean(drift)
+

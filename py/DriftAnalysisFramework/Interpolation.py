@@ -9,6 +9,8 @@ def closest_values(given_array, target_values):
     h_filtered_values = np.where(h_mask, target_values[:, np.newaxis], np.inf)
     l_filtered_values = np.where(l_mask, target_values[:, np.newaxis], -np.inf)
 
+    print(h_filtered_values)
+
     h_closest_values = np.min(h_filtered_values, axis=0)
     l_closest_values = np.max(l_filtered_values, axis=0)
 
@@ -60,9 +62,14 @@ def interpolate(x, y, x1, y1, x2, y2, q11, q12, q21, q22):
 
 
 def get_data_value(x, y, x_data, y_data, f_data):
+    print(x,y, x_data, y_data, f_data)
+
     # find the closest values for each sequence
     l_x_val, h_x_val, l_x_idx, h_x_idx = closest_values(x, x_data)
     l_y_val, h_y_val, l_y_idx, h_y_idx = closest_values(y, y_data)
+
+    # print("l_x_val", l_x_val)
+    # print("h_x_val", h_x_val)
 
     return interpolate(
         x, y, l_x_val, l_y_val, h_x_val, h_y_val,
