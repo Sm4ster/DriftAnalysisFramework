@@ -1,15 +1,27 @@
 import numpy as np
 
 
-def closest_values(given_array, target_values):
+def closest_values(needle_values, haystack_array):
+    overflow_mask = needle_values > haystack_array.max() + haystack_array.max() * 0.001
+    underflow_mask = needle_values < haystack_array.min() - haystack_array.min() * 0.001
+
+    if overflow_mask.any():
+        print(f"Warning: {np.sum(overflow_mask)} needle value(s) are larger than any value in the haystack array.")
+        for i in range(overflow_mask.shape[0]):
+            if overflow_mask[i]:
+                print(i, haystack_array.max(), needle_values[i])
+
+    if underflow_mask.any():
+        print(f"Warning: {np.sum(underflow_mask)} needle value(s) are smaller than any value in the haystack array.")
+
     # Find closest values higher than and lower than the given values
-    h_mask = target_values[:, np.newaxis] >= given_array
-    l_mask = target_values[:, np.newaxis] <= given_array
+    h_mask = haystack_array[:, np.newaxis] >= needle_values
+    l_mask = haystack_array[:, np.newaxis] <= needle_values
 
-    h_filtered_values = np.where(h_mask, target_values[:, np.newaxis], np.inf)
-    l_filtered_values = np.where(l_mask, target_values[:, np.newaxis], -np.inf)
-
-    print(h_filtered_values)
+    # Setting the values to max and min is a bit unclean, because we do not notice when values are out of bounds.
+    # However settings these to inf and -inf makes slight rounding errors fail the whole thing.
+    h_filtered_values = np.where(h_mask, haystack_array[:, np.newaxis], haystack_array.max())
+    l_filtered_values = np.where(l_mask, haystack_array[:, np.newaxis], haystack_array.min())
 
     h_closest_values = np.min(h_filtered_values, axis=0)
     l_closest_values = np.max(l_filtered_values, axis=0)
@@ -62,14 +74,12 @@ def interpolate(x, y, x1, y1, x2, y2, q11, q12, q21, q22):
 
 
 def get_data_value(x, y, x_data, y_data, f_data):
-    print(x,y, x_data, y_data, f_data)
+    # print("get_data_value_x", x, x_data, closest_values(x, x_data))
+    # print("get_data_value_y", y, y_data, closest_values(y, y_data))
 
     # find the closest values for each sequence
     l_x_val, h_x_val, l_x_idx, h_x_idx = closest_values(x, x_data)
     l_y_val, h_y_val, l_y_idx, h_y_idx = closest_values(y, y_data)
-
-    # print("l_x_val", l_x_val)
-    # print("h_x_val", h_x_val)
 
     return interpolate(
         x, y, l_x_val, l_y_val, h_x_val, h_y_val,

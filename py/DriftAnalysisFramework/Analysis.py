@@ -62,8 +62,10 @@ class DriftAnalysis:
                 # print(f"Significance could not be achieved in state {i}, aborting at {drift.shape[0]} evaluations. Drift: {np.mean(drift)}, variance: {np.var(drift)}")
                 # print(drift, potential_after, self.potential_before)
                 self.drifts[i] = np.mean(drift)
-                self.errors.append(f"Significance could not be achieved in state {i}, aborting at {drift.shape[0]} evaluations. Drift: {np.mean(drift)}, variance: {np.var(drift)}")
-                return
+                error = f"Significance could not be achieved in state {i}, aborting at {drift.shape[0]} evaluations. Drift: {np.mean(drift)}, variance: {np.var(drift)}"
+                self.errors.append(error)
+                return error
 
         self.drifts[i] = np.mean(drift)
 
+        return self.drifts[i]

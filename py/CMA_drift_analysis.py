@@ -11,15 +11,12 @@ from DriftAnalysisFramework.Analysis import DriftAnalysis
 potential_function = "stable_kappa(alpha, sigma)"
 
 # config
-alpha_samples = 2
-kappa_samples = 2
-sigma_samples = 2
-batch_size = 10
+batch_size = 2
 
 # create states
-alpha_sequence = np.linspace(0, np.pi / 3, num=alpha_samples)
-kappa_sequence = np.geomspace(1 / 10, 10, num=kappa_samples)
-sigma_sequence = np.geomspace(1 / 10, 10, num=sigma_samples)
+alpha_sequence = np.linspace(0, np.pi / 4, num=2)
+kappa_sequence = np.geomspace(1 / 10, 10, num=1)
+sigma_sequence = np.geomspace(1 / 10, 10, num=1)
 
 # Initialize the target function and optimization algorithm
 alg = CMA_ES(Sphere(), {
@@ -43,6 +40,16 @@ sigma_data = data['sigma']
 stable_kappa = data['stable_kappa']
 stable_sigma = data['stable_sigma']
 
+# Check if sample sequence and precalculated are compatible
+# print(kappa_sequence.max(), kappa_data.max())
+if alpha_sequence.min() < alpha_data.min() or alpha_sequence.max() > alpha_data.max():
+    print("Warning: alpha_sequence is out of bounds for the stable_parameter data")
+if kappa_sequence.min() < kappa_data.min() or kappa_sequence.max() > kappa_data.max():
+    print("Warning: alpha_sequence is out of bounds for the stable_parameter data")
+if sigma_sequence.min() < sigma_data.min() or sigma_sequence.max() > sigma_data.max():
+    print("Warning: alpha_sequence is out of bounds for the stable_parameter data")
+
+
 # Update the function dict of the potential evaluation
 da.function_dict.update({
     "stable_kappa": lambda alpha_, sigma_: get_data_value(alpha_, sigma_, alpha_data, sigma_data, stable_kappa),
@@ -55,11 +62,14 @@ states = np.vstack(np.meshgrid(alpha_sequence, kappa_sequence, sigma_sequence)).
 # Evaluate the before potential to set up the class
 da.eval_potential(potential_function, states)
 
+for i in range(states.shape[0]):
+    print(da.eval_drift(i))
+
 # with alive_bar(states.shape[0], force_tty=True, title="Evaluating") as bar:
-    # with ThreadPoolExecutor(max_workers=7) as executor:
-    #     futures = [executor.submit(da.eval_drift, i) for i in range(states.shape[0])]
-    #     for future in futures:
-    #         future.add_done_callback(lambda _: bar())
+#     with ThreadPoolExecutor(max_workers=7) as executor:
+#         futures = [executor.submit(da.eval_drift, i) for i in range(states.shape[0])]
+#         for future in futures:
+#             future.add_done_callback(lambda _: bar())
 
 # # Save results into a file
 # np.savez('./data/drifts.npz', alpha=alpha_sequence, kappa=kappa_sequence, sigma=sigma_sequence,
