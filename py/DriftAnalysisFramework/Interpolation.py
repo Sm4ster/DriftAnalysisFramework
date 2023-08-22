@@ -1,18 +1,20 @@
 import numpy as np
 
 
-def closest_values(needle_values, haystack_array):
+def closest_values(needle_values, haystack_array, errors=None):
     overflow_mask = needle_values > haystack_array.max() + haystack_array.max() * 0.001
     underflow_mask = needle_values < haystack_array.min() - haystack_array.min() * 0.001
 
     if overflow_mask.any():
-        print(f"Warning: {np.sum(overflow_mask)} needle value(s) are larger than any value in the haystack array.")
-        for i in range(overflow_mask.shape[0]):
-            if overflow_mask[i]:
-                print(i, haystack_array.max(), needle_values[i])
+        message = f"Warning: {np.sum(overflow_mask)} needle value(s) are larger than any value in the haystack array."
 
     if underflow_mask.any():
-        print(f"Warning: {np.sum(underflow_mask)} needle value(s) are smaller than any value in the haystack array.")
+        message = f"Warning: {np.sum(underflow_mask)} needle value(s) are smaller than any value in the haystack array."
+        if errors is None:
+            print(message)
+        else:
+            errors.append(message)
+
 
     # Find closest values higher than and lower than the given values
     h_mask = haystack_array[:, np.newaxis] >= needle_values

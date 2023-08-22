@@ -11,12 +11,12 @@ from DriftAnalysisFramework.Analysis import DriftAnalysis
 potential_function = "stable_kappa(alpha, sigma)"
 
 # config
-batch_size = 2
+batch_size = 1000000
 
 # create states
-alpha_sequence = np.linspace(0, np.pi / 4, num=2)
-kappa_sequence = np.geomspace(1 / 10, 10, num=1)
-sigma_sequence = np.geomspace(1 / 10, 10, num=1)
+alpha_sequence = np.linspace(0, np.pi / 4, num=64)
+kappa_sequence = np.geomspace(1 / 10, 10, num=128)
+sigma_sequence = np.geomspace(1 / 10, 10, num=128)
 
 # Initialize the target function and optimization algorithm
 alg = CMA_ES(Sphere(), {
@@ -62,19 +62,16 @@ states = np.vstack(np.meshgrid(alpha_sequence, kappa_sequence, sigma_sequence)).
 # Evaluate the before potential to set up the class
 da.eval_potential(potential_function, states)
 
-for i in range(states.shape[0]):
-    print(da.eval_drift(i))
+with alive_bar(states.shape[0], force_tty=True, title="Evaluating") as bar:
+    with ThreadPoolExecutor(max_workers=7) as executor:
+        futures = [executor.submit(da.eval_drift, i) for i in range(states.shape[0])]
+        for future in futures:
+            future.add_done_callback(lambda _: bar())
 
-# with alive_bar(states.shape[0], force_tty=True, title="Evaluating") as bar:
-#     with ThreadPoolExecutor(max_workers=7) as executor:
-#         futures = [executor.submit(da.eval_drift, i) for i in range(states.shape[0])]
-#         for future in futures:
-#             future.add_done_callback(lambda _: bar())
+# Save results into a file
+np.savez('./data/drifts.npz', alpha=alpha_sequence, kappa=kappa_sequence, sigma=sigma_sequence,
+         states=da.states, drifts=da.drifts)
 
-# # Save results into a file
-# np.savez('./data/drifts.npz', alpha=alpha_sequence, kappa=kappa_sequence, sigma=sigma_sequence,
-#          states=da.states, drifts=da.drifts)
-#
-# print(da.errors)
-# for i in range(da.states.shape[0]):
-#     print(da.states[i], da.drifts[i])
+print(da.errors)
+for i in range(da.states.shape[0]):
+    print(da.states[i], da.drifts[i])
