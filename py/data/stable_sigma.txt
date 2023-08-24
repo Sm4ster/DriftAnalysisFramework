@@ -1,0 +1,3 @@
+./data/stable_sigma.npz
+1000000
+5000

@@ -1,20 +1,18 @@
 import numpy as np
+from DriftAnalysisFramework.Errors import error_instance
 
 
-def closest_values(needle_values, haystack_array, errors=None):
+def closest_values(needle_values, haystack_array):
     overflow_mask = needle_values > haystack_array.max() + haystack_array.max() * 0.001
     underflow_mask = needle_values < haystack_array.min() - haystack_array.min() * 0.001
 
     if overflow_mask.any():
         message = f"Warning: {np.sum(overflow_mask)} needle value(s) are larger than any value in the haystack array."
+        error_instance.add_error(message)
 
     if underflow_mask.any():
         message = f"Warning: {np.sum(underflow_mask)} needle value(s) are smaller than any value in the haystack array."
-        if errors is None:
-            print(message)
-        else:
-            errors.append(message)
-
+        error_instance.add_error(message)
 
     # Find closest values higher than and lower than the given values
     h_mask = haystack_array[:, np.newaxis] >= needle_values
@@ -76,9 +74,6 @@ def interpolate(x, y, x1, y1, x2, y2, q11, q12, q21, q22):
 
 
 def get_data_value(x, y, x_data, y_data, f_data):
-    # print("get_data_value_x", x, x_data, closest_values(x, x_data))
-    # print("get_data_value_y", y, y_data, closest_values(y, y_data))
-
     # find the closest values for each sequence
     l_x_val, h_x_val, l_x_idx, h_x_idx = closest_values(x, x_data)
     l_y_val, h_y_val, l_y_idx, h_y_idx = closest_values(y, y_data)

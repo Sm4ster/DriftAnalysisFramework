@@ -1,6 +1,6 @@
 import numpy as np
 import numexpr as ne
-from DriftAnalysisFramework.Potential import replace_functions
+from DriftAnalysisFramework.Errors import error_instance
 from DriftAnalysisFramework.Statistics import has_significance
 from DriftAnalysisFramework.Potential import replace_functions, parse_expression, function_dict
 from DriftAnalysisFramework.Transformation import CMA_ES as TR
@@ -21,7 +21,7 @@ class DriftAnalysis:
     def eval_potential(self, potential_function, states):
         self.states = states
         self.drifts = np.zeros(states.shape[0])
-        self.errors = []
+        self.errors = error_instance
 
         # Evaluate the expression once
         self.potential_expr = parse_expression(potential_function)
@@ -59,12 +59,10 @@ class DriftAnalysis:
             significant = has_significance(drift)
 
             if drift.shape[0] > 100 * self.batch_size:
-                # print(f"Significance could not be achieved in state {i}, aborting at {drift.shape[0]} evaluations. Drift: {np.mean(drift)}, variance: {np.var(drift)}")
-                # print(drift, potential_after, self.potential_before)
                 self.drifts[i] = np.mean(drift)
-                error = f"Significance could not be achieved in state {i}, aborting at {drift.shape[0]} evaluations. Drift: {np.mean(drift)}, variance: {np.var(drift)}"
-                self.errors.append(error)
-                return error
+                self.errors.add_error(
+                    f"Significance could not be achieved in state {i}, aborting at {drift.shape[0]} evaluations. Drift: {np.mean(drift)}, variance: {np.var(drift)}")
+                return None
 
         self.drifts[i] = np.mean(drift)
 

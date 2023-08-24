@@ -5,13 +5,17 @@ matplotlib.use('Qt5Agg')
 
 
 # Initialize stable_sigma and stable_kappa
-data = np.load('./data/stable_parameters.npz')
+kappa_data = np.load('./data/stable_kappa.npz')
+sigma_data = np.load('./data/stable_sigma.npz')
 
-alpha_sequence = data['alpha']
-kappa_sequence = data['kappa']
-sigma_sequence = data['sigma']
-stable_kappa_data = data['stable_kappa']
-stable_sigma_data = data['stable_sigma']
+alpha_sequence_kappa = kappa_data['alpha']
+alpha_sequence_sigma = sigma_data['alpha']
+
+kappa_sequence = sigma_data['kappa']
+sigma_sequence = kappa_data['sigma']
+
+stable_kappa_data = kappa_data['stable_kappa']
+stable_sigma_data = sigma_data['stable_sigma']
 
 
 # plotting
@@ -21,7 +25,7 @@ fig.suptitle('CMA Parameter Analysis')
 #          horizontalalignment='center', wrap=True, fontsize='small')
 
 # Plot the results
-for alpha_index in range(alpha_sequence.shape[0]):
+for alpha_index in range(alpha_sequence_kappa.shape[0]):
     ax1.loglog(sigma_sequence, stable_kappa_data[alpha_index])
     ax2.loglog(kappa_sequence, stable_sigma_data[alpha_index])
 
