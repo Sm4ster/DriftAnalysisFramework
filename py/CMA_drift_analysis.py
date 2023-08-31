@@ -7,7 +7,7 @@ from DriftAnalysisFramework.Fitness import Sphere
 from DriftAnalysisFramework.Interpolation import get_data_value
 from DriftAnalysisFramework.Analysis import DriftAnalysis
 
-filename = "./data/drifts"
+filename = "./data/real_run_1"
 
 # potential function
 potential_function = "stable_kappa(alpha, sigma)"
@@ -16,9 +16,9 @@ potential_function = "stable_kappa(alpha, sigma)"
 batch_size = 100000
 
 # create states
-alpha_sequence = np.linspace(0, np.pi / 4, num=64)
-kappa_sequence = np.geomspace(1 / 10, 10, num=256)
-sigma_sequence = np.geomspace(1 / 10, 10, num=256)
+alpha_sequence = np.linspace(0, np.pi / 4, num=32)
+kappa_sequence = np.geomspace(1 / 10, 10, num=128)
+sigma_sequence = np.geomspace(1 / 10, 10, num=128)
 
 # Initialize the target function and optimization algorithm
 alg = CMA_ES(Sphere(), {
@@ -62,7 +62,7 @@ states = np.vstack(np.meshgrid(alpha_sequence, kappa_sequence, sigma_sequence)).
 da.eval_potential(potential_function, states)
 
 with alive_bar(states.shape[0], force_tty=True, title="Evaluating") as bar:
-    with ThreadPoolExecutor(max_workers=7) as executor:
+    with ThreadPoolExecutor(max_workers=63) as executor:
         futures = [executor.submit(da.eval_drift, i) for i in range(states.shape[0])]
         for future in futures:
             future.add_done_callback(lambda _: bar())
@@ -70,10 +70,6 @@ with alive_bar(states.shape[0], force_tty=True, title="Evaluating") as bar:
 # Save results into a file
 np.savez(filename + '.npz', alpha=alpha_sequence, kappa=kappa_sequence, sigma=sigma_sequence,
          states=da.states, drifts=da.drifts)
-
-
-da.errors.add_error("Test this error manager")
-da.errors.add_error("Test this error manager again")
 
 # Write the array of strings into the file
 with open(filename + '.txt', 'w') as f:
