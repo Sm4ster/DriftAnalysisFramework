@@ -10,15 +10,10 @@ sigma_sequence = drift_data['sigma']
 states = drift_data['states']
 drifts_raw = drift_data['drifts']
 
-print(kappa_sequence.max())
-
 drifts = drifts_raw.reshape(len(alpha_sequence), len(kappa_sequence), len(sigma_sequence))
-print(drifts.shape)
-
 
 x, y, z = np.meshgrid(alpha_sequence, kappa_sequence, sigma_sequence, indexing='ij')
 
-print(x,y,z)
 src = mlab.pipeline.scalar_field(x, y, z, drifts)
 surface = mlab.pipeline.iso_surface(src)
 plane_widget = mlab.pipeline.image_plane_widget(src,
@@ -26,15 +21,14 @@ plane_widget = mlab.pipeline.image_plane_widget(src,
                                                 slice_index=20,
                                                 )
 
-
 # Display axes
 axes = mlab.axes(xlabel="alpha", ylabel="kappa", zlabel="sigma")
 
 # Create a custom colormap centered at 0
-colormap = np.zeros((256, 4))
-colors = [(0, 1, 0), (0, 0.5, 1), (0.5, 0.5, 0.5), (1, 1, 0), (1, 0, 0)]  # green, blue, gray, yellow, red
+colors = [(0, 1, 0), (0, 0, 1), (1, 1, 0), (1, 0, 0)]
 n = len(colors)
 s = 256 // (n - 1)
+colormap = np.zeros((256, 4))
 for i, c in enumerate(colors):
     if i < n - 1:
         r_vals = np.linspace(colors[i][0], colors[i+1][0], s)
@@ -48,6 +42,7 @@ for i, c in enumerate(colors):
 colormap[:, :3] *= 255
 colormap[:, 3] = 255
 
+
 # Set the color LUT range to ensure 0 is centered
 vmin, vmax = drifts.min(), drifts.max()
 max_abs = max(abs(vmin), abs(vmax))
@@ -59,6 +54,5 @@ surface.module_manager.scalar_lut_manager.lut.number_of_colors = 256
 surface.module_manager.scalar_lut_manager.lut.table = colormap
 plane_widget.module_manager.scalar_lut_manager.lut.number_of_colors = 256
 plane_widget.module_manager.scalar_lut_manager.lut.table = colormap
-
 
 mlab.show()
