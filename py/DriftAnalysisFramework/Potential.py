@@ -1,9 +1,10 @@
 import numpy as np
 import numexpr as ne
 
-
 function_dict = {
-    "norm": lambda x: np.linalg.norm(x, axis=1)
+    "norm": lambda x: np.linalg.norm(x, axis=1),
+    # "max": lambda a, b: np.maximum(a, b),
+    # "log": lambda x: np.log(x)
 }
 
 exclude_list = ["where", "sin", "cos", "tan", "arcsin", "arccos", "arctan", "arctan2", "sinh", "cosh", "tanh",

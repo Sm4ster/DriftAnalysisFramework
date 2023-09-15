@@ -10,7 +10,8 @@ states = drift_data['states']
 drifts_raw = drift_data['drifts']
 
 states = np.vstack(np.meshgrid(alpha_sequence, kappa_sequence, sigma_sequence)).reshape(3, -1).T
-drifts = drifts_raw.reshape(len(alpha_sequence), len(kappa_sequence), len(sigma_sequence))
+drifts = np.reshape(drifts_raw.T, (len(alpha_sequence), len(kappa_sequence), len(sigma_sequence)), order="F")
+
 
 def test(state, drift):
     alpha_idx = np.where(alpha_sequence == state[0])
@@ -19,6 +20,7 @@ def test(state, drift):
 
     return drifts[alpha_idx, kappa_idx, sigma_idx] == drift
 
+
 true = 0
 
 for i in range(states.shape[0]):
@@ -26,4 +28,3 @@ for i in range(states.shape[0]):
         true += 1
 
 print(str(true) + "/" + str(states.shape[0]))
-

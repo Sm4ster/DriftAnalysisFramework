@@ -7,10 +7,13 @@ from DriftAnalysisFramework.Fitness import Sphere
 from DriftAnalysisFramework.Interpolation import get_data_value
 from DriftAnalysisFramework.Analysis import DriftAnalysis
 
-filename = "./data/real_run_1"
+filename = "./data/real_run_3"
 
 # potential function
-potential_function = "stable_kappa(alpha, sigma)"
+potential_function = "norm(m)" \
+                     " + where(log(kappa/stable_kappa(alpha, sigma)) > log(stable_kappa(alpha, sigma) / kappa), log(kappa/stable_kappa(alpha, sigma)), log(stable_kappa(alpha, sigma) / kappa))" \
+                     " + max(log(sigma/stable_sigma(alpha, kappa)), log(stable_sigma(alpha, kappa) / sigma))" \
+                     " + (4*alpha)/3.14"
 
 # config
 batch_size = 100000
@@ -56,7 +59,7 @@ da.function_dict.update({
 })
 
 # Transform the individual states to an array we can evaluate vectorized
-states = np.vstack(np.meshgrid(alpha_sequence, kappa_sequence, sigma_sequence)).reshape(3, -1).T
+states = np.vstack(np.meshgrid(alpha_sequence, kappa_sequence, sigma_sequence, indexing='ij')).reshape(3, -1).T
 
 # Evaluate the before potential to set up the class
 da.eval_potential(potential_function, states)

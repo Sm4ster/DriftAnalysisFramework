@@ -35,8 +35,6 @@ class DriftAnalysis:
         potential_function_, before_dict = replace_functions(self.potential_expr, before_dict)
         self.potential_before = ne.evaluate(potential_function_, before_dict)
 
-        # print(self.potential_before)
-
     def eval_drift(self, i):
         significant = False
         drift = np.array([])
