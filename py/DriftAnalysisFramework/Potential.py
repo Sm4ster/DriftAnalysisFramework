@@ -1,5 +1,6 @@
 import numpy as np
 import numexpr as ne
+import re
 
 function_dict = {
     "norm": lambda x: np.linalg.norm(x, axis=1),
@@ -9,8 +10,7 @@ function_dict = {
 
 exclude_list = ["where", "sin", "cos", "tan", "arcsin", "arccos", "arctan", "arctan2", "sinh", "cosh", "tanh",
                 "arcsinh", "arccosh", "arctanh", "log", "log10", "log1p", "exp", "expm1", "sqrt", "abs", "conj", "real",
-                "imag", "complex", "contains"]
-
+                "imag", "complex", "contains", "max", "min"]
 
 def replace_operators(string):
     operator_mapping = {
@@ -163,7 +163,7 @@ def replace_functions(potential_function, local_dict, function_dict_=None):
             elif function_name == "":
                 expression += "(" + replace_functions(token[1], local_dict)[0] + ")"
             else:
-                raise Exception("Function is not defined: " + function_name, )
+                raise Exception("Function is not defined: " + function_name)
 
         # if it is a list then parse the expression
         elif type(token) is list:

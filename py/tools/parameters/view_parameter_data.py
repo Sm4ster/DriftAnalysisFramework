@@ -5,8 +5,8 @@ matplotlib.use('Qt5Agg')
 
 
 # Initialize stable_sigma and stable_kappa
-kappa_data = np.load('./data/stable_kappa.npz')
-sigma_data = np.load('./data/stable_sigma.npz')
+kappa_data = np.load('../../data/stable_kappa.npz')
+sigma_data = np.load('../../data/stable_sigma.npz')
 
 alpha_sequence_kappa = kappa_data['alpha']
 alpha_sequence_sigma = sigma_data['alpha']

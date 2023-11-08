@@ -15,8 +15,10 @@ class DriftAnalysis:
         self.errors = None
         self.states = None
         self.drifts = None
+
         self.potential_expr = None
         self.potential_before = None
+
 
     def eval_potential(self, potential_function, states):
         self.states = states
@@ -25,6 +27,7 @@ class DriftAnalysis:
 
         # Evaluate the expression once
         self.potential_expr = parse_expression(potential_function)
+
 
         # Evaluate all before states
         alpha, kappa, sigma = self.states[:, 0], self.states[:, 1], self.states[:, 2]

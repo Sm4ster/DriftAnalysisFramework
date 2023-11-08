@@ -12,7 +12,7 @@ filename = "./data/real_run_3"
 # potential function
 potential_function = "norm(m)" \
                      " + where(log(kappa/stable_kappa(alpha, sigma)) > log(stable_kappa(alpha, sigma) / kappa), log(kappa/stable_kappa(alpha, sigma)), log(stable_kappa(alpha, sigma) / kappa))" \
-                     " + max(log(sigma/stable_sigma(alpha, kappa)), log(stable_sigma(alpha, kappa) / sigma))" \
+                     " + where(log(sigma/stable_sigma(alpha, kappa)) > log(stable_sigma(alpha, kappa) / sigma), log(sigma/stable_sigma(alpha, kappa)), log(stable_sigma(alpha, kappa) / sigma))" \
                      " + (4*alpha)/3.14"
 
 # config
@@ -71,8 +71,14 @@ with alive_bar(states.shape[0], force_tty=True, title="Evaluating") as bar:
             future.add_done_callback(lambda _: bar())
 
 # Save results into a file
-np.savez(filename + '.npz', alpha=alpha_sequence, kappa=kappa_sequence, sigma=sigma_sequence, states=da.states,
-         drifts=da.drifts)
+np.savez(
+    filename + '.npz',
+    alpha=alpha_sequence,
+    kappa=kappa_sequence,
+    sigma=sigma_sequence,
+    states=da.states,
+    drifts=da.drifts
+)
 
 # Write the array of strings into the file
 with open(filename + '.txt', 'w') as f:
