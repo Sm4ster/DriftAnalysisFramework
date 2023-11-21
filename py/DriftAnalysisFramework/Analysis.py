@@ -10,24 +10,24 @@ class DriftAnalysis:
     def __init__(self, alg):
         self.alg = alg
         self.function_dict = function_dict
-        self.batch_size = 10000
+        self.batch_size = 1000000
+        self.max_executions = 1
 
         self.errors = None
         self.states = None
         self.drifts = None
 
-        self.potential_expr = None
-        self.potential_before = None
+        self.potential_expr = []
+        self.potential_before = []
 
-
-    def eval_potential(self, potential_function, states):
+    def eval_potential(self, potential_functions, states):
         self.states = states
         self.drifts = np.zeros(states.shape[0])
         self.errors = error_instance
 
-        # Evaluate the expression once
-        self.potential_expr = parse_expression(potential_function)
-
+        # Evaluate the expressions once
+        for potential_function in potential_functions:
+            self.potential_expr.append(parse_expression(potential_function))
 
         # Evaluate all before states
         alpha, kappa, sigma = self.states[:, 0], self.states[:, 1], self.states[:, 2]
@@ -35,36 +35,41 @@ class DriftAnalysis:
         before_dict = {"alpha": alpha, "kappa": kappa, "sigma": sigma, "sigma_raw": sigma, "m": m, "C": C}
 
         # evaluate the before potential
-        potential_function_, before_dict = replace_functions(self.potential_expr, before_dict)
-        self.potential_before = ne.evaluate(potential_function_, before_dict)
+        potential = np.zeros([len(self.potential_expr), len(states)])
+        for expr_idx, potential_expr in enumerate(self.potential_expr):
+            potential_function_, before_dict = replace_functions(potential_expr, before_dict)
+            potential[expr_idx] = ne.evaluate(potential_function_, before_dict)
+        self.potential_before = potential.transpose()
+
+    def get_eval_args(self, i):
+        return self.states[i, 0], \
+               self.states[i, 1], \
+               self.states[i, 2], \
+               self.potential_expr, \
+               self.potential_before[i], \
+               self.alg, \
+               self.batch_size
 
     def eval_drift(self, i):
-        significant = False
-        drift = np.array([])
-        while not significant:
-            # make step
-            alpha, kappa, sigma = self.states[i, 0], self.states[i, 1], self.states[i, 2]
-            normal_form, raw_params, *_ = self.alg.iterate(alpha, kappa, sigma, num=self.batch_size)
+        eval_drift(self.get_eval_args(i))
 
-            # collect base variables (make sure the raw sigma does not get overwritten by the transformed one)
-            raw_params["sigma_raw"] = raw_params["sigma"]
-            after_dict = {**normal_form, **raw_params}
 
-            # evaluate the after potential
-            potential_function_, after_dict = replace_functions(self.potential_expr, after_dict)
-            potential_after = ne.evaluate(potential_function_, after_dict)
+def eval_drift(alpha, kappa, sigma, potential_expr, potential_before, alg, batch_size, position):
+    drifts = np.zeros([len(potential_expr), batch_size])
 
-            # calculate the drift
-            drift = np.concatenate((drift, potential_after - self.potential_before[i]))
+    # make step
+    normal_form, raw_params, *_ = alg.iterate(alpha, kappa, sigma, num=batch_size)
 
-            significant = has_significance(drift)
+    # collect base variables (make sure the raw sigma does not get overwritten by the transformed one)
+    raw_params["sigma_raw"] = raw_params["sigma"]
+    after_dict = {**normal_form, **raw_params}
 
-            if drift.shape[0] > 100 * self.batch_size:
-                self.drifts[i] = np.mean(drift)
-                self.errors.add_error(
-                    f"Significance could not be achieved in state {i}, aborting at {drift.shape[0]} evaluations. Drift: {np.mean(drift)}, variance: {np.var(drift)}")
-                return None
+    # evaluate the after potential
+    for expr_idx, potential_expr in enumerate(potential_expr):
+        potential_function_, after_dict = replace_functions(potential_expr, after_dict)
+        potential_after = ne.evaluate(potential_function_, after_dict)
 
-        self.drifts[i] = np.mean(drift)
+        # calculate the drift
+        drifts[expr_idx] = potential_after - potential_before[expr_idx]
 
-        return self.drifts[i]
+    return np.mean(drifts, axis=1), position

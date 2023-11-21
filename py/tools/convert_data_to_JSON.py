@@ -2,6 +2,7 @@ import numpy as np
 import json
 
 drift_data = np.load('../data/real_run_3.npz')
+file = open('../data/real_run_3.txt', 'r')
 
 alpha_sequence = drift_data['alpha']
 kappa_sequence = drift_data['kappa']
@@ -12,13 +13,8 @@ drifts_raw = drift_data['drifts']
 
 drifts = drifts_raw.reshape(len(alpha_sequence), len(kappa_sequence), len(sigma_sequence))
 
-file1 = open('../data/real_run_3.txt', 'r')
-lines = file1.readlines()
-
-print(lines[1])
-
-# Closing files
-file1.close()
+lines = file.readlines()
+file.close()
 
 data = {
     'potential_function': lines[1],
@@ -30,5 +26,5 @@ data = {
     'drifts': drifts.tolist(),
 }
 
-with open('data.json', 'w') as f:
+with open('../data/real_run_3.json', 'w') as f:
     json.dump(data, f)

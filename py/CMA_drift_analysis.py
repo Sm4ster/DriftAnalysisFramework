@@ -1,27 +1,30 @@
 import numpy as np
+import json
 from alive_progress import alive_bar
-from concurrent.futures import ThreadPoolExecutor
+from concurrent.futures import ProcessPoolExecutor, as_completed
 
 from DriftAnalysisFramework.Optimization import CMA_ES
 from DriftAnalysisFramework.Fitness import Sphere
 from DriftAnalysisFramework.Interpolation import get_data_value
-from DriftAnalysisFramework.Analysis import DriftAnalysis
+from DriftAnalysisFramework.Analysis import DriftAnalysis, eval_drift
 
-filename = "./data/real_run_3"
+parallel_execution = True
+
+filename = "real_run_3"
 
 # potential function
-potential_function = "norm(m)" \
-                     " + where(log(kappa/stable_kappa(alpha, sigma)) > log(stable_kappa(alpha, sigma) / kappa), log(kappa/stable_kappa(alpha, sigma)), log(stable_kappa(alpha, sigma) / kappa))" \
-                     " + where(log(sigma/stable_sigma(alpha, kappa)) > log(stable_sigma(alpha, kappa) / sigma), log(sigma/stable_sigma(alpha, kappa)), log(stable_sigma(alpha, kappa) / sigma))" \
-                     " + (4*alpha)/3.14"
+potential_function = ["norm(m)",
+                      "where(log(kappa/stable_kappa(alpha, sigma)) > log(stable_kappa(alpha, sigma) / kappa), log(kappa/stable_kappa(alpha, sigma)), log(stable_kappa(alpha, sigma) / kappa))",
+                      "where(log(sigma/stable_sigma(alpha, kappa)) > log(stable_sigma(alpha, kappa) / sigma), log(sigma/stable_sigma(alpha, kappa)), log(stable_sigma(alpha, kappa) / sigma))",
+                      "(4*alpha)/3.14"]
 
 # config
-batch_size = 100000
+batch_size = 10000
 
 # create states
-alpha_sequence = np.linspace(0, np.pi / 4, num=32)
-kappa_sequence = np.geomspace(1 / 10, 10, num=128)
-sigma_sequence = np.geomspace(1 / 10, 10, num=128)
+alpha_sequence = np.linspace(0, np.pi / 4, num=3)
+kappa_sequence = np.geomspace(1 / 10, 10, num=12)
+sigma_sequence = np.geomspace(1 / 10, 10, num=12)
 
 # Initialize the target function and optimization algorithm
 alg = CMA_ES(Sphere(), {
@@ -32,62 +35,82 @@ alg = CMA_ES(Sphere(), {
     "dim": 2
 })
 
-# Initialize the Drift Analysis class
-da = DriftAnalysis(alg)
-da.batch_size = batch_size
 
-# Initialize stable_sigma and stable_kappa
-kappa_data = np.load('./data/stable_kappa.npz')
-sigma_data = np.load('./data/stable_sigma.npz')
+def main():
+    # Initialize the Drift Analysis class
+    da = DriftAnalysis(alg)
+    da.batch_size = batch_size
 
-# Check if sample sequence and precalculated are compatible
-if alpha_sequence.min() < kappa_data['alpha'].min() or alpha_sequence.max() > kappa_data['alpha'].max():
-    print("Warning: alpha_sequence_k is out of bounds for the stable_parameter data")
-if alpha_sequence.min() < sigma_data['alpha'].min() or alpha_sequence.max() > sigma_data['alpha'].max():
-    print("Warning: alpha_sequence_s is out of bounds for the stable_parameter data")
-if kappa_sequence.min() < sigma_data['kappa'].min() or kappa_sequence.max() > sigma_data['kappa'].max():
-    print("Warning: alpha_sequence is out of bounds for the stable_parameter data")
-if sigma_sequence.min() < kappa_data['sigma'].min() or sigma_sequence.max() > kappa_data['sigma'].max():
-    print("Warning: alpha_sequence is out of bounds for the stable_parameter data")
+    # Initialize stable_sigma and stable_kappa
+    kappa_data = np.load('./data/stable_kappa.npz')
+    sigma_data = np.load('./data/stable_sigma.npz')
 
-# Update the function dict of the potential evaluation
-da.function_dict.update({
-    "stable_kappa": lambda alpha_, sigma_: get_data_value(alpha_, sigma_, kappa_data['alpha'], kappa_data['sigma'],
-                                                          kappa_data['stable_kappa']),
-    "stable_sigma": lambda alpha_, kappa_: get_data_value(alpha_, kappa_, sigma_data['alpha'], sigma_data['kappa'],
-                                                          sigma_data['stable_sigma'])
-})
+    # Check if sample sequence and precalculated are compatible
+    if alpha_sequence.min() < kappa_data['alpha'].min() or alpha_sequence.max() > kappa_data['alpha'].max():
+        print("Warning: alpha_sequence_k is out of bounds for the stable_parameter data")
+    if alpha_sequence.min() < sigma_data['alpha'].min() or alpha_sequence.max() > sigma_data['alpha'].max():
+        print("Warning: alpha_sequence_s is out of bounds for the stable_parameter data")
+    if kappa_sequence.min() < sigma_data['kappa'].min() or kappa_sequence.max() > sigma_data['kappa'].max():
+        print("Warning: alpha_sequence is out of bounds for the stable_parameter data")
+    if sigma_sequence.min() < kappa_data['sigma'].min() or sigma_sequence.max() > kappa_data['sigma'].max():
+        print("Warning: alpha_sequence is out of bounds for the stable_parameter data")
 
-# Transform the individual states to an array we can evaluate vectorized
-states = np.vstack(np.meshgrid(alpha_sequence, kappa_sequence, sigma_sequence, indexing='ij')).reshape(3, -1).T
+    # Update the function dict of the potential evaluation
+    da.function_dict.update({
+        "stable_kappa": lambda alpha_, sigma_: get_data_value(alpha_, sigma_, kappa_data['alpha'], kappa_data['sigma'],
+                                                              kappa_data['stable_kappa']),
+        "stable_sigma": lambda alpha_, kappa_: get_data_value(alpha_, kappa_, sigma_data['alpha'], sigma_data['kappa'],
+                                                              sigma_data['stable_sigma'])
+    })
 
-# Evaluate the before potential to set up the class
-da.eval_potential(potential_function, states)
+    # Transform the individual states to an array we can evaluate vectorized
+    states = np.vstack(np.meshgrid(alpha_sequence, kappa_sequence, sigma_sequence, indexing='ij')).reshape(3, -1).T
 
-with alive_bar(states.shape[0], force_tty=True, title="Evaluating") as bar:
-    with ThreadPoolExecutor(max_workers=63) as executor:
-        futures = [executor.submit(da.eval_drift, i) for i in range(states.shape[0])]
-        for future in futures:
-            future.add_done_callback(lambda _: bar())
+    # Evaluate the before potential to set up the class
+    da.eval_potential(potential_function, states)
 
-# Save results into a file
-np.savez(
-    filename + '.npz',
-    alpha=alpha_sequence,
-    kappa=kappa_sequence,
-    sigma=sigma_sequence,
-    states=da.states,
-    drifts=da.drifts
-)
+    # Initialize data structure to hold results
+    drifts_raw = np.zeros([states.shape[0], len(da.potential_expr)])
+    print(drifts_raw.shape)
 
-# Write the array of strings into the file
-with open(filename + '.txt', 'w') as f:
-    f.write(filename + '.npz\n')
-    f.write(potential_function + '\n')
-    f.write(str(batch_size) + '\n')
-    f.write(str(alpha_sequence.shape[0]) + ' ' + str(alpha_sequence.min()) + ' ' + str(alpha_sequence.max()) + '\n')
-    f.write(str(kappa_sequence.shape[0]) + ' ' + str(kappa_sequence.min()) + ' ' + str(kappa_sequence.max()) + '\n')
-    f.write(str(sigma_sequence.shape[0]) + ' ' + str(sigma_sequence.min()) + ' ' + str(sigma_sequence.max()) + '\n')
+    # For debugging the critical function and performance comparisons
+    if parallel_execution:
+        with alive_bar(states.shape[0], force_tty=True, title="Evaluating") as bar:
+            def callback(future_):
+                result = future_.result()
+                drifts_raw[result[1]] = result[0]
+                bar()
 
-    for error in da.errors.error_array:
-        f.write(error + '\n')
+            with ProcessPoolExecutor(max_workers=8) as executor:
+                for i in range(states.shape[0]):
+                    future = executor.submit(eval_drift, *da.get_eval_args(i), i)
+                    future.add_done_callback(callback)
+    else:
+        with alive_bar(states.shape[0], force_tty=True, title="Evaluating") as bar:
+            for i in range(states.shape[0]):
+                result = eval_drift(*da.get_eval_args(i), i)
+                drifts_raw[result[1]] = result[0]
+                bar()
+
+    # Transform data into a cube and check that the transformation was correct
+    drifts = drifts_raw.reshape(len(alpha_sequence), len(kappa_sequence), len(sigma_sequence), len(da.potential_expr))
+
+    # Check if transformation worked properly
+
+    # Save data to file
+    data = {
+        'potential_function': potential_function,
+        'sequences': [
+            {'name': 'alpha', 'sequence': alpha_sequence.tolist()},
+            {'name': 'kappa', 'sequence': kappa_sequence.tolist()},
+            {'name': 'sigma', 'sequence': sigma_sequence.tolist()}
+        ],
+        'drifts': drifts.tolist(),
+    }
+
+    with open(f'./data/{filename}.json', 'w') as f:
+        json.dump(data, f)
+
+
+if __name__ == '__main__':
+    main()
