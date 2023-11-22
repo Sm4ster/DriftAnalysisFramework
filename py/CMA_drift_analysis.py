@@ -1,5 +1,6 @@
 import numpy as np
 import json
+from datetime import datetime
 from alive_progress import alive_bar
 from concurrent.futures import ProcessPoolExecutor, as_completed
 
@@ -7,6 +8,7 @@ from DriftAnalysisFramework.Optimization import CMA_ES
 from DriftAnalysisFramework.Fitness import Sphere
 from DriftAnalysisFramework.Interpolation import get_data_value
 from DriftAnalysisFramework.Analysis import DriftAnalysis, eval_drift
+from tests.test_data_format import test_data_format
 
 parallel_execution = True
 
@@ -37,6 +39,9 @@ alg = CMA_ES(Sphere(), {
 
 
 def main():
+    # get start time
+    start_time = datetime.now()
+
     # Initialize the Drift Analysis class
     da = DriftAnalysis(alg)
     da.batch_size = batch_size
@@ -71,7 +76,6 @@ def main():
 
     # Initialize data structure to hold results
     drifts_raw = np.zeros([states.shape[0], len(da.potential_expr)])
-    print(drifts_raw.shape)
 
     # For debugging the critical function and performance comparisons
     if parallel_execution:
@@ -92,13 +96,25 @@ def main():
                 drifts_raw[result[1]] = result[0]
                 bar()
 
+    # get the end time after te run has finished
+    end_time = datetime.now()
+
     # Transform data into a cube and check that the transformation was correct
-    drifts = drifts_raw.reshape(len(alpha_sequence), len(kappa_sequence), len(sigma_sequence), len(da.potential_expr))
+    drifts = drifts_raw.reshape(
+        len(alpha_sequence),
+        len(kappa_sequence),
+        len(sigma_sequence),
+        len(da.potential_expr)
+    )
 
     # Check if transformation worked properly
+    if not test_data_format(drifts_raw, states, drifts, alpha_sequence, kappa_sequence, sigma_sequence):
+        raise Exception("Transformation format check did not pass.")
 
     # Save data to file
     data = {
+        'run_started': start_time.strftime("%d.%m.%Y %H:%M:%S"),
+        'run_finished': end_time.strftime("%d.%m.%Y %H:%M:%S"),
         'potential_function': potential_function,
         'sequences': [
             {'name': 'alpha', 'sequence': alpha_sequence.tolist()},
