@@ -72,7 +72,7 @@ class CMA_ES:
 
         # evaluate samples
         fx = self.target.eval(x, keepdims=True)
-        success = (fx <= 1).astype(np.float64)
+        success = (fx <= 1).astype(np.float64) # This works because on the sphere in the normal form f(m)=1
 
         # calculate new m, new sigma and new C
         new_m = success * x + (1 - success) * m
