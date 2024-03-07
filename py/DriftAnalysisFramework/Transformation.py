@@ -37,7 +37,7 @@ class CMA_ES:
         return m, C, sigma
 
     @staticmethod
-    def transform_to_normal(m, C, sigma, normal_form=0):
+    def transform_to_normal(m, C, sigma, normal_form=1):
         # get the the transformation matrix
         A = np.linalg.eigh(C)[1]
 
@@ -76,7 +76,7 @@ class CMA_ES:
         if normal_form == 0:
             swap = (m_normal[:, 0] <= np.cos(np.pi / 4)).astype(np.float64)
         if normal_form == 1:
-            swap = (C_normal[:, 1, 1] < 1).astype(np.float64)
+            swap = (C_normal[:, 0, 0] < 1).astype(np.float64)
 
         # axis swap of C_normal (with condition)
         C_normal[:, 0, 0], C_normal[:, 1, 1] = C_normal[:, 1, 1] * swap + C_normal[:, 0, 0] * (

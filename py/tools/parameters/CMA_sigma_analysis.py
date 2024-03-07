@@ -10,8 +10,8 @@ from alive_progress import alive_bar
 groove_iteration = 5000
 measured_samples = 1000000
 
-alpha_sequence = np.linspace(0, np.pi / 4, num=64)
-kappa_sequence = np.geomspace(1 / 20, 20, num=256)
+alpha_sequence = np.linspace(0, np.pi / 2, num=64)
+kappa_sequence = np.geomspace(1, 20, num=256)
 
 alg = CMA_ES(Sphere(), {
     "d": 2,

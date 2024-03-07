@@ -67,6 +67,7 @@ class CMA_ES:
 
         # this is equivalent to Az in the normal form, as the matrix C is diagonal,
         # therefore matrix A (with AA = C) is [[sqrt(C_00), 0][0, sqrt(C_11)]]
+        # for higher dimensions possibly use (untested): sigma * np.sqrt(np.diagonal(C, axis1=1, axis2=2))
         sigma_A = np.array([sigma * np.sqrt(C[:, 0, 0]), sigma * np.sqrt(C[:, 1, 1])]).T
         x = m + z * sigma_A
 

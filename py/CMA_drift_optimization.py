@@ -15,7 +15,7 @@ def c_drift(weights):
 
 def fitness(weights):
     cdrift = c_drift(weights)
-    return  cdrift.max() + 10 * np.power(1 - weights[0], 2)
+    return cdrift.max() + 10 * np.power(1 - weights[0], 2)
 
 
 def log_m_drift(weight):

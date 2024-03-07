@@ -1,7 +1,6 @@
 import numpy as np
 import numexpr as ne
 from DriftAnalysisFramework.Errors import error_instance
-from DriftAnalysisFramework.Statistics import has_significance
 from DriftAnalysisFramework.Potential import replace_functions, parse_expression, function_dict
 from DriftAnalysisFramework.Transformation import CMA_ES as TR
 

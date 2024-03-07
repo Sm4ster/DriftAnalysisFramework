@@ -2,7 +2,7 @@ import numpy as np
 import json
 from datetime import datetime
 from alive_progress import alive_bar
-from concurrent.futures import ProcessPoolExecutor, as_completed
+from concurrent.futures import ProcessPoolExecutor
 
 from DriftAnalysisFramework.Optimization import CMA_ES
 from DriftAnalysisFramework.Fitness import Sphere
@@ -11,22 +11,26 @@ from DriftAnalysisFramework.Analysis import DriftAnalysis, eval_drift
 from tests.test_data_format import test_data_format
 
 parallel_execution = True
+workers = 45
 
-filename = "real_run_3"
+filename = "big_test_run"
 
 # potential function
-potential_function = ["norm(m)",
-                      "where(log(kappa/stable_kappa(alpha, sigma)) > log(stable_kappa(alpha, sigma) / kappa), log(kappa/stable_kappa(alpha, sigma)), log(stable_kappa(alpha, sigma) / kappa))",
-                      "where(log(sigma/stable_sigma(alpha, kappa)) > log(stable_sigma(alpha, kappa) / sigma), log(sigma/stable_sigma(alpha, kappa)), log(stable_sigma(alpha, kappa) / sigma))",
-                      "(4*alpha)/3.14"]
+potential_function = [
+    ['\|m\|', "norm(m)"],
+    ['',
+     "where(log(kappa/stable_kappa(alpha, sigma)) > log(stable_kappa(alpha, sigma) / kappa), log(kappa/stable_kappa(alpha, sigma)), log(stable_kappa(alpha, sigma) / kappa))"],
+    ['',
+     "where(log(sigma/stable_sigma(alpha, kappa)) > log(stable_sigma(alpha, kappa) / sigma), log(sigma/stable_sigma(alpha, kappa)), log(stable_sigma(alpha, kappa) / sigma))"],
+    ['(4\\alpha / \pi', "(4*alpha)/3.14"]]
 
 # config
-batch_size = 10000
+batch_size = 1000000
 
 # create states
-alpha_sequence = np.linspace(0, np.pi / 4, num=3)
-kappa_sequence = np.geomspace(1 / 10, 10, num=12)
-sigma_sequence = np.geomspace(1 / 10, 10, num=12)
+alpha_sequence = np.linspace(0, np.pi / 2, num=24)
+kappa_sequence = np.geomspace(1, 10, num=128)
+sigma_sequence = np.geomspace(1 / 10, 10, num=128)
 
 # Initialize the target function and optimization algorithm
 alg = CMA_ES(Sphere(), {
@@ -47,8 +51,30 @@ def main():
     da.batch_size = batch_size
 
     # Initialize stable_sigma and stable_kappa
-    kappa_data = np.load('./data/stable_kappa.npz')
-    sigma_data = np.load('./data/stable_sigma.npz')
+    kappa_data_raw = json.load(open('./data/stable_kappa.json'))
+    sigma_data_raw = json.load(open('./data/stable_sigma.json'))
+
+    kappa_data = {
+        "alpha": np.array(
+            next((sequence["sequence"] for sequence in kappa_data_raw["sequences"] if sequence["name"] == "alpha"),
+                 None)),
+        "sigma": np.array(
+            next((sequence["sequence"] for sequence in kappa_data_raw["sequences"] if sequence["name"] == "sigma"),
+                 None)),
+        "stable_kappa": np.array(kappa_data_raw["values"])
+    }
+    # kappa_data_ = np.load('./data/stable_kappa.npz')
+
+    sigma_data = {
+        "alpha": np.array(
+            next((sequence["sequence"] for sequence in sigma_data_raw["sequences"] if sequence["name"] == "alpha"),
+                 None)),
+        "kappa": np.array(
+            next((sequence["sequence"] for sequence in sigma_data_raw["sequences"] if sequence["name"] == "kappa"),
+                 None)),
+        "stable_sigma": np.array(sigma_data_raw["values"])
+    }
+    # sigma_data_ = np.load('./data/stable_sigma.npz')
 
     # Check if sample sequence and precalculated are compatible
     if alpha_sequence.min() < kappa_data['alpha'].min() or alpha_sequence.max() > kappa_data['alpha'].max():
@@ -72,7 +98,7 @@ def main():
     states = np.vstack(np.meshgrid(alpha_sequence, kappa_sequence, sigma_sequence, indexing='ij')).reshape(3, -1).T
 
     # Evaluate the before potential to set up the class
-    da.eval_potential(potential_function, states)
+    da.eval_potential([e[1] for e in potential_function], states)
 
     # Initialize data structure to hold results
     drifts_raw = np.zeros([states.shape[0], len(da.potential_expr)])
@@ -85,7 +111,7 @@ def main():
                 drifts_raw[result[1]] = result[0]
                 bar()
 
-            with ProcessPoolExecutor(max_workers=8) as executor:
+            with ProcessPoolExecutor(max_workers=workers) as executor:
                 for i in range(states.shape[0]):
                     future = executor.submit(eval_drift, *da.get_eval_args(i), i)
                     future.add_done_callback(callback)
@@ -122,6 +148,8 @@ def main():
             {'name': 'sigma', 'sequence': sigma_sequence.tolist()}
         ],
         'drifts': drifts.tolist(),
+        'stable_kappa': kappa_data_raw,
+        'stable_sigma': sigma_data_raw
     }
 
     with open(f'./data/{filename}.json', 'w') as f:
