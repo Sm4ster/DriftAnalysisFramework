@@ -73,7 +73,7 @@ class CMA_ES:
 
         # evaluate samples
         fx = self.target.eval(x, keepdims=True)
-        success = (fx <= 1).astype(np.float64) # This works because on the sphere in the normal form f(m)=1
+        success = (fx <= 1).astype(np.float64)  # This works because on the sphere in the normal form f(m)=1
 
         # calculate new m, new sigma and new C
         new_m = success * x + (1 - success) * m
@@ -84,7 +84,7 @@ class CMA_ES:
                 np.array((1 - self.c_cov)) * C + np.array(self.c_cov) * np.einsum("ij,ik->ijk", z, z))
         new_C = successful + unsuccessful
 
-        return new_m, new_C, new_sigma
+        return new_m, new_C, new_sigma, success.sum()
 
     def iterate(self, alpha, kappa, sigma, num=1):
         # Sanitize, transform and expand the parameters
@@ -95,7 +95,7 @@ class CMA_ES:
         z = np.array([np.random.standard_normal(m.shape[0]), np.random.standard_normal(m.shape[0])]).T
 
         # vectorized step
-        m, C, sigma = self.step(m, C, sigma, z)
+        m, C, sigma, successes = self.step(m, C, sigma, z)
 
         # vectorized transformation
         alpha, kappa, sigma_normal, transformation_parameters = CMA_TR.transform_to_normal(m, C, sigma)
@@ -104,4 +104,4 @@ class CMA_ES:
         raw_state = {"m": m, "C": C, "sigma": sigma}
         normal_form = {"alpha": alpha, "kappa": kappa, "sigma": sigma_normal}
 
-        return normal_form, raw_state, raw_state_before, transformation_parameters
+        return normal_form, raw_state, successes, raw_state_before, transformation_parameters

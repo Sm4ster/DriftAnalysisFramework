@@ -3,6 +3,7 @@ import numexpr as ne
 from DriftAnalysisFramework.Errors import error_instance
 from DriftAnalysisFramework.Potential import replace_functions, parse_expression, function_dict
 from DriftAnalysisFramework.Transformation import CMA_ES as TR
+from welford import Welford
 
 
 class DriftAnalysis:
@@ -10,6 +11,7 @@ class DriftAnalysis:
         self.alg = alg
         self.function_dict = function_dict
         self.batch_size = 1000000
+        self.sub_batch_size = 50000
         self.max_executions = 1
 
         self.errors = None
@@ -18,6 +20,9 @@ class DriftAnalysis:
 
         self.potential_expr = []
         self.potential_before = []
+
+        if (self.batch_size % self.sub_batch_size) != 0:
+            raise Exception("Batch_size must be a multiple of the sub_batch_size.")
 
     def eval_potential(self, potential_functions, states):
         self.states = states
@@ -47,28 +52,41 @@ class DriftAnalysis:
                self.potential_expr, \
                self.potential_before[i], \
                self.alg, \
-               self.batch_size
+               self.batch_size, \
+               self.sub_batch_size
 
     def eval_drift(self, i):
         eval_drift(self.get_eval_args(i))
 
 
-def eval_drift(alpha, kappa, sigma, potential_expr, potential_before, alg, batch_size, position):
-    drifts = np.zeros([len(potential_expr), batch_size])
+def eval_drift(alpha, kappa, sigma, potential_expressions, potential_before, alg, batch_size, sub_batch_size, position):
+    # init result data structures
+    successes = 0
+    w = Welford()
 
-    # make step
-    normal_form, raw_params, *_ = alg.iterate(alpha, kappa, sigma, num=batch_size)
+    # ensure that sub_batching will work properly
+    assert batch_size % sub_batch_size == 0
+    batch_count = batch_size // sub_batch_size
 
-    # collect base variables (make sure the raw sigma does not get overwritten by the transformed one)
-    raw_params["sigma_raw"] = raw_params["sigma"]
-    after_dict = {**normal_form, **raw_params}
+    for _ in range(batch_count):
+        drifts = np.zeros([len(potential_expressions), sub_batch_size])
 
-    # evaluate the after potential
-    for expr_idx, potential_expr in enumerate(potential_expr):
-        potential_function_, after_dict = replace_functions(potential_expr, after_dict)
-        potential_after = ne.evaluate(potential_function_, after_dict)
+        # make step
+        normal_form, raw_params, successes, *_ = alg.iterate(alpha, kappa, sigma, num=sub_batch_size)
 
-        # calculate the drift
-        drifts[expr_idx] = potential_after - potential_before[expr_idx]
+        # collect base variables (make sure the raw sigma does not get overwritten by the transformed one)
+        raw_params["sigma_raw"] = raw_params["sigma"]
+        after_dict = {**normal_form, **raw_params}
 
-    return np.mean(drifts, axis=1), position
+        # evaluate the after potential
+        for expr_idx, potential_expr in enumerate(potential_expressions):
+            potential_function_, after_dict = replace_functions(potential_expr, after_dict)
+            potential_after = ne.evaluate(potential_function_, after_dict)
+
+            # calculate the drift
+            drifts[expr_idx] = potential_after - potential_before[expr_idx]
+
+        w.add_all(drifts.T)
+        successes += successes
+
+    return w.mean, w.var_p, successes, position

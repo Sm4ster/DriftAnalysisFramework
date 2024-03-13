@@ -62,3 +62,6 @@ vtk==9.2.6
 websockets==10.4
 wrapt==1.14.1
 zipp==3.16.2
+
+cma~=3.3.0
+welford~=0.2.5

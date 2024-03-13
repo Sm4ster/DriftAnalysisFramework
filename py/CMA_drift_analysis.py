@@ -11,9 +11,9 @@ from DriftAnalysisFramework.Analysis import DriftAnalysis, eval_drift
 from tests.test_data_format import test_data_format
 
 parallel_execution = True
-workers = 45
+workers = 63
 
-filename = "big_test_run"
+filename = "large_test_run"
 
 # potential function
 potential_function = [
@@ -25,12 +25,16 @@ potential_function = [
     ['(4\\alpha / \pi', "(4*alpha)/3.14"]]
 
 # config
-batch_size = 1000000
+batch_size = 500000
 
 # create states
-alpha_sequence = np.linspace(0, np.pi / 2, num=24)
-kappa_sequence = np.geomspace(1, 10, num=128)
-sigma_sequence = np.geomspace(1 / 10, 10, num=128)
+alpha_sequence = np.linspace(0, np.pi / 2, num=2)
+kappa_sequence = np.geomspace(1, 10, num=5)
+sigma_sequence = np.geomspace(1 / 10, 10, num=5)
+
+# alpha_sequence = np.linspace(0, np.pi / 2, num=24)
+# kappa_sequence = np.geomspace(1, 10, num=128)
+# sigma_sequence = np.geomspace(1 / 10, 10, num=128)
 
 # Initialize the target function and optimization algorithm
 alg = CMA_ES(Sphere(), {
@@ -100,15 +104,19 @@ def main():
     # Evaluate the before potential to set up the class
     da.eval_potential([e[1] for e in potential_function], states)
 
-    # Initialize data structure to hold results
+    # Initialize data structures to hold results
     drifts_raw = np.zeros([states.shape[0], len(da.potential_expr)])
+    variances_raw = np.zeros([states.shape[0], len(da.potential_expr)])
+    successes_raw = np.zeros([states.shape[0]])
 
     # For debugging the critical function and performance comparisons
     if parallel_execution:
         with alive_bar(states.shape[0], force_tty=True, title="Evaluating") as bar:
             def callback(future_):
-                result = future_.result()
-                drifts_raw[result[1]] = result[0]
+                mean, variance, successes, position = future_.result()
+                drifts_raw[position] = mean
+                variances_raw[position] = variance
+                successes_raw[position] = successes
                 bar()
 
             with ProcessPoolExecutor(max_workers=workers) as executor:
@@ -118,20 +126,33 @@ def main():
     else:
         with alive_bar(states.shape[0], force_tty=True, title="Evaluating") as bar:
             for i in range(states.shape[0]):
-                result = eval_drift(*da.get_eval_args(i), i)
-                drifts_raw[result[1]] = result[0]
+                mean_, variance_, successes_, position_ = eval_drift(*da.get_eval_args(i), i)
+                drifts_raw[position_] = mean_
+                variances_raw[position_] = variance_
+                successes_raw[position_] = successes_
                 bar()
 
     # get the end time after te run has finished
     end_time = datetime.now()
 
     # Transform data into a cube and check that the transformation was correct
-    drifts = drifts_raw.reshape(
+    drifts = drifts_raw.reshape([
         len(alpha_sequence),
         len(kappa_sequence),
         len(sigma_sequence),
         len(da.potential_expr)
-    )
+    ])
+    variances = variances_raw.reshape([
+        len(alpha_sequence),
+        len(kappa_sequence),
+        len(sigma_sequence),
+        len(da.potential_expr)
+    ])
+    successes = successes_raw.reshape([
+        len(alpha_sequence),
+        len(kappa_sequence),
+        len(sigma_sequence)
+    ])
 
     # Check if transformation worked properly
     if not test_data_format(drifts_raw, states, drifts, alpha_sequence, kappa_sequence, sigma_sequence):
@@ -148,6 +169,8 @@ def main():
             {'name': 'sigma', 'sequence': sigma_sequence.tolist()}
         ],
         'drifts': drifts.tolist(),
+        'variances': variances.tolist(),
+        'successes': successes.tolist(),
         'stable_kappa': kappa_data_raw,
         'stable_sigma': sigma_data_raw
     }
