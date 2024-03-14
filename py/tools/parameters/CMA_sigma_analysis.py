@@ -34,15 +34,15 @@ with alive_bar(groove_iteration, force_tty=True, title="Grooving", bar="notes", 
         sigma = alg.step(m, C, sigma)[2]
         bar()
 
-sigma_store = np.empty([alpha_sequence.shape[0] * kappa_sequence.shape[0]])
+log_sigma_store = np.empty([alpha_sequence.shape[0] * kappa_sequence.shape[0]])
 with alive_bar(measured_samples, force_tty=True, title="Collecting") as bar:
     for i in range(measured_samples):
         sigma = alg.step(m, C, sigma)[2]
-        sigma_store += sigma
+        log_sigma_store += np.log(sigma)
         bar()
 
 # store the data in an efficient form to allow for interpolation later
-stable_sigma_data = (sigma_store / measured_samples).reshape(alpha_sequence.shape[0], kappa_sequence.shape[0])
+stable_sigma_data = np.exp(log_sigma_store / measured_samples).reshape(alpha_sequence.shape[0], kappa_sequence.shape[0])
 
 # Run data
 filename = "../../data/stable_sigma.txt"

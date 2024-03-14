@@ -28,13 +28,13 @@ potential_function = [
 batch_size = 500000
 
 # create states
-alpha_sequence = np.linspace(0, np.pi / 2, num=2)
-kappa_sequence = np.geomspace(1, 10, num=5)
-sigma_sequence = np.geomspace(1 / 10, 10, num=5)
+# alpha_sequence = np.linspace(0, np.pi / 2, num=2)
+# kappa_sequence = np.geomspace(1, 10, num=5)
+# sigma_sequence = np.geomspace(1 / 10, 10, num=5)
 
-# alpha_sequence = np.linspace(0, np.pi / 2, num=24)
-# kappa_sequence = np.geomspace(1, 10, num=128)
-# sigma_sequence = np.geomspace(1 / 10, 10, num=128)
+alpha_sequence = np.linspace(0, np.pi / 2, num=24)
+kappa_sequence = np.geomspace(1, 10, num=128)
+sigma_sequence = np.geomspace(1 / 10, 10, num=128)
 
 # Initialize the target function and optimization algorithm
 alg = CMA_ES(Sphere(), {
