@@ -3,6 +3,7 @@ import numexpr as ne
 from DriftAnalysisFramework.Errors import error_instance
 from DriftAnalysisFramework.Potential import replace_functions, parse_expression, function_dict
 from DriftAnalysisFramework.Transformation import CMA_ES as TR
+from DriftAnalysisFramework.Statistics import p_values
 from welford import Welford
 
 
@@ -62,7 +63,9 @@ class DriftAnalysis:
 def eval_drift(alpha, kappa, sigma, potential_expressions, potential_before, alg, batch_size, sub_batch_size, position):
     # init result data structures
     successes = 0
-    w = Welford()
+    drift = Welford()
+    state_success = Welford()
+    state_no_success = Welford()
 
     # ensure that sub_batching will work properly
     assert batch_size % sub_batch_size == 0
@@ -72,7 +75,7 @@ def eval_drift(alpha, kappa, sigma, potential_expressions, potential_before, alg
         drifts = np.zeros([len(potential_expressions), sub_batch_size])
 
         # make step
-        normal_form, raw_params, successes, *_ = alg.iterate(alpha, kappa, sigma, num=sub_batch_size)
+        normal_form, raw_params, success, *_ = alg.iterate(alpha, kappa, sigma, num=sub_batch_size)
 
         # collect base variables (make sure the raw sigma does not get overwritten by the transformed one)
         raw_params["sigma_raw"] = raw_params["sigma"]
@@ -86,7 +89,33 @@ def eval_drift(alpha, kappa, sigma, potential_expressions, potential_before, alg
             # calculate the drift
             drifts[expr_idx] = potential_after - potential_before[expr_idx]
 
-        w.add_all(drifts.T)
-        successes += successes
+        weight = np.sum(success) / len(success)
+        state_success.add_all(
+            np.array(
+                [
+                    weight * np.mean(success * normal_form["alpha"]),
+                    weight * np.mean(success * normal_form["kappa"]),
+                    weight * np.mean(success * normal_form["sigma"])
+                ]
+            )
+        )
+        state_no_success.add_all(
+            np.array(
+                [
+                    (1 - weight) * np.mean((1 - success) * normal_form["alpha"]),
+                    (1 - weight) * np.mean((1 - success) * normal_form["kappa"]),
+                    (1 - weight) * np.mean((1 - success) * normal_form["sigma"])
+                ]
+            )
+        )
+        drift.add_all(drifts.T)
+        successes += success.sum()
 
-    return w.mean, w.var_p, successes, position
+    mean, variance, significance = drift.mean, drift.var_p, np.zeros([len(potential_expressions), 2])
+    for idx in range(len(potential_expressions)):
+        significance[idx] = p_values(mean[idx], variance[idx], batch_size)
+
+    return mean, variance, significance, successes, \
+           np.array([state_success.mean, state_success.var_p]), \
+           np.array([state_no_success.mean, state_no_success.var_p]), \
+           position
