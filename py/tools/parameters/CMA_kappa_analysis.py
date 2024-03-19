@@ -1,4 +1,5 @@
 import numpy as np
+import json
 
 from DriftAnalysisFramework.Optimization import CMA_ES
 from DriftAnalysisFramework.Transformation import CMA_ES as TR
@@ -7,7 +8,7 @@ from DriftAnalysisFramework.Fitness import Sphere
 from alive_progress import alive_bar
 
 # Globals
-groove_iteration = 5000
+groove_iteration = 50000
 measured_samples = 1000000
 
 alpha_sequence = np.linspace(0, np.pi / 2, num=64)
@@ -33,29 +34,30 @@ with alive_bar(groove_iteration, force_tty=True, title="Grooving", bar="notes", 
         C = alg.step(m, C, sigma)[1]
         bar()
 
-kappa_store = np.empty([alpha_sequence.shape[0] * sigma_sequence.shape[0]])
+kappa_store = np.zeros([alpha_sequence.shape[0] * sigma_sequence.shape[0]])
+success_store = np.zeros([alpha_sequence.shape[0] * sigma_sequence.shape[0]])
 with alive_bar(measured_samples, force_tty=True, title="Collecting") as bar:
     for i in range(measured_samples):
-        C = alg.step(m, C, sigma)[1]
+        _, C, _, success = alg.step(m, C, sigma)
         kappa = TR.transform_to_normal(m, C, sigma)[1]
         kappa_store += kappa
+        success_store += success[:, 0]
         bar()
 
 # store the data in an efficient form to allow for interpolation later
 stable_kappa_data = (kappa_store / measured_samples).reshape(alpha_sequence.shape[0], sigma_sequence.shape[0])
 
-# Run data
-filename = "../../data/stable_kappa.txt"
+kappa_data = {
+    'iterations': int(measured_samples),
+    'groove_iterations': int(groove_iteration),
+    'sequences': [
+        {'name': 'alpha', 'sequence': alpha_sequence.tolist()},
+        {'name': 'sigma', 'sequence': sigma_sequence.tolist()},
+    ],
+    'values': stable_kappa_data.tolist(),
+    'success': success_store.tolist()
+}
 
-# Write the array of strings into the file
-with open(filename, 'w') as f:
-    f.write('./data/stable_kappa.npz\n')
-    f.write(str(measured_samples) + '\n')
-    f.write(str(groove_iteration) + '\n')
 
-
-# Save variables into a file
-np.savez('../../data/stable_kappa.npz',
-         alpha=alpha_sequence, sigma=sigma_sequence,
-         stable_kappa=stable_kappa_data
-         )
+with open('/home/franksyj/DriftAnalysisFramework/py/data/stable_kappa_new.json', 'w') as f:
+    json.dump(kappa_data, f)

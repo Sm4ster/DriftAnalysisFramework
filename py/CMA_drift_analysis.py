@@ -10,29 +10,31 @@ from DriftAnalysisFramework.Interpolation import get_data_value
 from DriftAnalysisFramework.Analysis import DriftAnalysis, eval_drift
 from tests.test_data_format import test_data_format
 
-parallel_execution = False
-workers = 7
+parallel_execution = True
+workers = 63
 
-filename = "small_test_run"
+filename = "special_run"
 
 # potential function
 potential_function = [
     ['\|m\|', "norm(m)"],
-    ['',
-     "where(log(kappa/stable_kappa(alpha, sigma)) > log(stable_kappa(alpha, sigma) / kappa), log(kappa/stable_kappa(alpha, sigma)), log(stable_kappa(alpha, sigma) / kappa))"],
+    ['|\log(\kappa/\kappa_s)|', "abs(log(kappa/stable_kappa(alpha,sigma)))"],
+    ['|\log(\sigma/\sigma_s)|', "abs(log(sigma/stable_sigma(alpha,kappa)))"],
+    ['(4\\alpha / \pi', "(4*alpha)/3.14"],
     ['',
      "where(log(sigma/stable_sigma(alpha, kappa)) > log(stable_sigma(alpha, kappa) / sigma), log(sigma/stable_sigma(alpha, kappa)), log(stable_sigma(alpha, kappa) / sigma))"],
-    ['(4\\alpha / \pi', "(4*alpha)/3.14"]
+    ['',
+     "where(log(kappa/stable_kappa(alpha, sigma)) > log(stable_kappa(alpha, sigma) / kappa), log(kappa/stable_kappa(alpha, sigma)), log(stable_kappa(alpha, sigma) / kappa))"],
 ]
 
 # config
-batch_size = 50000
+batch_size = 500000
 sub_batch_size = 10000
 
 # create states
-alpha_sequence = np.linspace(0, np.pi / 2, num=2)
-kappa_sequence = np.geomspace(1, 10, num=16)
-sigma_sequence = np.geomspace(1 / 10, 10, num=16)
+alpha_sequence = np.linspace(np.pi / 2, np.pi / 2, num=1)
+kappa_sequence = np.geomspace(1, 10, num=128)
+sigma_sequence = np.geomspace(1 / 10, 10, num=128)
 
 # alpha_sequence = np.linspace(0, np.pi / 2, num=24)
 # kappa_sequence = np.geomspace(1, 10, num=128)
