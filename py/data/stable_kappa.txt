@@ -1,3 +1,0 @@
-./data/stable_kappa.npz
-1000000
-5000

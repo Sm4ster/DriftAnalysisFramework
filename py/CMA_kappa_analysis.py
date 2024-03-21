@@ -1,3 +1,4 @@
+from datetime import datetime
 import numpy as np
 import json
 
@@ -25,6 +26,9 @@ alg = CMA_ES(Sphere(), {
 # stable kappa experiment
 print("Stable Kappa Experiment")
 
+# get start time
+start_time = datetime.now()
+
 alpha, kappa, sigma = np.repeat(alpha_sequence, sigma_sequence.shape[0]), 1, np.tile(sigma_sequence,
                                                                                      alpha_sequence.shape[0])
 m, C, sigma = TR.transform_to_parameters(alpha, kappa, sigma)
@@ -51,7 +55,12 @@ with alive_bar(measured_samples, force_tty=True, title="Collecting") as bar:
 # store the data in an efficient form to allow for interpolation later
 stable_kappa_data = (kappa_store / measured_samples).reshape(alpha_sequence.shape[0], sigma_sequence.shape[0])
 
+# get the end time after te run has finished
+end_time = datetime.now()
+
 kappa_data = {
+    'run_started': start_time.strftime("%d.%m.%Y %H:%M:%S"),
+    'run_finished': end_time.strftime("%d.%m.%Y %H:%M:%S"),
     'iterations': int(measured_samples),
     'groove_iterations': int(groove_iteration),
     'sequences': [

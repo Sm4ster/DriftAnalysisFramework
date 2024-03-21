@@ -19,12 +19,7 @@ filename = "special_run"
 potential_function = [
     ['\|m\|', "norm(m)"],
     ['|\log(\kappa/\kappa_s)|', "abs(log(kappa/stable_kappa(alpha,sigma)))"],
-    ['|\log(\sigma/\sigma_s)|', "abs(log(sigma/stable_sigma(alpha,kappa)))"],
-    ['(4\\alpha / \pi', "(4*alpha)/3.14"],
-    ['',
-     "where(log(sigma/stable_sigma(alpha, kappa)) > log(stable_sigma(alpha, kappa) / sigma), log(sigma/stable_sigma(alpha, kappa)), log(stable_sigma(alpha, kappa) / sigma))"],
-    ['',
-     "where(log(kappa/stable_kappa(alpha, sigma)) > log(stable_kappa(alpha, sigma) / kappa), log(kappa/stable_kappa(alpha, sigma)), log(stable_kappa(alpha, sigma) / kappa))"],
+    ['|\log(\sigma/\sigma_s)|', "abs(log(sigma/stable_sigma(alpha,kappa)))"]
 ]
 
 # config
@@ -32,13 +27,9 @@ batch_size = 500000
 sub_batch_size = 10000
 
 # create states
-alpha_sequence = np.linspace(np.pi / 2, np.pi / 2, num=1)
+alpha_sequence = np.linspace(np.pi / 2, np.pi / 2, num=24)
 kappa_sequence = np.geomspace(1, 10, num=128)
 sigma_sequence = np.geomspace(1 / 10, 10, num=128)
-
-# alpha_sequence = np.linspace(0, np.pi / 2, num=24)
-# kappa_sequence = np.geomspace(1, 10, num=128)
-# sigma_sequence = np.geomspace(1 / 10, 10, num=128)
 
 # Initialize the target function and optimization algorithm
 alg = CMA_ES(Sphere(), {
@@ -112,7 +103,7 @@ def main():
     # Initialize data structures to hold results
     drifts_raw = np.zeros([states.shape[0], len(da.potential_expr)])
     variances_raw = np.zeros([states.shape[0], len(da.potential_expr)])
-    significance_raw = np.zeros([states.shape[0], len(da.potential_expr), 2])
+    significance_raw = np.zeros([states.shape[0], len(da.potential_expr)])
     successes_raw = np.zeros([states.shape[0]])
     states_success_raw = np.zeros([states.shape[0], 2])
     states_no_success_raw = np.zeros([states.shape[0], 2])
@@ -167,8 +158,7 @@ def main():
         len(alpha_sequence),
         len(kappa_sequence),
         len(sigma_sequence),
-        len(da.potential_expr),
-        2
+        len(da.potential_expr)
     ])
     successes = successes_raw.reshape([
         len(alpha_sequence),

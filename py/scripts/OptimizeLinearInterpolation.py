@@ -84,7 +84,7 @@ for g in range(grid_size):
     s = grid_to_state(g)
     before = s * np.ones((samples_per_point, 1))
     after, log_prog = step(before)
-    sys.stdout.write("../tools")
+    sys.stdout.write("../plots")
     sys.stdout.flush()
     log_progress[g] = np.mean(log_prog)
     weights[g] = state_to_weights(after, average=True)

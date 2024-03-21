@@ -3,7 +3,7 @@ import numexpr as ne
 from DriftAnalysisFramework.Errors import error_instance
 from DriftAnalysisFramework.Potential import replace_functions, parse_expression, function_dict
 from DriftAnalysisFramework.Transformation import CMA_ES as TR
-from DriftAnalysisFramework.Statistics import p_values
+from DriftAnalysisFramework.Statistics import p_value
 from welford import Welford
 
 
@@ -111,11 +111,11 @@ def eval_drift(alpha, kappa, sigma, potential_expressions, potential_before, alg
         drift.add_all(drifts.T)
         successes += success.sum()
 
-    mean, variance, significance = drift.mean, drift.var_p, np.zeros([len(potential_expressions), 2])
+    significance = np.zeros([len(potential_expressions)])
     for idx in range(len(potential_expressions)):
-        significance[idx] = p_values(mean[idx], variance[idx], batch_size)
+        significance[idx] = p_value(drift.mean, drift.var_s, batch_size)
 
-    return mean, variance, significance, successes, \
-           np.array([state_success.mean, state_success.var_p]), \
-           np.array([state_no_success.mean, state_no_success.var_p]), \
-           position
+    return drift.mean, drift.var_p, significance, successes, \
+        np.array([state_success.mean, state_success.var_p]), \
+        np.array([state_no_success.mean, state_no_success.var_p]), \
+        position

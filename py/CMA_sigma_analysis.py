@@ -1,3 +1,4 @@
+from datetime import datetime
 import numpy as np
 import json
 
@@ -25,6 +26,9 @@ alg = CMA_ES(Sphere(), {
 # stable sigma experiment
 print("Stable Sigma Experiment")
 
+# get start time
+start_time = datetime.now()
+
 # prepare algorithm inputs
 alpha, kappa, sigma = np.repeat(alpha_sequence, kappa_sequence.shape[0]), np.tile(kappa_sequence,
                                                                                   alpha_sequence.shape[0]), 1
@@ -50,8 +54,12 @@ with alive_bar(measured_samples, force_tty=True, title="Collecting") as bar:
 # store the data in an efficient form to allow for interpolation later
 stable_sigma_data = np.exp(log_sigma_store / measured_samples).reshape(alpha_sequence.shape[0], kappa_sequence.shape[0])
 
+# get the end time after te run has finished
+end_time = datetime.now()
 
 sigma_data = {
+    'run_started': start_time.strftime("%d.%m.%Y %H:%M:%S"),
+    'run_finished': end_time.strftime("%d.%m.%Y %H:%M:%S"),
     'iterations': int(measured_samples),
     'groove_iterations': int(groove_iteration),
     'sequences': [
