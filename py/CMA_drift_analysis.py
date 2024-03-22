@@ -8,26 +8,25 @@ from DriftAnalysisFramework.Optimization import CMA_ES
 from DriftAnalysisFramework.Fitness import Sphere
 from DriftAnalysisFramework.Interpolation import get_data_value
 from DriftAnalysisFramework.Analysis import DriftAnalysis, eval_drift
-from tests.test_data_format import test_data_format
 
-parallel_execution = True
+parallel_execution = False
 workers = 63
 
-filename = "special_run"
+filename = "sanity_test_run"
 
 # potential function
 potential_function = [
-    ['\|m\|', "norm(m)"],
+    ['\log(|m|)', "log(norm(m))"],
     ['|\log(\kappa/\kappa_s)|', "abs(log(kappa/stable_kappa(alpha,sigma)))"],
     ['|\log(\sigma/\sigma_s)|', "abs(log(sigma/stable_sigma(alpha,kappa)))"]
 ]
 
 # config
-batch_size = 500000
-sub_batch_size = 10000
+batch_size = 10000
+sub_batch_size = 1000
 
 # create states
-alpha_sequence = np.linspace(np.pi / 2, np.pi / 2, num=24)
+alpha_sequence = np.linspace(0, np.pi / 2, num=24)
 kappa_sequence = np.geomspace(1, 10, num=128)
 sigma_sequence = np.geomspace(1 / 10, 10, num=128)
 
@@ -63,7 +62,6 @@ def main():
                  None)),
         "stable_kappa": np.array(kappa_data_raw["values"])
     }
-    # kappa_data_ = np.load('./data/stable_kappa.npz')
 
     sigma_data = {
         "alpha": np.array(
@@ -74,7 +72,6 @@ def main():
                  None)),
         "stable_sigma": np.array(sigma_data_raw["values"])
     }
-    # sigma_data_ = np.load('./data/stable_sigma.npz')
 
     # Check if sample sequence and precalculated are compatible
     if alpha_sequence.min() < kappa_data['alpha'].min() or alpha_sequence.max() > kappa_data['alpha'].max():
@@ -94,94 +91,60 @@ def main():
                                                               sigma_data['stable_sigma'])
     })
 
-    # Transform the individual states to an array we can evaluate vectorized
-    states = np.vstack(np.meshgrid(alpha_sequence, kappa_sequence, sigma_sequence, indexing='ij')).reshape(3, -1).T
 
     # Evaluate the before potential to set up the class
-    da.eval_potential([e[1] for e in potential_function], states)
+    da.eval_potential([e[1] for e in potential_function], alpha_sequence, kappa_sequence, sigma_sequence)
 
     # Initialize data structures to hold results
-    drifts_raw = np.zeros([states.shape[0], len(da.potential_expr)])
-    variances_raw = np.zeros([states.shape[0], len(da.potential_expr)])
-    significance_raw = np.zeros([states.shape[0], len(da.potential_expr)])
-    successes_raw = np.zeros([states.shape[0]])
-    states_success_raw = np.zeros([states.shape[0], 2])
-    states_no_success_raw = np.zeros([states.shape[0], 2])
+    drifts = np.zeros([len(alpha_sequence), len(kappa_sequence), len(sigma_sequence), len(da.potential_expr)])
+    standard_deviations = np.zeros([len(alpha_sequence), len(kappa_sequence), len(sigma_sequence), len(da.potential_expr)])
+    precisions = np.zeros([len(alpha_sequence), len(kappa_sequence), len(sigma_sequence), len(da.potential_expr)])
+    successes = np.zeros([len(alpha_sequence), len(kappa_sequence), len(sigma_sequence)])
+    success_mean = np.zeros([len(alpha_sequence), len(kappa_sequence), len(sigma_sequence), 3])
+    success_std = np.zeros([len(alpha_sequence), len(kappa_sequence), len(sigma_sequence), 3])
+    no_success_mean = np.zeros([len(alpha_sequence), len(kappa_sequence), len(sigma_sequence), 3])
+    no_success_std = np.zeros([len(alpha_sequence), len(kappa_sequence), len(sigma_sequence), 3])
+
 
     # For debugging the critical function and performance comparisons
     if parallel_execution:
-        with alive_bar(states.shape[0], force_tty=True, title="Evaluating") as bar:
+        with alive_bar(da.states.shape[0], force_tty=True, title="Evaluating") as bar:
             def callback(future_):
-                mean, variance, significance, successes, success_state, no_success_state, position = future_.result()
+                mean, std, precision, successes_, follow_up_success, follow_up_no_success, idx = future_.result()
 
-                drifts_raw[position] = mean
-                variances_raw[position] = variance
-                significance_raw[position] = significance
-                successes_raw[position] = successes
-                states_success_raw[position] = success_state
-                states_no_success_raw[position] = no_success_state
+                drifts[idx[0], idx[1], idx[2]] = mean
+                standard_deviations[idx[0], idx[1], idx[2]] = std
+                precisions[idx[0], idx[1], idx[2]] = precision
+                successes[idx[0], idx[1], idx[2]] = successes_
+                success_mean[idx[0], idx[1], idx[2]] = follow_up_success.mean
+                success_std[idx[0], idx[1], idx[2]] = follow_up_success.std
+                no_success_mean[idx[0], idx[1], idx[2]] = follow_up_no_success.mean
+                no_success_std[idx[0], idx[1], idx[2]] = follow_up_no_success.std
                 bar()
 
             with ProcessPoolExecutor(max_workers=workers) as executor:
-                for i in range(states.shape[0]):
-                    future = executor.submit(eval_drift, *da.get_eval_args(i), i)
+                for i in range(da.states.shape[0]):
+                    future = executor.submit(eval_drift, *da.get_eval_args(i))
                     future.add_done_callback(callback)
     else:
-        with alive_bar(states.shape[0], force_tty=True, title="Evaluating") as bar:
-            for i in range(states.shape[0]):
-                mean, variance, significance, successes, success_state, no_success_state, position = eval_drift(*da.get_eval_args(i), i)
-                drifts_raw[position] = mean
-                variances_raw[position] = variance
-                significance_raw[position] = significance
-                successes_raw[position] = successes
-                states_success_raw[position] = success_state
-                states_no_success_raw[position] = no_success_state
+        with alive_bar(da.states.shape[0], force_tty=True, title="Evaluating") as bar:
+            for i in range(da.states.shape[0]):
+                mean, std, precision, successes_, follow_up_success, follow_up_no_success, idx = \
+                    eval_drift(*da.get_eval_args(i))
+
+                drifts[idx[0], idx[1], idx[2]] = mean
+                standard_deviations[idx[0], idx[1], idx[2]] = std
+                precisions[idx[0], idx[1], idx[2]] = precision
+                successes[idx[0], idx[1], idx[2]] = successes_
+                success_mean[idx[0], idx[1], idx[2]] = follow_up_success.mean
+                success_std[idx[0], idx[1], idx[2]] = follow_up_success.std
+                no_success_mean[idx[0], idx[1], idx[2]] = follow_up_no_success.mean
+                no_success_std[idx[0], idx[1], idx[2]] = follow_up_no_success.std
+
                 bar()
 
     # get the end time after te run has finished
     end_time = datetime.now()
-
-    # Transform data into a cube and check that the transformation was correct
-    drifts = drifts_raw.reshape([
-        len(alpha_sequence),
-        len(kappa_sequence),
-        len(sigma_sequence),
-        len(da.potential_expr)
-    ])
-    variances = variances_raw.reshape([
-        len(alpha_sequence),
-        len(kappa_sequence),
-        len(sigma_sequence),
-        len(da.potential_expr)
-    ])
-    significances = significance_raw.reshape([
-        len(alpha_sequence),
-        len(kappa_sequence),
-        len(sigma_sequence),
-        len(da.potential_expr)
-    ])
-    successes = successes_raw.reshape([
-        len(alpha_sequence),
-        len(kappa_sequence),
-        len(sigma_sequence)
-    ])
-    states_success = states_success_raw.reshape([
-        len(alpha_sequence),
-        len(kappa_sequence),
-        len(sigma_sequence),
-        2
-    ])
-    states_no_success = states_no_success_raw.reshape([
-        len(alpha_sequence),
-        len(kappa_sequence),
-        len(sigma_sequence),
-        2
-    ])
-
-
-    # Check if transformation worked properly
-    if not test_data_format(drifts_raw, states, drifts, alpha_sequence, kappa_sequence, sigma_sequence):
-        raise Exception("Transformation format check did not pass.")
 
     # Save data to file
     data = {
@@ -194,12 +157,14 @@ def main():
             {'name': 'kappa', 'sequence': kappa_sequence.tolist()},
             {'name': 'sigma', 'sequence': sigma_sequence.tolist()}
         ],
-        'drifts': drifts.tolist(),
-        'variances': variances.tolist(),
-        'significances': significances.tolist(),
-        'successes': successes.tolist(),
-        'state_success': states_success.tolist(),
-        'state_no_success': states_no_success.tolist(),
+        'drift': drifts.tolist(),
+        'standard_deviation': standard_deviations.tolist(),
+        'success': successes.tolist(),
+        'precision': precisions.tolist(),
+        'success_mean': success_mean.tolist(),
+        'success_std': success_std.tolist(),
+        'no_success_mean': no_success_mean.tolist(),
+        'no_success_std': no_success_std.tolist(),
         'stable_kappa': kappa_data_raw,
         'stable_sigma': sigma_data_raw
     }

@@ -8,6 +8,7 @@ import numpy as np
 
 
 def test_data_format(drifts_raw, states, drifts_cube, alpha_sequence, kappa_sequence, sigma_sequence):
+
     for state_idx, state in enumerate(states):
         alpha_idx = np.where(alpha_sequence == state[0])
         kappa_idx = np.where(kappa_sequence == state[1])

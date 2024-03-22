@@ -15,9 +15,9 @@ def transform_to_parameters_unvectorized(alpha, kappa, sigma):
     return m, C, sigma
 
 
-def transform_to_normal_unvectorized(m, C, sigma, normal_form=0):
+def transform_to_normal_unvectorized(m, C, sigma):
     # get the the transformation matrix
-    A = np.linalg.eigh(C)[1]
+    a, A = np.linalg.eigh(C)
 
     # rotate the coordinate system such that the eigenvalues of
     # the covariance matrix are parallel to the coordinate axis
@@ -51,7 +51,7 @@ def transform_to_normal_unvectorized(m, C, sigma, normal_form=0):
     if m_normal[1] < 0:
         m_normal = y_flip @ m_normal
 
-    if (normal_form == 0 and m_normal[0] < np.cos(np.pi / 4)) or (normal_form == 1 and C_normal[0][0] < 1):
+    if C_normal[0][0] < 1:
         C_normal = axis_swap @ C_normal @ axis_swap.T
         m_normal = axis_swap @ m_normal
 
@@ -90,7 +90,7 @@ with alive_bar(states.shape[0], force_tty=True, title="ToParameters") as bar:
         bar()
 
 # Test transformation to normal form
-alpha_v, kappa_v, sigma_v, _ = TR.transform_to_normal(m_v, C_v, sigma_raw_v, normal_form=1)
+alpha_v, kappa_v, sigma_v, _ = TR.transform_to_normal(m_v, C_v, sigma_raw_v)
 assert (
         states.shape[0] == alpha_v.shape[0] == kappa_v.shape[0] == sigma_v.shape[0] ==
         m_v.shape[0] == C_v.shape[0] == sigma_raw_v.shape[0]

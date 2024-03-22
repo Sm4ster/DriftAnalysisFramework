@@ -10,7 +10,7 @@ from alive_progress import alive_bar
 
 # Globals
 groove_iteration = 50000
-measured_samples = 1000000
+measured_samples = 5000000
 
 alpha_sequence = np.linspace(0, np.pi / 2, num=64)
 sigma_sequence = np.geomspace(1 / 20, 20, num=256)
@@ -54,6 +54,7 @@ with alive_bar(measured_samples, force_tty=True, title="Collecting") as bar:
 
 # store the data in an efficient form to allow for interpolation later
 stable_kappa_data = (kappa_store / measured_samples).reshape(alpha_sequence.shape[0], sigma_sequence.shape[0])
+success_data = success_store.reshape(alpha_sequence.shape[0], sigma_sequence.shape[0])
 
 # get the end time after te run has finished
 end_time = datetime.now()
@@ -68,9 +69,9 @@ kappa_data = {
         {'name': 'sigma', 'sequence': sigma_sequence.tolist()},
     ],
     'values': stable_kappa_data.tolist(),
-    'success': success_store.tolist()
+    'success': success_data.tolist()
 }
 
 
-with open('/home/franksyj/DriftAnalysisFramework/py/data/stable_kappa_new.json', 'w') as f:
+with open('/data/stable_kappa.json', 'w') as f:
     json.dump(kappa_data, f)
