@@ -72,5 +72,5 @@ sigma_data = {
     'success': success_data.tolist()
 }
 
-with open('/data/stable_sigma_without_transformation.json', 'w') as f:
+with open('./data/stable_sigma_without_transformation.json', 'w') as f:
     json.dump(sigma_data, f)

@@ -12,7 +12,9 @@ from DriftAnalysisFramework.Analysis import DriftAnalysis, eval_drift
 parallel_execution = False
 workers = 63
 
-filename = "sanity_test_run"
+output_filename = "./data/sanity_test_run.json"
+stable_kappa_file = './data/stable_kappa.json'
+stable_sigma_file = './data/stable_sigma.json'
 
 # potential function
 potential_function = [
@@ -50,8 +52,8 @@ def main():
     da.sub_batch_size = sub_batch_size
 
     # Initialize stable_sigma and stable_kappa
-    kappa_data_raw = json.load(open('./data/stable_kappa.json'))
-    sigma_data_raw = json.load(open('./data/stable_sigma.json'))
+    kappa_data_raw = json.load(open(stable_kappa_file))
+    sigma_data_raw = json.load(open(stable_sigma_file))
 
     kappa_data = {
         "alpha": np.array(
@@ -169,7 +171,7 @@ def main():
         'stable_sigma': sigma_data_raw
     }
 
-    with open(f'./data/{filename}.json', 'w') as f:
+    with open(output_filename, 'w') as f:
         json.dump(data, f)
 
 

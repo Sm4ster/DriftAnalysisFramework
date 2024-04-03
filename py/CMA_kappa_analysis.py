@@ -9,11 +9,11 @@ from DriftAnalysisFramework.Fitness import Sphere
 from alive_progress import alive_bar
 
 # Globals
-groove_iteration = 50000
-measured_samples = 5000000
+groove_iteration = 50
+measured_samples = 50
 
-alpha_sequence = np.linspace(0, np.pi / 2, num=64)
-sigma_sequence = np.geomspace(1 / 20, 20, num=256)
+alpha_sequence = np.linspace(0, np.pi / 2, num=128)
+sigma_sequence = np.geomspace(1 / 20, 20, num=4096)
 
 alg = CMA_ES(Sphere(), {
     "d": 2,
@@ -31,6 +31,7 @@ start_time = datetime.now()
 
 alpha, kappa, sigma = np.repeat(alpha_sequence, sigma_sequence.shape[0]), 1, np.tile(sigma_sequence,
                                                                                      alpha_sequence.shape[0])
+
 m, C, sigma = TR.transform_to_parameters(alpha, kappa, sigma)
 
 with alive_bar(groove_iteration, force_tty=True, title="Grooving", bar="notes", title_length=10) as bar:
@@ -73,5 +74,5 @@ kappa_data = {
 }
 
 
-with open('/data/stable_kappa.json', 'w') as f:
+with open('./data/stable_kappa.json', 'w') as f:
     json.dump(kappa_data, f)
