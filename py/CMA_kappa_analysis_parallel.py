@@ -10,14 +10,14 @@ from DriftAnalysisFramework.Fitness import Sphere
 from alive_progress import alive_bar
 
 # Globals
-workers = 7
-groove_iteration = 50
-measured_samples = 50
+workers = 63
+groove_iteration = 50000
+measured_samples = 10000000
 
-alpha_sequence = np.linspace(0, np.pi / 2, num=128)
-sigma_sequence = np.geomspace(1 / 20, 20, num=4096)
+alpha_sequence = np.linspace(0, np.pi / 2, num=64)
+sigma_sequence = np.geomspace(1 / 2000, 2000, num=4096)
 
-progress_size = 10
+progress_size = 1000
 chunk_size = int(np.ceil(alpha_sequence.shape[0] * sigma_sequence.shape[0] / workers))
 
 
@@ -60,6 +60,11 @@ def experiment(alpha_chunk, sigma_chunk, queue, idx):
 
 
 if __name__ == "__main__":
+    # stable kappa experiment
+    print("Stable Kappa Experiment")
+
+    # get start time
+    start_time = datetime.now()
 
     # Initialize the algorithm
     alg = CMA_ES(Sphere(), {
@@ -69,12 +74,6 @@ if __name__ == "__main__":
         "c_cov": 0.2,
         "dim": 2
     })
-
-    # stable kappa experiment
-    print("Stable Kappa Experiment")
-
-    # get start time
-    start_time = datetime.now()
 
     # combine all alphas and sigmas
     alpha, sigma = np.repeat(alpha_sequence, sigma_sequence.shape[0]), np.tile(sigma_sequence, alpha_sequence.shape[0])

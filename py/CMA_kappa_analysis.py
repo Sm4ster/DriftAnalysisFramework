@@ -9,11 +9,11 @@ from DriftAnalysisFramework.Fitness import Sphere
 from alive_progress import alive_bar
 
 # Globals
-groove_iteration = 50
-measured_samples = 50
+groove_iteration = 50000
+measured_samples = 5000000
 
 alpha_sequence = np.linspace(0, np.pi / 2, num=128)
-sigma_sequence = np.geomspace(1 / 20, 20, num=4096)
+sigma_sequence = np.geomspace(1 / 2000, 2000, num=16384)
 
 alg = CMA_ES(Sphere(), {
     "d": 2,

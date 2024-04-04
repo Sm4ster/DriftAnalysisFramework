@@ -14,7 +14,7 @@ class DriftAnalysis:
         self.batch_size = 1000000
         self.sub_batch_size = 50000
         self.max_executions = 1
-        self.target_p_value = 0.999
+        self.target_p_value = 0.001
 
         self.states_idx = None
         self.states = None
@@ -163,8 +163,9 @@ def eval_drift(alpha, kappa, sigma, potential_expressions, potential_before, alg
     # calc precision of the drift values
     precision = np.zeros([len(potential_expressions)])
     for idx in range(len(potential_expressions)):
-        precision[idx] = optimize.golden(
-            lambda x: target_p_value - p_value(drift.mean[idx], drift.var_s[idx], batch_size, x), brack=(0, 1)
+        deviation = optimize.golden(
+            lambda x: abs(target_p_value - p_value(drift.mean[idx], drift.var_s[idx], batch_size, x)), brack=(0, 1)
         )
+        precision[idx] = abs(drift.mean[idx] * deviation)
 
     return drift.mean, np.sqrt(drift.var_p), precision, successes, state_succ, state_no_succ, position
