@@ -21,8 +21,6 @@ kappa_sequence = np.geomspace(1, 2000, num=2048)
 progress_size = 1000
 chunk_size = int(np.ceil(alpha_sequence.shape[0] * kappa_sequence.shape[0] / workers))
 
-transformation = False
-
 
 def experiment(alpha_chunk, kappa_chunk, queue, idx):
     chunk_size_ = idx[1] - idx[0]
@@ -36,8 +34,7 @@ def experiment(alpha_chunk, kappa_chunk, queue, idx):
     for i in range(groove_iteration):
         new_m, new_C, new_sigma, success = alg.step(m, C, sigma)
         _, _, sigma, factors = TR.transform_to_normal(new_m, new_C, new_sigma)
-        if transformation:
-            sigma /= factors["distance_factor"]
+        sigma /= factors["distance_factor"]
 
         # report progress to the queue
         if i > 0 and i % progress_size == 0:
@@ -46,8 +43,7 @@ def experiment(alpha_chunk, kappa_chunk, queue, idx):
     for i in range(measured_samples):
         new_m, new_C, new_sigma, success = alg.step(m, C, sigma)
         _, _, sigma, factors = TR.transform_to_normal(new_m, new_C, new_sigma)
-        if transformation:
-            sigma /= factors["distance_factor"]
+        sigma /= factors["distance_factor"]
 
         local_log_sigma_store += np.log(sigma)
         local_success_store += success[:, 0]
@@ -67,10 +63,7 @@ def experiment(alpha_chunk, kappa_chunk, queue, idx):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='This script computes stable sigma values for CMA.')
     parser.add_argument('--output', type=str, help='Output file name', default='stable_sigma.json')
-    parser.add_argument('--transformation', action='store_true')
     args = parser.parse_args()
-
-    transformation = args.transformation
 
     # stable sigma experiment
     print("Stable Sigma Experiment")

@@ -1,6 +1,5 @@
 import numpy as np
 import scipy.special as special
-from scipy.stats import ttest_1samp
 
 
 def p_value(mean, variance, sample_size, deviation=0.10):

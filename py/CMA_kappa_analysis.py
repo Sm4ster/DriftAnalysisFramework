@@ -74,5 +74,5 @@ kappa_data = {
 }
 
 
-with open('./data/stable_kappa.json', 'w') as f:
+with open('data/stable_kappa_small.json', 'w') as f:
     json.dump(kappa_data, f)

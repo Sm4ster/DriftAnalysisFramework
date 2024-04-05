@@ -2,7 +2,7 @@ import numpy as np
 from DriftAnalysisFramework.Errors import error_instance
 
 
-def closest_values(needle_values, haystack_array):
+def closest_values_slow(needle_values, haystack_array):
     overflow_mask = needle_values > haystack_array.max() + haystack_array.max() * 0.001
     underflow_mask = needle_values < haystack_array.min() - haystack_array.min() * 0.001
 
@@ -30,6 +30,32 @@ def closest_values(needle_values, haystack_array):
     l_closest_indices = np.argmax(l_filtered_values, axis=0)
 
     return l_closest_values, h_closest_values, l_closest_indices, h_closest_indices
+
+
+def closest_values(needle_values, haystack_array):
+    #TODO make this safer and faster by passing geom or lin and the minimum from a global
+    if np.isclose(haystack_array[1] - haystack_array[0], haystack_array[2] - haystack_array[1]):
+        haystack_array_ = haystack_array
+        needle_values_ = needle_values
+    else:
+        haystack_array_ = np.log(haystack_array)
+        needle_values_ = np.log(needle_values)
+
+    min_ = np.min(haystack_array_)
+    delta = haystack_array_[1] - haystack_array_[0]
+
+    raw_idx = np.divide(needle_values_ - min_, delta)
+
+    l_idx = np.floor(raw_idx).astype(int)
+    h_idx = np.ceil(raw_idx).astype(int)
+
+    l_idx[l_idx < 0] = 0
+    l_idx[l_idx >= len(haystack_array)] = len(haystack_array)-1
+
+    h_idx[h_idx < 0] = 0
+    h_idx[h_idx >= len(haystack_array)] = len(haystack_array)-1
+
+    return haystack_array[l_idx], haystack_array[h_idx], l_idx, h_idx
 
 
 def interpolate(x, y, x1, y1, x2, y2, q11, q12, q21, q22):

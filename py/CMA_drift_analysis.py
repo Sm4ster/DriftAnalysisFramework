@@ -1,5 +1,6 @@
 import numpy as np
 import json
+import argparse
 from datetime import datetime
 from alive_progress import alive_bar
 from concurrent.futures import ProcessPoolExecutor
@@ -9,12 +10,8 @@ from DriftAnalysisFramework.Fitness import Sphere
 from DriftAnalysisFramework.Interpolation import get_data_value
 from DriftAnalysisFramework.Analysis import DriftAnalysis, eval_drift
 
-parallel_execution = False
+parallel_execution = True
 workers = 63
-
-output_filename = "./data/sanity_test_run.json"
-stable_kappa_file = './data/stable_kappa.json'
-stable_sigma_file = './data/stable_sigma.json'
 
 # potential function
 potential_function = [
@@ -24,13 +21,7 @@ potential_function = [
 ]
 
 # config
-batch_size = 10000
-sub_batch_size = 1000
-
-# create states
-alpha_sequence = np.linspace(0, np.pi / 2, num=24)
-kappa_sequence = np.geomspace(1, 10, num=128)
-sigma_sequence = np.geomspace(1 / 10, 10, num=128)
+sub_batch_size = 50000
 
 # Initialize the target function and optimization algorithm
 alg = CMA_ES(Sphere(), {
@@ -42,18 +33,35 @@ alg = CMA_ES(Sphere(), {
 })
 
 
-def main():
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser(description='This script does drift simulation for CMA')
+    parser.add_argument('--parameter_file', type=str, help='Parameter file name', default='parameters.json')
+    parser.add_argument('--kappa_input', type=str, help='Stable kappa data file name', default='stable_kappa.json')
+    parser.add_argument('--sigma_input', type=str, help='Stable sigma data file name', default='stable_sigma.json')
+    parser.add_argument('--output', type=str, help='Output file name', default='drift_run.json')
+    args = parser.parse_args()
+
     # get start time
     start_time = datetime.now()
 
+    # config
+    parameters = json.load(open(f'./{args.parameter_file}'))
+
+    # create states
+    alpha_sequence = np.linspace(parameters["alpha"][0], parameters["alpha"][1], num=parameters["alpha"][2])
+    kappa_sequence = np.geomspace(parameters["kappa"][0], parameters["kappa"][1], num=parameters["kappa"][2])
+    sigma_sequence = np.geomspace(parameters["sigma"][0], parameters["sigma"][1], num=parameters["sigma"][2])
+
+    batch_size = 500000
+
     # Initialize the Drift Analysis class
     da = DriftAnalysis(alg)
-    da.batch_size = batch_size
+    da.batch_size = parameters["batch_size"]
     da.sub_batch_size = sub_batch_size
 
     # Initialize stable_sigma and stable_kappa
-    kappa_data_raw = json.load(open(stable_kappa_file))
-    sigma_data_raw = json.load(open(stable_sigma_file))
+    kappa_data_raw = json.load(open(f'./data/{args.kappa_input}'))
+    sigma_data_raw = json.load(open(f'./data/{args.sigma_input}'))
 
     kappa_data = {
         "alpha": np.array(
@@ -93,7 +101,6 @@ def main():
                                                               sigma_data['stable_sigma'])
     })
 
-
     # Evaluate the before potential to set up the class
     da.eval_potential([e[1] for e in potential_function], alpha_sequence, kappa_sequence, sigma_sequence)
 
@@ -106,7 +113,6 @@ def main():
     success_std = np.zeros([len(alpha_sequence), len(kappa_sequence), len(sigma_sequence), 3])
     no_success_mean = np.zeros([len(alpha_sequence), len(kappa_sequence), len(sigma_sequence), 3])
     no_success_std = np.zeros([len(alpha_sequence), len(kappa_sequence), len(sigma_sequence), 3])
-
 
     # For debugging the critical function and performance comparisons
     if parallel_execution:
@@ -171,9 +177,5 @@ def main():
         'stable_sigma': sigma_data_raw
     }
 
-    with open(output_filename, 'w') as f:
+    with open(f'./data/{args.output}', 'w') as f:
         json.dump(data, f)
-
-
-if __name__ == '__main__':
-    main()

@@ -1,6 +1,5 @@
 import numpy as np
 import numexpr as ne
-import re
 
 function_dict = {
     "norm": lambda x: np.linalg.norm(x, axis=1),

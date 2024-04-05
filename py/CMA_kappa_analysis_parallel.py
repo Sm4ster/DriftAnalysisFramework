@@ -136,5 +136,5 @@ if __name__ == "__main__":
         'success': success_data.tolist()
     }
 
-    with open('./data/stable_kappa.json', 'w') as f:
+    with open('data/stable_kappa_small.json', 'w') as f:
         json.dump(kappa_data, f)

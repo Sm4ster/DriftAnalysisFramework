@@ -38,7 +38,7 @@ with alive_bar(groove_iteration, force_tty=True, title="Grooving", bar="notes", 
     for i in range(groove_iteration):
         new_m, new_C, new_sigma, success = alg.step(m, C, sigma)
         _, _, sigma, factors = TR.transform_to_normal(new_m, new_C, new_sigma)
-        # sigma /= factors["distance_factor"]
+        sigma /= factors["distance_factor"]
         bar()
 
 log_sigma_store = np.zeros([alpha_sequence.shape[0] * kappa_sequence.shape[0]])
