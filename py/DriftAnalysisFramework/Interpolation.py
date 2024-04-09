@@ -34,7 +34,8 @@ def closest_values_slow(needle_values, haystack_array):
 
 def closest_values(needle_values, haystack_array):
     #TODO make this safer and faster by passing geom or lin and the minimum from a global
-    if np.isclose(haystack_array[1] - haystack_array[0], haystack_array[2] - haystack_array[1]):
+    n = (len(haystack_array) - 1) // 2
+    if np.isclose(haystack_array[n] - haystack_array[0], haystack_array[2*n] - haystack_array[n]):
         haystack_array_ = haystack_array
         needle_values_ = needle_values
     else:
