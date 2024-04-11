@@ -153,11 +153,11 @@ def eval_drift(alpha, kappa, sigma, potential_expressions, potential_before, alg
     # collect data for follow up states to return
     state_succ = FollowUpState(
         follow_up_succ.mean[0:3],
-        follow_up_succ.var_p[0:3]
+        np.sqrt(follow_up_succ.var_p[0:3])
     )
     state_no_succ = FollowUpState(
         follow_up_no_succ.mean[0:3],
-        follow_up_no_succ.var_p[0:3]
+        np.sqrt(follow_up_no_succ.var_p[0:3])
     )
 
     # calc precision of the drift values
