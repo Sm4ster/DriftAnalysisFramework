@@ -15,7 +15,7 @@ groove_iteration = 50000
 measured_samples = 10000000
 
 alpha_sequence = np.linspace(0, np.pi / 2, num=64)
-sigma_sequence = np.geomspace(1 / 2000, 2000, num=4096)
+sigma_sequence = np.geomspace(1 / 2000, 2, num=4096)
 
 progress_size = 1000
 chunk_size = int(np.ceil(alpha_sequence.shape[0] * sigma_sequence.shape[0] / workers))
@@ -37,7 +37,6 @@ def experiment(alpha_chunk, sigma_chunk, queue, idx):
         # report progress to the queue
         if i > 0 and i % progress_size == 0:
             queue.put({"message": "progress"})
-
 
     for i in range(measured_samples):
         m, C, sigma = TR.transform_to_parameters(alpha_chunk, kappa, sigma_chunk)

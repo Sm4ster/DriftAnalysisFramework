@@ -2,28 +2,24 @@ import numpy as np
 import json
 import cma
 
-drift_data_raw = json.load(open('./data/big_test_run.json'))
-drift_data = np.array(drift_data_raw["drifts"])
+drift_data_raw = json.load(open('./data/full_run_dense_grid.json'))
+drift_data = np.array(drift_data_raw["drift"]) + np.array(drift_data_raw["precision"])
 
 def c_drift(weights):
-    cdrift = np.zeros([drift_data.shape[0], drift_data.shape[1], drift_data.shape[2]])
+    cdrift = np.array(drift_data[:, :, :, 0])
 
-    for idx in range(drift_data.shape[3]):
-        cdrift += drift_data[:, :, :, idx] * weights[idx]
+    for idx in range(1, drift_data.shape[3]):
+        cdrift += drift_data[:, :, :, idx] * weights[idx-1]
 
     return cdrift
 
+
 def fitness(weights):
     cdrift = c_drift(weights)
-    return cdrift.max() + 10 * np.power(1 - weights[0], 2)
-
-
-def log_m_drift(weight):
-    return drift_data[:, :, :, 0].max() * weight
-
+    return cdrift.max()
 
 # Initial guess for the solution
-x0 = np.ones([drift_data.shape[3]]) * 0.5
+x0 = np.ones([drift_data.shape[3]-1]) * 0.5
 
 # Standard deviation for the initial search distribution
 sigma0 = 10  # Example standard deviation
@@ -47,4 +43,4 @@ best_fitness = es.result.fbest
 print("Best weights vector: ", best_solution)
 print("Fitness value: ", best_fitness)
 print("Smallest drift: ", c_drift(best_solution).max())
-print("log_m drift (weighted):", log_m_drift(1), "(", log_m_drift(best_solution[0]), ")")
+print("log_m drift:", drift_data[:, :, :, 0].max())
