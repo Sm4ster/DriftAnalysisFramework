@@ -2,13 +2,14 @@ import numpy as np
 import json
 import cma
 
-drift_data_raw = json.load(open('./data/full_run_dense_grid.json'))
+drift_data_raw = json.load(open('./data/special_run.json'))
 drift_data = np.array(drift_data_raw["drift"]) + np.array(drift_data_raw["precision"])
+terms =  3 #drift_data.shape[3]
 
 def c_drift(weights):
     cdrift = np.array(drift_data[:, :, :, 0])
 
-    for idx in range(1, drift_data.shape[3]):
+    for idx in range(1, terms):
         cdrift += drift_data[:, :, :, idx] * weights[idx-1]
 
     return cdrift
@@ -19,7 +20,7 @@ def fitness(weights):
     return cdrift.max()
 
 # Initial guess for the solution
-x0 = np.ones([drift_data.shape[3]-1]) * 0.5
+x0 = np.ones([terms-1]) * 0.5
 
 # Standard deviation for the initial search distribution
 sigma0 = 10  # Example standard deviation

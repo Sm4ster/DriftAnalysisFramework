@@ -31,7 +31,6 @@ start_time = datetime.now()
 
 alpha, kappa, sigma = np.repeat(alpha_sequence, sigma_sequence.shape[0]), 1, np.tile(sigma_sequence,
                                                                                      alpha_sequence.shape[0])
-
 m, C, sigma = TR.transform_to_parameters(alpha, kappa, sigma)
 
 with alive_bar(groove_iteration, force_tty=True, title="Grooving", bar="notes", title_length=10) as bar:
@@ -55,7 +54,6 @@ with alive_bar(measured_samples, force_tty=True, title="Collecting") as bar:
 
 # store the data in an efficient form to allow for interpolation later
 stable_kappa_data = (kappa_store / measured_samples).reshape(alpha_sequence.shape[0], sigma_sequence.shape[0])
-success_data = success_store.reshape(alpha_sequence.shape[0], sigma_sequence.shape[0])
 
 # get the end time after te run has finished
 end_time = datetime.now()
@@ -70,9 +68,9 @@ kappa_data = {
         {'name': 'sigma', 'sequence': sigma_sequence.tolist()},
     ],
     'values': stable_kappa_data.tolist(),
-    'success': success_data.tolist()
+    'success': success_store.tolist()
 }
 
 
-with open('data/stable_kappa_small.json', 'w') as f:
+with open('/home/franksyj/DriftAnalysisFramework/py/data/stable_kappa_new.json', 'w') as f:
     json.dump(kappa_data, f)

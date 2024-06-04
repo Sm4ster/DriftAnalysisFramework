@@ -54,7 +54,6 @@ with alive_bar(measured_samples, force_tty=True, title="Collecting") as bar:
 
 # store the data in an efficient form to allow for interpolation later
 stable_sigma_data = np.exp(log_sigma_store / measured_samples).reshape(alpha_sequence.shape[0], kappa_sequence.shape[0])
-success_data = success_store.reshape(alpha_sequence.shape[0], kappa_sequence.shape[0])
 
 # get the end time after te run has finished
 end_time = datetime.now()
