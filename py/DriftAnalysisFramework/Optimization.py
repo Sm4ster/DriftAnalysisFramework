@@ -80,8 +80,9 @@ class CMA_ES:
         new_sigma = sigma * np.exp((1 / self.d) * ((success - self.p_target) / (1 - self.p_target))).reshape(
             sigma.shape[0])
         unsuccessful = ((1 - success.reshape(success.shape[0])[:, np.newaxis, np.newaxis]) * C)
+        s = np.sqrt(np.diag(C)) * z  # todo: vectorize!
         successful = (success.reshape(success.shape[0])[:, np.newaxis, np.newaxis]) * (
-                np.array((1 - self.c_cov)) * C + np.array(self.c_cov) * np.einsum("ij,ik->ijk", z, z))
+                np.array((1 - self.c_cov)) * C + np.array(self.c_cov) * np.einsum("ij,ik->ijk", s, s))
         new_C = successful + unsuccessful
 
         return new_m, new_C, new_sigma, success
