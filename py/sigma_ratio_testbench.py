@@ -17,7 +17,6 @@ size = 1
 m = np.array([np.array([1, 0]) for _ in range(size)])
 sigma = np.repeat(1, size)
 C = np.array([np.eye(2) for _ in range(size)])
-r = np.geomspace(0.1, 10, size)
 
 # z = np.random.standard_normal(2) / 2
 z = np.array([-0.8, 0])
@@ -26,7 +25,8 @@ z = np.array([z for _ in range(size)])
 alpha_before, kappa_before, sigma_before, _ = CMA_TR.transform_to_normal(m, C, sigma)
 
 m, C, sigma, success = alg.step(m, C, sigma, z)
-print(m)
+print(m, C)
+print(np.linalg.det(C))
 
 print(np.square(sigma[:, np.newaxis, np.newaxis]) * C)
 
@@ -34,7 +34,7 @@ alpha_after, kappa_after, sigma_after, _ = CMA_TR.transform_to_normal(m, C, sigm
 
 print(alpha_after)
 print(kappa_after)
-print(sigma_after)
+print(sigma_after, _)
 
 print("-------------------------------")
 
@@ -43,16 +43,17 @@ size = 1
 m = np.array([np.array([1, 0]) for _ in range(size)])
 sigma = np.repeat(1, size)
 C = np.array([np.eye(2) for _ in range(size)])
-r = np.geomspace(0.1, 10, size)
 
-r = np.array([10])
+
+r = np.array([0.25])
 sigma = (1 / r) * sigma
 C = np.square(r[:, np.newaxis, np.newaxis]) * C
 
 alpha_before, kappa_before, sigma_before, _ = CMA_TR.transform_to_normal(m, C, sigma)
 
 m, C, sigma, success = alg.step(m, C, sigma, z)
-print(m)
+print(m, C)
+print(np.linalg.det(C))
 
 print(np.square(sigma[:, np.newaxis, np.newaxis]) * C)
 
@@ -60,4 +61,4 @@ alpha_after, kappa_after, sigma_after, _ = CMA_TR.transform_to_normal(m, C, sigm
 
 print(alpha_after)
 print(kappa_after)
-print(sigma_after)
+print(sigma_after, _)

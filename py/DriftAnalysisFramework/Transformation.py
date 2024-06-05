@@ -51,8 +51,11 @@ class CMA_ES:
         # calculate the scaling factor which brings the covariance matrix to det = 1
         scaling_factor = 1 / (np.sqrt(np.linalg.det(C_rot)))
 
-        m_normal = np.einsum('i,ij->ij', scaling_factor, m_rot)
+        # TODO Check with Tobias if this makes sense (I hope it does)
+        m_normal = m_rot
         C_normal = np.einsum('i,ijk->ijk', scaling_factor, C_rot)
+        sigma_scaled = sigma * np.sqrt(np.sqrt(np.linalg.det(C_rot)))
+
 
         # make values close to zero equal zero
         C_normal[np.abs(C_normal) < 1e-15] = 0
@@ -62,7 +65,7 @@ class CMA_ES:
         distance_factor = 1 / np.linalg.norm(m_normal, axis=1)
 
         m_normal = np.einsum('i,ij->ij', distance_factor, m_normal)
-        sigma_normal = sigma * distance_factor
+        sigma_normal = sigma_scaled * distance_factor
 
         # conditional x-axis flip
         flip = (m_normal[:, 0] < 0).astype(np.float64)
