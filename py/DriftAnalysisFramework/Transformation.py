@@ -49,22 +49,20 @@ class CMA_ES:
         m_rot = np.einsum('...ij,...j->...i', A_T, m)
 
         # calculate the scaling factor which brings the covariance matrix to det = 1
-        scaling_factor = 1 / (np.sqrt(np.linalg.det(C_rot)))
+        scaling_factor = np.sqrt(np.linalg.det(C_rot))
 
         # TODO Check with Tobias if this makes sense (I hope it does)
-        m_normal = m_rot
-        C_normal = np.einsum('i,ijk->ijk', scaling_factor, C_rot)
-        sigma_scaled = sigma * np.sqrt(np.sqrt(np.linalg.det(C_rot)))
-
+        C_normal = np.einsum('i,ijk->ijk', 1 / scaling_factor, C_rot)
+        sigma_scaled = sigma * np.sqrt(scaling_factor)
 
         # make values close to zero equal zero
         C_normal[np.abs(C_normal) < 1e-15] = 0
 
         # The distance factor sets norm(m) = 1. To keep the proportion between the distance
         # of the center to the optimum and the spread of the distribution we adjust sigma.
-        distance_factor = 1 / np.linalg.norm(m_normal, axis=1)
+        distance_factor = 1 / np.linalg.norm(m_rot, axis=1)
 
-        m_normal = np.einsum('i,ij->ij', distance_factor, m_normal)
+        m_normal = np.einsum('i,ij->ij', distance_factor, m_rot)
         sigma_normal = sigma_scaled * distance_factor
 
         # conditional x-axis flip
