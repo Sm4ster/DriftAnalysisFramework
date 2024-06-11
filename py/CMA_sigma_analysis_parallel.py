@@ -11,7 +11,7 @@ from DriftAnalysisFramework.Fitness import Sphere
 from alive_progress import alive_bar
 
 # Globals
-workers = 31
+workers = 62
 groove_iteration = 50000
 measured_samples = 5000000
 
@@ -61,7 +61,7 @@ def experiment(alpha_chunk, kappa_chunk, queue, idx):
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description='This script computes stable sigma values for CMA.')
+    parser = argparse.ArgumentParser(description='This script computes stable kappa values for CMA.')
     parser.add_argument('--output', type=str, help='Output file name', default='stable_sigma.json')
     args = parser.parse_args()
 
@@ -72,10 +72,10 @@ if __name__ == "__main__":
     start_time = datetime.now()
 
     alg = CMA_ES(Sphere(), {
-        "d": 2,
+        "d": 10,
         "p_target": 0.1818,
         "c_p": 0.8333,
-        "c_cov": 0.2,
+        "c_cov": 0.02,
         "dim": 2
     })
 
@@ -143,3 +143,4 @@ if __name__ == "__main__":
 
     with open(f'./data/{args.output}', 'w') as f:
         json.dump(sigma_data, f)
+

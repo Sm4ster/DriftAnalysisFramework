@@ -48,15 +48,14 @@ class CMA_ES:
         C_rot = np.matmul(np.matmul(A_T, C), A)
         m_rot = np.einsum('...ij,...j->...i', A_T, m)
 
+        # make values close to zero equal zero
+        C_rot[np.abs(C_rot) < 1e-15] = 0
+
         # calculate the scaling factor which brings the covariance matrix to det = 1
         scaling_factor = np.sqrt(np.linalg.det(C_rot))
 
-        # TODO Check with Tobias if this makes sense (I hope it does)
         C_normal = np.einsum('i,ijk->ijk', 1 / scaling_factor, C_rot)
         sigma_scaled = sigma * np.sqrt(scaling_factor)
-
-        # make values close to zero equal zero
-        C_normal[np.abs(C_normal) < 1e-15] = 0
 
         # The distance factor sets norm(m) = 1. To keep the proportion between the distance
         # of the center to the optimum and the spread of the distribution we adjust sigma.

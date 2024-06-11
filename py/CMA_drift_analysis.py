@@ -16,9 +16,11 @@ workers = 63
 # potential function
 potential_function = [
     ['\log(|m|)', "log(norm(m))"],
-    ['|\log(\kappa/\kappa_s)|', "abs(log(kappa/stable_kappa(alpha,sigma)))"],
-    ['|\log(\sigma/\sigma_s)|', "abs(log(sigma/stable_sigma(alpha,kappa)))"],
-    ['|\log(\kappa^2/\kappa_s)|', "abs(log(kappa**2/stable_kappa(alpha,sigma)))"]
+    ['|\log(\kappa/\kappa^*)|', "abs(log(kappa/stable_kappa(alpha,sigma)))"],
+    ['|\log(\kappa/\cos(\\alpha)/\sigma)**2)|', "abs(log(kappa/where((cos(alpha)/sigma)**2)<1,1,(cos(alpha)/sigma)**2)))"],
+    ['|\log(\sigma/\sigma^*)|', "abs(log(sigma/stable_sigma(alpha,kappa)))"],
+    ['max(0, |\log(\sigma/\sigma^*)|-1)', "where(abs(log(sigma/stable_sigma(alpha,kappa)))-1 < 0, 0, abs(log(sigma/stable_sigma(alpha,kappa)))-1)"],
+    ['\\alpha - \pi/2', 'alpha - 1.57079632679']
 ]
 
 # config
@@ -29,7 +31,7 @@ alg = CMA_ES(Sphere(), {
     "d": 2,
     "p_target": 0.1818,
     "c_p": 0.8333,
-    "c_cov": 0.2,
+    "c_cov": 0.02,
     "dim": 2
 })
 
@@ -53,7 +55,6 @@ if __name__ == '__main__':
     kappa_sequence = np.geomspace(parameters["kappa"][0], parameters["kappa"][1], num=parameters["kappa"][2])
     sigma_sequence = np.geomspace(parameters["sigma"][0], parameters["sigma"][1], num=parameters["sigma"][2])
 
-    batch_size = 500000
 
     # Initialize the Drift Analysis class
     da = DriftAnalysis(alg)
@@ -159,7 +160,7 @@ if __name__ == '__main__':
     data = {
         'run_started': start_time.strftime("%d.%m.%Y %H:%M:%S"),
         'run_finished': end_time.strftime("%d.%m.%Y %H:%M:%S"),
-        'batch_size': batch_size,
+        'batch_size': parameters["batch_size"],
         'potential_function': potential_function,
         'sequences': [
             {'name': 'alpha', 'sequence': alpha_sequence.tolist()},

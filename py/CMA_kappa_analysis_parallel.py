@@ -2,6 +2,7 @@ from datetime import datetime
 import numpy as np
 import multiprocessing
 import json
+import argparse
 
 from DriftAnalysisFramework.Optimization import CMA_ES
 from DriftAnalysisFramework.Transformation import CMA_ES as TR
@@ -10,12 +11,12 @@ from DriftAnalysisFramework.Fitness import Sphere
 from alive_progress import alive_bar
 
 # Globals
-workers = 63
+workers = 48
 groove_iteration = 50000
-measured_samples = 10000000
+measured_samples = 500000
 
 alpha_sequence = np.linspace(0, np.pi / 2, num=64)
-sigma_sequence = np.geomspace(1 / 2000, 2, num=4096)
+sigma_sequence = np.geomspace(1 / 2000, 2000, num=4096)
 
 progress_size = 1000
 chunk_size = int(np.ceil(alpha_sequence.shape[0] * sigma_sequence.shape[0] / workers))
@@ -29,6 +30,7 @@ def experiment(alpha_chunk, sigma_chunk, queue, idx):
     local_success_store = np.zeros([chunk_size_])
 
     kappa = 1
+
     for i in range(groove_iteration):
         m, C, sigma = TR.transform_to_parameters(alpha_chunk, kappa, sigma_chunk)
         new_m, C, new_sigma, success = alg.step(m, C, sigma)
@@ -59,6 +61,10 @@ def experiment(alpha_chunk, sigma_chunk, queue, idx):
 
 
 if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description='This script computes stable sigma values for CMA.')
+    parser.add_argument('--output', type=str, help='Output file name', default='stable_sigma.json')
+    args = parser.parse_args()
+
     # stable kappa experiment
     print("Stable Kappa Experiment")
 
@@ -67,10 +73,10 @@ if __name__ == "__main__":
 
     # Initialize the algorithm
     alg = CMA_ES(Sphere(), {
-        "d": 2,
+        "d": 10,
         "p_target": 0.1818,
         "c_p": 0.8333,
-        "c_cov": 0.2,
+        "c_cov": 0.02,
         "dim": 2
     })
 
@@ -135,5 +141,5 @@ if __name__ == "__main__":
         'success': success_data.tolist()
     }
 
-    with open('data/stable_kappa_small.json', 'w') as f:
+    with open(f'./data/{args.output}', 'w') as f:
         json.dump(kappa_data, f)

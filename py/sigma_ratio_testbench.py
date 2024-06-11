@@ -12,7 +12,7 @@ alg = CMA_ES(Sphere(), {
     "dim": 2
 })
 
-size = 1
+size = 10
 
 m = np.array([np.array([1, 0]) for _ in range(size)])
 sigma = np.repeat(1, size)
@@ -22,43 +22,23 @@ C = np.array([np.eye(2) for _ in range(size)])
 z = np.array([-0.8, 0])
 z = np.array([z for _ in range(size)])
 
-alpha_before, kappa_before, sigma_before, _ = CMA_TR.transform_to_normal(m, C, sigma)
-
-m, C, sigma, success = alg.step(m, C, sigma, z)
-print(m, C)
-print(np.linalg.det(C))
-
-print(np.square(sigma[:, np.newaxis, np.newaxis]) * C)
-
-alpha_after, kappa_after, sigma_after, _ = CMA_TR.transform_to_normal(m, C, sigma)
-
-print(alpha_after)
-print(kappa_after)
-print(sigma_after, _)
-
-print("-------------------------------")
-
-size = 1
-
-m = np.array([np.array([1, 0]) for _ in range(size)])
-sigma = np.repeat(1, size)
-C = np.array([np.eye(2) for _ in range(size)])
-
-
-r = np.array([0.25])
+r = np.geomspace(0.1, 10, size)
 sigma = (1 / r) * sigma
 C = np.square(r[:, np.newaxis, np.newaxis]) * C
 
 alpha_before, kappa_before, sigma_before, _ = CMA_TR.transform_to_normal(m, C, sigma)
 
-m, C, sigma, success = alg.step(m, C, sigma, z)
-print(m, C)
-print(np.linalg.det(C))
+print(alpha_before)
+print(kappa_before)
+print(sigma_before)
 
-print(np.square(sigma[:, np.newaxis, np.newaxis]) * C)
+m, C, sigma, success = alg.step(m, C, sigma, z)
 
 alpha_after, kappa_after, sigma_after, _ = CMA_TR.transform_to_normal(m, C, sigma)
 
 print(alpha_after)
 print(kappa_after)
-print(sigma_after, _)
+print(sigma_after)
+
+
+print(np.square(sigma[:, np.newaxis, np.newaxis]) * C)
