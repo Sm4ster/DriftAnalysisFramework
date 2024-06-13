@@ -11,9 +11,9 @@ from DriftAnalysisFramework.Fitness import Sphere
 from alive_progress import alive_bar
 
 # Globals
-workers = 48
+workers = 62
 groove_iteration = 50000
-measured_samples = 500000
+measured_samples = 1000000
 
 alpha_sequence = np.linspace(0, np.pi / 2, num=64)
 sigma_sequence = np.geomspace(1 / 2000, 2000, num=4096)

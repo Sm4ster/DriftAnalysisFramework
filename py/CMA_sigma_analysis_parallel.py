@@ -13,7 +13,7 @@ from alive_progress import alive_bar
 # Globals
 workers = 62
 groove_iteration = 50000
-measured_samples = 5000000
+measured_samples = 1000000
 
 alpha_sequence = np.linspace(0, np.pi / 2, num=64)
 kappa_sequence = np.geomspace(1, 2000, num=2048)
@@ -75,7 +75,7 @@ if __name__ == "__main__":
         "d": 10,
         "p_target": 0.1818,
         "c_p": 0.8333,
-        "c_cov": 0.02,
+        "c_cov": 0,
         "dim": 2
     })
 

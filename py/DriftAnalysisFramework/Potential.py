@@ -11,6 +11,7 @@ exclude_list = ["where", "sin", "cos", "tan", "arcsin", "arccos", "arctan", "arc
                 "arcsinh", "arccosh", "arctanh", "log", "log10", "log1p", "exp", "expm1", "sqrt", "abs", "conj", "real",
                 "imag", "complex", "contains", "max", "min"]
 
+
 def replace_operators(string):
     operator_mapping = {
         '&': 'and',

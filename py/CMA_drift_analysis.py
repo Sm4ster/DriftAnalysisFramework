@@ -16,11 +16,15 @@ workers = 63
 # potential function
 potential_function = [
     ['\log(|m|)', "log(norm(m))"],
-    ['|\log(\kappa/\kappa^*)|', "abs(log(kappa/stable_kappa(alpha,sigma)))"],
-    ['|\log(\kappa/\cos(\\alpha)/\sigma)**2)|', "abs(log(kappa/where((cos(alpha)/sigma)**2)<1,1,(cos(alpha)/sigma)**2)))"],
+    ['(1-exp(-(log(kappa)^2))) \cdot |\log(\kappa/\kappa^*)|', "(1-exp(-0.2*(log(kappa)**2)))*abs(log(kappa/stable_kappa(alpha,sigma)))"],
+    ['(1-exp(-(log(kappa)^2))) \cdot g(|\log(\kappa/\kappa^*))', "(1-exp(-0.2*(log(kappa)**2)))*where(abs(log(kappa/stable_kappa(alpha,sigma)))<1,(log(kappa/stable_kappa(alpha,sigma))**2)/2-0.5,abs(log(kappa/stable_kappa(alpha,sigma)))-1)"],
+    ['(1-exp(-(log(kappa)^2))) \cdot |\log(\kappa/((\cos(\\alpha)+1e-8)/\sigma)^2)|', "(1-exp(-(log(kappa)**2)))*abs(log(kappa/where(((cos(alpha)+0.00000001)/sigma)**2<1,1,((cos(alpha)+0.00000001)/sigma)**2)))"],
+    ['(1-exp(-(log(kappa)^2))) \cdot g(\log(\kappa/((\cos(\\alpha)+1e-8)/\sigma)^2))', "(1-exp(-(log(kappa)**2)))*where(abs(log(kappa/where(((cos(alpha)+0.00000001)/sigma)**2<1,1,((cos(alpha)+0.00000001)/sigma)**2))) < 1, (log(kappa/where(((cos(alpha)+0.00000001)/sigma)**2<1,1,((cos(alpha)+0.00000001)/sigma)**2)))**2/2-0.5, abs(log(kappa/where(((cos(alpha)+0.00000001)/sigma)**2<1,1,((cos(alpha)+0.00000001)/sigma)**2))))"],
+#    ['(1-exp(-(log(kappa)^2))) \cdot |\log(\kappa/((\cos(\\alpha)+1e-8)/\sigma)^2)|', "(1-exp(-(log(kappa)**2)))*abs(log(kappa/where(((cos(alpha)+0.00000001)/sigma)**2<1,((cos(alpha)+0.00000001)/sigma)**2))**2/2-0.5,((cos(alpha)+0.00000001)/sigma)**2))-1)"],
     ['|\log(\sigma/\sigma^*)|', "abs(log(sigma/stable_sigma(alpha,kappa)))"],
     ['max(0, |\log(\sigma/\sigma^*)|-1)', "where(abs(log(sigma/stable_sigma(alpha,kappa)))-1 < 0, 0, abs(log(sigma/stable_sigma(alpha,kappa)))-1)"],
-    ['\\alpha - \pi/2', 'alpha - 1.57079632679']
+    ['g(\log(\sigma/\sigma^*))', "where(abs(log(sigma/stable_sigma(alpha,kappa)))-1 < 0, (log(sigma/stable_sigma(alpha,kappa))**2)/2 - 0.5, abs(log(sigma/stable_sigma(alpha,kappa)))-1)"],
+    ['(\pi/2 - \\alpha)^2', '(1.57079632679 - alpha)**2']
 ]
 
 # config
@@ -160,7 +164,7 @@ if __name__ == '__main__':
     data = {
         'run_started': start_time.strftime("%d.%m.%Y %H:%M:%S"),
         'run_finished': end_time.strftime("%d.%m.%Y %H:%M:%S"),
-        'batch_size': parameters["batch_size"],
+        'batch_size': da.batch_size,
         'potential_function': potential_function,
         'sequences': [
             {'name': 'alpha', 'sequence': alpha_sequence.tolist()},
