@@ -9,26 +9,25 @@ from DriftAnalysisFramework.Optimization import CMA_ES
 from DriftAnalysisFramework.Fitness import Sphere
 from DriftAnalysisFramework.Interpolation import get_data_value
 from DriftAnalysisFramework.Analysis import DriftAnalysis, eval_drift
+from DriftAnalysisFramework.Filter import gaussian_filter
 
-parallel_execution = True
+parallel_execution = False
 workers = 63
 
 # potential function
 potential_function = [
     ['\log(|m|)', "log(norm(m))"],
-    ['(1-exp(-(log(kappa)^2))) \cdot |\log(\kappa/\kappa^*)|', "(1-exp(-0.2*(log(kappa)**2)))*abs(log(kappa/stable_kappa(alpha,sigma)))"],
-    ['(1-exp(-(log(kappa)^2))) \cdot g(|\log(\kappa/\kappa^*))', "(1-exp(-0.2*(log(kappa)**2)))*where(abs(log(kappa/stable_kappa(alpha,sigma)))<1,(log(kappa/stable_kappa(alpha,sigma))**2)/2-0.5,abs(log(kappa/stable_kappa(alpha,sigma)))-1)"],
-    ['(1-exp(-(log(kappa)^2))) \cdot |\log(\kappa/((\cos(\\alpha)+1e-8)/\sigma)^2)|', "(1-exp(-(log(kappa)**2)))*abs(log(kappa/where(((cos(alpha)+0.00000001)/sigma)**2<1,1,((cos(alpha)+0.00000001)/sigma)**2)))"],
-    ['(1-exp(-(log(kappa)^2))) \cdot g(\log(\kappa/((\cos(\\alpha)+1e-8)/\sigma)^2))', "(1-exp(-(log(kappa)**2)))*where(abs(log(kappa/where(((cos(alpha)+0.00000001)/sigma)**2<1,1,((cos(alpha)+0.00000001)/sigma)**2))) < 1, (log(kappa/where(((cos(alpha)+0.00000001)/sigma)**2<1,1,((cos(alpha)+0.00000001)/sigma)**2)))**2/2-0.5, abs(log(kappa/where(((cos(alpha)+0.00000001)/sigma)**2<1,1,((cos(alpha)+0.00000001)/sigma)**2))))"],
-#    ['(1-exp(-(log(kappa)^2))) \cdot |\log(\kappa/((\cos(\\alpha)+1e-8)/\sigma)^2)|', "(1-exp(-(log(kappa)**2)))*abs(log(kappa/where(((cos(alpha)+0.00000001)/sigma)**2<1,((cos(alpha)+0.00000001)/sigma)**2))**2/2-0.5,((cos(alpha)+0.00000001)/sigma)**2))-1)"],
+    ['f(\kappa) \cdot filter_{\kappa}(|\log(\kappa/\kappa^*)|, alpha)', "f(kappa) * abs(log(kappa/stable_kappa(alpha,sigma)), alpha)"],
+    ['f(\kappa) \cdot filter_{\kappa}(|\log(\kappa/\kappa^*)|, alpha)', "f(kappa) * k_filter(abs(log(kappa/stable_kappa(alpha,sigma))), alpha)"],
+    ['f(\kappa) \cdot |\log(\kappa/\kappa_t)|',"f(kappa) * abs(log(kappa/target_kappa(alpha,sigma)))"],
+    ['f(\kappa) \cdot filter_{\kappa}(|\log(\kappa/\kappa_t)|)',"f(kappa) * k_filter(abs(log(kappa/target_kappa(alpha,sigma))), alpha)"],
     ['|\log(\sigma/\sigma^*)|', "abs(log(sigma/stable_sigma(alpha,kappa)))"],
-    ['max(0, |\log(\sigma/\sigma^*)|-1)', "where(abs(log(sigma/stable_sigma(alpha,kappa)))-1 < 0, 0, abs(log(sigma/stable_sigma(alpha,kappa)))-1)"],
-    ['g(\log(\sigma/\sigma^*))', "where(abs(log(sigma/stable_sigma(alpha,kappa)))-1 < 0, (log(sigma/stable_sigma(alpha,kappa))**2)/2 - 0.5, abs(log(sigma/stable_sigma(alpha,kappa)))-1)"],
-    ['(\pi/2 - \\alpha)^2', '(1.57079632679 - alpha)**2']
+    ['filter_{\sigma}}(\log(\sigma/\sigma^*))', "s_filter(abs(log(sigma/stable_sigma(alpha,kappa))))"],
+    ['f(kappa) \cdot (\pi/2 - \\alpha)^2', 'f(kappa) * (1.57079632679 - alpha)**2']
 ]
 
 # config
-sub_batch_size = 50000
+sub_batch_size = 5000
 
 # Initialize the target function and optimization algorithm
 alg = CMA_ES(Sphere(), {
@@ -38,7 +37,6 @@ alg = CMA_ES(Sphere(), {
     "c_cov": 0.02,
     "dim": 2
 })
-
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='This script does drift simulation for CMA')
@@ -59,6 +57,7 @@ if __name__ == '__main__':
     kappa_sequence = np.geomspace(parameters["kappa"][0], parameters["kappa"][1], num=parameters["kappa"][2])
     sigma_sequence = np.geomspace(parameters["sigma"][0], parameters["sigma"][1], num=parameters["sigma"][2])
 
+    batch_size = 500000
 
     # Initialize the Drift Analysis class
     da = DriftAnalysis(alg)
@@ -100,11 +99,18 @@ if __name__ == '__main__':
         print("Warning: alpha_sequence is out of bounds for the stable_parameter data")
 
     # Update the function dict of the potential evaluation
+    # where(abs(log(kappa/stable_kappa(alpha,sigma)))<1,(log(kappa/stable_kappa(alpha,sigma))**2)/2-0.5,abs(log(kappa/stable_kappa(alpha,sigma)))-1)"
+    # where(((cos(alpha)+0.00000001)/sigma)**2<1,1,((cos(alpha)+0.00000001)/sigma)**2)
+    # where(abs(log(sigma/stable_sigma(alpha,kappa)))-1 < 0, (log(sigma/stable_sigma(alpha,kappa))**2)/2 - 0.5, abs(log(sigma/stable_sigma(alpha,kappa)))-1)
     da.function_dict.update({
         "stable_kappa": lambda alpha_, sigma_: get_data_value(alpha_, sigma_, kappa_data['alpha'], kappa_data['sigma'],
                                                               kappa_data['stable_kappa']),
         "stable_sigma": lambda alpha_, kappa_: get_data_value(alpha_, kappa_, sigma_data['alpha'], sigma_data['kappa'],
-                                                              sigma_data['stable_sigma'])
+                                                              sigma_data['stable_sigma']),
+        "f": lambda x: gaussian_filter(x, 0.2, 0.01, 1) * x,
+        "k_filter": lambda x, alpha: gaussian_filter(x,  2, 2, 0) * x,
+        "s_filter": lambda x: gaussian_filter(x, 0.5, 0.5, 0) * x,
+        "target_kappa": lambda alpha, sigma: np.where(((np.cos(alpha)+0.00000001)/sigma)**2<1,1,((np.cos(alpha)+0.00000001)/sigma)**2)
     })
 
     # Evaluate the before potential to set up the class
@@ -112,7 +118,8 @@ if __name__ == '__main__':
 
     # Initialize data structures to hold results
     drifts = np.zeros([len(alpha_sequence), len(kappa_sequence), len(sigma_sequence), len(da.potential_expr)])
-    standard_deviations = np.zeros([len(alpha_sequence), len(kappa_sequence), len(sigma_sequence), len(da.potential_expr)])
+    standard_deviations = np.zeros(
+        [len(alpha_sequence), len(kappa_sequence), len(sigma_sequence), len(da.potential_expr)])
     precisions = np.zeros([len(alpha_sequence), len(kappa_sequence), len(sigma_sequence), len(da.potential_expr)])
     successes = np.zeros([len(alpha_sequence), len(kappa_sequence), len(sigma_sequence)])
     success_mean = np.zeros([len(alpha_sequence), len(kappa_sequence), len(sigma_sequence), 3])
@@ -135,6 +142,7 @@ if __name__ == '__main__':
                 no_success_mean[idx[0], idx[1], idx[2]] = follow_up_no_success.mean
                 no_success_std[idx[0], idx[1], idx[2]] = follow_up_no_success.std
                 bar()
+
 
             with ProcessPoolExecutor(max_workers=workers) as executor:
                 for i in range(da.states.shape[0]):

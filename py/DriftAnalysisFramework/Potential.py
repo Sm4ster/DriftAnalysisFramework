@@ -146,6 +146,13 @@ def replace_functions(potential_function, local_dict, function_dict_=None):
                         argument_name_list.append(name)
                         local_dict[name] = ne.evaluate(expression_, local_dict)
                         argument_list.append(local_dict[name])
+                    elif type(tuple_token) is tuple:
+                        expression_ = replace_functions([tuple_token], local_dict)[0]
+                        name = replace_operators(expression_)
+
+                        argument_name_list.append(name)
+                        local_dict[name] = ne.evaluate(expression_, local_dict)
+                        argument_list.append(local_dict[name])
                     else:
                         if tuple_token not in local_dict:
                             raise Exception("The argument is not defined: " + tuple_token)

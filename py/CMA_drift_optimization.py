@@ -2,9 +2,10 @@ import numpy as np
 import json
 import cma
 
-drift_data_raw = json.load(open('./data/NEW_FULL_RUN_FAST_7_C_COV=0.02.json'))
+drift_data_raw = json.load(open('./data/SPECIAL_RUN_7.json'))
+# drift_data_raw = json.load(open('./data/NEW_FULL_RUN_FAST_7_C_COV=0.02.json'))
 drift_data = np.array(drift_data_raw["drift"]) #+ np.array(drift_data_raw["precision"])
-terms = np.array([True, True, True, False, True, True, True, False])  # drift_data.shape[3]
+terms = np.array([False, False, True, False, False, False, True, False])  # drift_data.shape[3]
 
 print(drift_data.shape)
 
@@ -23,7 +24,6 @@ def c_drift(weights):
 def fitness(weights):
     cdrift = c_drift(weights)
     return cdrift.max()
-
 
 # Initial guess for the solution
 x0 = np.ones([terms.sum()]) * -0.5
@@ -46,7 +46,7 @@ best_solution = es.result.xbest
 # Fitness value of the best solution
 best_fitness = es.result.fbest
 
-print("Best weights vector: ", best_solution)
+print("Best weights vector: ", np.exp(best_solution))
 print("Fitness value: ", best_fitness)
 print("Smallest drift: ", c_drift(best_solution).max())
 print("log_m drift:", drift_data[:, :, :, 0].max())
