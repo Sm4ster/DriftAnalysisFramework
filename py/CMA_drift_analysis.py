@@ -11,7 +11,7 @@ from DriftAnalysisFramework.Interpolation import get_data_value
 from DriftAnalysisFramework.Analysis import DriftAnalysis, eval_drift
 from DriftAnalysisFramework.Filter import gaussian_filter
 
-parallel_execution = False
+parallel_execution = True
 workers = 63
 
 # potential function
