@@ -19,11 +19,11 @@ potential_function = [
     ['\log(|m|)', "log(norm(m))"],
     ['f(\kappa) \cdot filter_{\kappa}(|\log(\kappa/\kappa^*)|, alpha)', "f(kappa) * abs(log(kappa/stable_kappa(alpha,sigma)), alpha)"],
     ['f(\kappa) \cdot filter_{\kappa}(|\log(\kappa/\kappa^*)|, alpha)', "f(kappa) * k_filter(abs(log(kappa/stable_kappa(alpha,sigma))), alpha)"],
-    ['f(\kappa) \cdot |\log(\kappa/\kappa_t)|',"f(kappa) * abs(log(kappa/target_kappa(alpha,sigma)))"],
-    ['f(\kappa) \cdot filter_{\kappa}(|\log(\kappa/\kappa_t)|)',"f(kappa) * k_filter(abs(log(kappa/target_kappa(alpha,sigma))), alpha)"],
-    ['|\log(\sigma/\sigma^*)|', "abs(log(sigma/stable_sigma(alpha,kappa)))"],
-    ['filter_{\sigma}}(\log(\sigma/\sigma^*))', "s_filter(abs(log(sigma/stable_sigma(alpha,kappa))))"],
-    ['f(kappa) \cdot (\pi/2 - \\alpha)^2', 'f(kappa) * (1.57079632679 - alpha)**2']
+    # ['f(\kappa) \cdot |\log(\kappa/\kappa_t)|',"f(kappa) * abs(log(kappa/target_kappa(alpha,sigma)))"],
+    # ['f(\kappa) \cdot filter_{\kappa}(|\log(\kappa/\kappa_t)|)',"f(kappa) * k_filter(abs(log(kappa/target_kappa(alpha,sigma))), alpha)"],
+    # ['|\log(\sigma/\sigma^*)|', "abs(log(sigma/stable_sigma(alpha,kappa)))"],
+    # ['filter_{\sigma}}(\log(\sigma/\sigma^*))', "s_filter(abs(log(sigma/stable_sigma(alpha,kappa))))"],
+    # ['f(kappa) \cdot (\pi/2 - \\alpha)^2', 'f(kappa) * (1.57079632679 - alpha)**2']
 ]
 
 # config
