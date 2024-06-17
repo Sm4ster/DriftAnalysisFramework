@@ -151,10 +151,17 @@ def eval_drift(alpha, kappa, sigma, potential_expressions, potential_before, alg
         successes += success.sum()
 
     # collect data for follow up states to return
-    state_succ = FollowUpState(
-        follow_up_succ.mean[0:3],
-        np.sqrt(follow_up_succ.var_p[0:3])
-    )
+    if successes > 0:
+        state_succ = FollowUpState(
+            follow_up_succ.mean[0:3],
+            np.sqrt(follow_up_succ.var_p[0:3])
+        )
+    else:
+        state_succ =  FollowUpState(
+            [-1,-1,-1],
+            [-1,-1,-1]
+        )
+
     state_no_succ = FollowUpState(
         follow_up_no_succ.mean[0:3],
         np.sqrt(follow_up_no_succ.var_p[0:3])
