@@ -9,7 +9,7 @@ from DriftAnalysisFramework.Optimization import CMA_ES
 from DriftAnalysisFramework.Fitness import Sphere
 from DriftAnalysisFramework.Interpolation import get_data_value
 from DriftAnalysisFramework.Analysis import DriftAnalysis, eval_drift
-from DriftAnalysisFramework.Filter import gaussian_filter
+from DriftAnalysisFramework.Filter import gaussian_filter, spline_filter
 
 parallel_execution = True
 workers = 63
@@ -63,9 +63,13 @@ helper_functions = {
     "k_filter_1": lambda x: gaussian_filter(x, 0.1, 0.5, 0) * x,
     "k_filter_2": lambda x, kappa: gaussian_filter(x, 0.5, 0.1 * np.log(kappa), 0) * x,
     "k_filter_3": lambda x, alpha, kappa: gaussian_filter(x, 0.5, 0.1 * np.log(kappa) * np.log(alpha + 1), 0) * x,
+
+    "k_filter_4": lambda x: spline_filter(x, -2, -0.1, 0.1, 2),
+
     "s_filter_0": lambda x: gaussian_filter(x, 0.5, 0.5, 0) * x,
     "s_filter_1": lambda x: gaussian_filter(x, 0.2, 0.5, 0) * x,
     "s_filter_2": lambda x, kappa: gaussian_filter(x, 0.5, 0.3 * np.log(kappa), 0) * x,
+
     "target_kappa": lambda alpha, sigma: np.where(((np.cos(alpha) + 0.00000001) / sigma) ** 2 < 1, 1,
                                                   ((np.cos(alpha) + 0.00000001) / sigma) ** 2)
 }
