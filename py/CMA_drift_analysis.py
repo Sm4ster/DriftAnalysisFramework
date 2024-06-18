@@ -15,19 +15,63 @@ parallel_execution = True
 workers = 63
 
 # potential function
-potential_function = [
-    ['\log(|m|)', "log(norm(m))"],
-    ['f(\kappa) \cdot filter_{\kappa}(|\log(\kappa/\kappa^*)|, alpha)', "f(kappa) * abs(log(kappa/stable_kappa(alpha,sigma)))"],
-    ['f(\kappa) \cdot filter_{\kappa}(|\log(\kappa/\kappa^*)|, alpha)', "f(kappa) * k_filter(abs(log(kappa/stable_kappa(alpha,sigma))), alpha)"],
-    ['f(\kappa) \cdot |\log(\kappa/\kappa_t)|',"f(kappa) * abs(log(kappa/target_kappa(alpha,sigma)))"],
-    ['f(\kappa) \cdot filter_{\kappa}(|\log(\kappa/\kappa_t)|)',"f(kappa) * k_filter(abs(log(kappa/target_kappa(alpha,sigma))), alpha)"],
-    ['|\log(\sigma/\sigma^*)|', "abs(log(sigma/stable_sigma(alpha,kappa)))"],
-    ['filter_{\sigma}}(\log(\sigma/\sigma^*))', "s_filter(abs(log(sigma/stable_sigma(alpha,kappa))))"],
-    ['f(kappa) \cdot (\pi/2 - \\alpha)^2', 'f(kappa) * (1.57079632679 - alpha)**2']
+potential_functions = [
+    ['\\log(|m|)', "log(norm(m))"],
+    # kappa*
+    ['f(\\kappa) \\cdot |\\log(\\kappa/\\kappa^*)|',
+     "f(kappa) * abs(log(kappa/stable_kappa(alpha,sigma)))"],
+    ['f(\\kappa) \\cdot filter_{\\kappa 1}(|\\log(\\kappa/\\kappa^*)|)',
+     "f(kappa) * k_filter_0(abs(log(kappa/stable_kappa(alpha,sigma))))"],
+    ['f(\\kappa) \\cdot filter_{\\kappa 1}(|\\log(\\kappa/\\kappa^*)|)',
+     "f(kappa) * k_filter_1(abs(log(kappa/stable_kappa(alpha,sigma))))"],
+    ['f(\\kappa) \\cdot filter_{\\kappa 1}(|\\log(\\kappa/\\kappa^*)|)',
+     "f(kappa) * k_filter_2(abs(log(kappa/stable_kappa(alpha,sigma))), kappa)"],
+    ['f(\\kappa) \\cdot filter_{\\kappa 1}(|\\log(\\kappa/\\kappa^*)|)',
+     "f(kappa) * k_filter_3(abs(log(kappa/stable_kappa(alpha,sigma))), alpha, kappa)"],
+    # kappa_target
+    ['f(\\kappa) \\cdot |\\log(\\kappa/\\kappa_t)|',
+     "f(kappa) * abs(log(kappa/target_kappa(alpha,sigma)))"],
+    ['f(\\kappa) \\cdot filter0_{\\kappa}(|\\log(\\kappa/\\kappa_t)|)',
+     "f(kappa) * k_filter_0(abs(log(kappa/target_kappa(alpha,sigma))))"],
+    ['f(\\kappa) \\cdot filter1_{\\kappa}(|\\log(\\kappa/\\kappa_t)|)',
+     "f(kappa) * k_filter_1(abs(log(kappa/target_kappa(alpha,sigma))))"],
+    ['f(\\kappa) \\cdot filter2_{\\kappa}(|\\log(\\kappa/\\kappa_t)|)',
+     "f(kappa) * k_filter_2(abs(log(kappa/target_kappa(alpha,sigma))), kappa)"],
+    ['f(\\kappa) \\cdot filter3_{\\kappa}(|\\log(\\kappa/\\kappa_t)|, \\alpha, \\kappa)',
+     "f(kappa) * k_filter_3(abs(log(kappa/target_kappa(alpha,sigma))), alpha, kappa)"],
+    # sigma*
+    ['|\\log(\\sigma/\\sigma^*)|',
+     "abs(log(sigma/stable_sigma(alpha,kappa)))"],
+    ['filter0_{\\sigma}(\\log(\\sigma/\\sigma^*))',
+     "s_filter_0(abs(log(sigma/stable_sigma(alpha,kappa))))"],
+    ['filter1_{\\sigma}(\\log(\\sigma/\\sigma^*))',
+     "s_filter_1(abs(log(sigma/stable_sigma(alpha,kappa))))"],
+    ['filter2_{\\sigma}(\\log(\\sigma/\\sigma^*))',
+     "s_filter_2(abs(log(sigma/stable_sigma(alpha,kappa))),kappa)"],
+    # alpha
+    ['f(\\kappa) \\cdot (\\pi/2 - \\alpha)^2',
+     'f(kappa) * (1.57079632679 - alpha)**2']
 ]
 
+helper_functions = {
+    "stable_kappa": lambda alpha_, sigma_: get_data_value(alpha_, sigma_, kappa_data['alpha'], kappa_data['sigma'],
+                                                          kappa_data['stable_kappa']),
+    "stable_sigma": lambda alpha_, kappa_: get_data_value(alpha_, kappa_, sigma_data['alpha'], sigma_data['kappa'],
+                                                          sigma_data['stable_sigma']),
+    "f": lambda x: gaussian_filter(x, 0.2, 0.01, 1) * x,
+    "k_filter_0": lambda x: gaussian_filter(x, 0.5, 0.5, 0) * x,
+    "k_filter_1": lambda x: gaussian_filter(x, 0.1, 0.5, 0) * x,
+    "k_filter_2": lambda x, kappa: gaussian_filter(x, 0.5, 0.1 * np.log(kappa), 0) * x,
+    "k_filter_3": lambda x, alpha, kappa: gaussian_filter(x, 0.5, 0.1 * np.log(kappa) * np.log(alpha + 1), 0) * x,
+    "s_filter_0": lambda x: gaussian_filter(x, 0.5, 0.5, 0) * x,
+    "s_filter_1": lambda x: gaussian_filter(x, 0.2, 0.5, 0) * x,
+    "s_filter_2": lambda x, kappa: gaussian_filter(x, 0.5, 0.3 * np.log(kappa), 0) * x,
+    "target_kappa": lambda alpha, sigma: np.where(((np.cos(alpha) + 0.00000001) / sigma) ** 2 < 1, 1,
+                                                  ((np.cos(alpha) + 0.00000001) / sigma) ** 2)
+}
+
 # config
-sub_batch_size = 5000
+sub_batch_size = 25000
 
 # Initialize the target function and optimization algorithm
 alg = CMA_ES(Sphere(), {
@@ -99,22 +143,10 @@ if __name__ == '__main__':
         print("Warning: alpha_sequence is out of bounds for the stable_parameter data")
 
     # Update the function dict of the potential evaluation
-    # where(abs(log(kappa/stable_kappa(alpha,sigma)))<1,(log(kappa/stable_kappa(alpha,sigma))**2)/2-0.5,abs(log(kappa/stable_kappa(alpha,sigma)))-1)"
-    # where(((cos(alpha)+0.00000001)/sigma)**2<1,1,((cos(alpha)+0.00000001)/sigma)**2)
-    # where(abs(log(sigma/stable_sigma(alpha,kappa)))-1 < 0, (log(sigma/stable_sigma(alpha,kappa))**2)/2 - 0.5, abs(log(sigma/stable_sigma(alpha,kappa)))-1)
-    da.function_dict.update({
-        "stable_kappa": lambda alpha_, sigma_: get_data_value(alpha_, sigma_, kappa_data['alpha'], kappa_data['sigma'],
-                                                              kappa_data['stable_kappa']),
-        "stable_sigma": lambda alpha_, kappa_: get_data_value(alpha_, kappa_, sigma_data['alpha'], sigma_data['kappa'],
-                                                              sigma_data['stable_sigma']),
-        "f": lambda x: gaussian_filter(x, 0.2, 0.01, 1) * x,
-        "k_filter": lambda x, alpha: gaussian_filter(x,  2, 2, 0) * x,
-        "s_filter": lambda x: gaussian_filter(x, 0.5, 0.5, 0) * x,
-        "target_kappa": lambda alpha, sigma: np.where(((np.cos(alpha)+0.00000001)/sigma)**2<1,1,((np.cos(alpha)+0.00000001)/sigma)**2)
-    })
+    da.function_dict.update(helper_functions)
 
     # Evaluate the before potential to set up the class
-    da.eval_potential([e[1] for e in potential_function], alpha_sequence, kappa_sequence, sigma_sequence)
+    da.eval_potential([e[1] for e in potential_functions], alpha_sequence, kappa_sequence, sigma_sequence)
 
     # Initialize data structures to hold results
     drifts = np.zeros([len(alpha_sequence), len(kappa_sequence), len(sigma_sequence), len(da.potential_expr)])
@@ -173,7 +205,7 @@ if __name__ == '__main__':
         'run_started': start_time.strftime("%d.%m.%Y %H:%M:%S"),
         'run_finished': end_time.strftime("%d.%m.%Y %H:%M:%S"),
         'batch_size': da.batch_size,
-        'potential_function': potential_function,
+        'potential_function': potential_functions,
         'sequences': [
             {'name': 'alpha', 'sequence': alpha_sequence.tolist()},
             {'name': 'kappa', 'sequence': kappa_sequence.tolist()},
