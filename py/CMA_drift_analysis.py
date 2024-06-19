@@ -57,12 +57,12 @@ helper_functions = {
                                                           sigma_data['stable_sigma']),
     "f": lambda x: gaussian_filter(x, 0.2, 0.01, 1) * x,
     "k_filter_1": lambda x: gaussian_filter(x, 0.1, 0.5, 0) * x,
-    "k_filter_2": lambda x, alpha, kappa: gaussian_filter(x, 0.1 * np.log(np.square(kappa)) * np.log(alpha + 1),
-                                                          0.1 * np.log(np.square(kappa)) * np.log(alpha + 1), 0) * x,
-    "k_filter_3": lambda x, alpha, kappa: gaussian_filter(x, 0.1 * np.square(np.log(kappa)) * np.log(alpha + 1),
-                                                          0.1 * np.square(np.log(kappa)) * np.log(alpha + 1), 0) * x,
+    "k_filter_2": lambda x, alpha, kappa: gaussian_filter(x, 0.1 * (np.log(np.square(kappa))+1) * np.log(alpha + 1),
+                                                          0.1 * (np.log(np.square(kappa))+1) * np.log(alpha + 1), 0) * x,
+    "k_filter_3": lambda x, alpha, kappa: gaussian_filter(x, 0.1 * (np.square(np.log(kappa))+1) * np.log(alpha + 1),
+                                                          0.1 * (np.square(np.log(kappa))+1) * np.log(alpha + 1), 0) * x,
     "k_filter_4": lambda x, alpha, kappa: gaussian_filter(x, 0.1 * kappa * np.log(alpha + 1),
-                                                          0.1 * kappa * np.log(alpha + 1), 0) * x,
+                                                          0.1 * kappa * (np.log(alpha + 1)+1), 0) * x,
     "s_filter_0": lambda x: gaussian_filter(x, 0.5, 0.5, 0) * x,
     "s_filter_1": lambda x: gaussian_filter(x, 0.2, 0.5, 0) * x,
     "s_filter_2": lambda x, kappa: gaussian_filter(x, 0.5, 0.3 * np.log(kappa), 0) * x,
@@ -79,7 +79,7 @@ alg = CMA_ES(Sphere(), {
     "d": 2,
     "p_target": 0.1818,
     "c_p": 0.8333,
-    "c_cov": 0.02,
+    "c_cov": 0.2,
     "dim": 2
 })
 

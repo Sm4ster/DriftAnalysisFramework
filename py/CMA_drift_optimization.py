@@ -2,10 +2,10 @@ import numpy as np
 import json
 import cma
 
-drift_data_raw = json.load(open('./data/SPECIAL_RUN_7.json'))
+drift_data_raw = json.load(open('./data/SPECIAL_RUN_10_C_COV=0.02.json'))
 # drift_data_raw = json.load(open('./data/NEW_FULL_RUN_FAST_7_C_COV=0.02.json'))
 drift_data = np.array(drift_data_raw["drift"]) #+ np.array(drift_data_raw["precision"])
-terms = np.array([False, False, True, False, False, False, True, False])  # drift_data.shape[3]
+terms = np.array([False, False, False, False, False, False, False, False, False, False, False, True, False])  # drift_data.shape[3]
 
 print(drift_data.shape)
 
