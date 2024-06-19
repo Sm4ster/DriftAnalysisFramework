@@ -20,7 +20,7 @@ potential_functions = [
 
     # kappa
     ["\\log(\\kappa)", "log(kappa)"],
-    ["\\log(\\kappa) \\cdot filter_{\\alpha}(\\alpha)", "log(kappa) * filter_alpha(alpha)"],
+    ["filter_{\\alpha}(\\log(\\kappa),\\alpha)", "filter_alpha(log(kappa),alpha)"],
 
     # sigma*
     ['|\\log(\\sigma/\\sigma^*)|',
@@ -40,7 +40,7 @@ helper_functions = {
     "stable_sigma": lambda alpha_, kappa_: get_data_value(alpha_, kappa_, sigma_data['alpha'], sigma_data['kappa'],
                                                           sigma_data['stable_sigma']),
     "f": lambda x: gaussian_filter(x, 0.2, 0.01, 1) * x,
-    "filter_alpha": lambda x: 1 - spline_filter(x, 1.5707963267948966 / 4, 1.5707963267948966 / 2, 5, 10) * x,
+    "filter_alpha": lambda x, alpha: 1 - spline_filter(alpha, 1.5707963267948966 / 4, 1.5707963267948966 / 2, 5, 10) * x,
     "s_filter_1": lambda x, kappa: gaussian_filter(x, 0.5, 0.3 * (np.log(kappa) + 1), 0) * x,
     "s_filter_2": lambda x, kappa: gaussian_filter(x, 0.1, 0.1 * (np.log(kappa) + 1), 0) * x,
     "s_filter_3": lambda x, kappa: gaussian_filter(x, 0.01, 0.1 * (np.log(kappa) + 1), 0) * x,

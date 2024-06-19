@@ -2,9 +2,9 @@ import numpy as np
 import json
 import cma
 
-drift_data_raw = json.load(open('./data/SPECIAL_RUN_11.json'))
+drift_data_raw = json.load(open('./data/SPECIAL_RUN_12.json'))
 drift_data = np.array(drift_data_raw["drift"])  # + np.array(drift_data_raw["precision"])
-terms = [7, 12]
+terms = [1, 4]
 
 def c_drift(weights):
     cdrift = np.array(drift_data[:, :, :, 0])
