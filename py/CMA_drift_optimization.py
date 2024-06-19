@@ -2,21 +2,15 @@ import numpy as np
 import json
 import cma
 
-drift_data_raw = json.load(open('./data/SPECIAL_RUN_10_C_COV=0.02.json'))
-# drift_data_raw = json.load(open('./data/NEW_FULL_RUN_FAST_7_C_COV=0.02.json'))
-drift_data = np.array(drift_data_raw["drift"]) #+ np.array(drift_data_raw["precision"])
-terms = np.array([False, False, False, False, False, False, False, False, False, False, False, True, False])  # drift_data.shape[3]
-
-print(drift_data.shape)
+drift_data_raw = json.load(open('./data/SPECIAL_RUN_11.json'))
+drift_data = np.array(drift_data_raw["drift"])  # + np.array(drift_data_raw["precision"])
+terms = [7, 12]
 
 def c_drift(weights):
     cdrift = np.array(drift_data[:, :, :, 0])
 
-    weight_idx = 0
-    for (idx, term) in enumerate(terms):
-        if term:
-            cdrift += drift_data[:, :, :, idx+1] * np.exp(weights[weight_idx])
-            weight_idx += 1
+    for idx, term_idx in enumerate(terms):
+        cdrift += drift_data[:, :, :, term_idx] * np.exp(weights[idx])
 
     return cdrift
 
@@ -25,8 +19,9 @@ def fitness(weights):
     cdrift = c_drift(weights)
     return cdrift.max()
 
+
 # Initial guess for the solution
-x0 = np.ones([terms.sum()]) * -0.5
+x0 = np.ones([len(terms)]) * -0.5
 
 # Standard deviation for the initial search distribution
 sigma0 = 10  # Example standard deviation

@@ -23,9 +23,6 @@ def spline_filter(x, a, b, c, d):
     result3 = 1 - g((x - a) / (b - a))
     result4 = g((x - c) / (d - c))
 
-    print(x)
-    print(condition1)
-
     # Apply the conditions using np.select for better readability
     conditions = [condition1, condition2, condition3, condition4]
     choices = [result1, result2, result3, result4]

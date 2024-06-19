@@ -37,8 +37,8 @@ def filter_func(x, a, b, c, d):
 
 
 # Sample data arrays
-x = np.linspace(-5, 5, 100)  # avoid zero to prevent log issues
-y = filter_func(x, -2, -0.5, 0.5, 2)
+x = np.linspace(0, 1.5707963267948966, 100)  # avoid zero to prevent log issues
+y = 1 - filter_func(x, 1.5707963267948966/4, 1.5707963267948966/2, 5, 10)
 # y = filter_func(x, steepness, width, position)
 
 print(x, y)

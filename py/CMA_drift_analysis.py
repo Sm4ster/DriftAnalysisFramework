@@ -17,37 +17,21 @@ workers = 63
 # potential function
 potential_functions = [
     ['\\log(|m|)', "log(norm(m))"],
-    # kappa*
-    ['f(\\kappa) \\cdot |\\log(\\kappa/\\kappa^*)|',
-     "f(kappa) * abs(log(kappa/stable_kappa(alpha,sigma)))"],
-    ['f(\\kappa) \\cdot filter1_{\\kappa}(|\\log(\\kappa/\\kappa^*)|)',
-     "f(kappa) * k_filter_1(abs(log(kappa/stable_kappa(alpha,sigma))))"],
-    ['f(\\kappa) \\cdot filter2_{\\kappa}(|\\log(\\kappa/\\kappa^*)|)',
-     "f(kappa) * k_filter_2(abs(log(kappa/stable_kappa(alpha,sigma))), alpha, kappa)"],
-    ['f(\\kappa) \\cdot filter3_{\\kappa}(|\\log(\\kappa/\\kappa^*)|)',
-     "f(kappa) * k_filter_3(abs(log(kappa/stable_kappa(alpha,sigma))), alpha, kappa)"],
-    ['f(\\kappa) \\cdot filter4_{\\kappa}(|\\log(\\kappa/\\kappa^*)|)',
-     "f(kappa) * k_filter_4(abs(log(kappa/stable_kappa(alpha,sigma))), alpha, kappa)"],
-    # kappa_target
-    ['f(\\kappa) \\cdot |\\log(\\kappa/\\kappa_t)|',
-     "f(kappa) * abs(log(kappa/target_kappa(alpha,sigma)))"],
-    ['f(\\kappa) \\cdot filter1_{\\kappa}(|\\log(\\kappa/\\kappa_t)|)',
-     "f(kappa) * k_filter_1(abs(log(kappa/target_kappa(alpha,sigma))))"],
-    ['f(\\kappa) \\cdot filter2_{\\kappa}(|\\log(\\kappa/\\kappa_t)|, \\alpha, \\kappa)',
-     "f(kappa) * k_filter_2(abs(log(kappa/target_kappa(alpha,sigma))), alpha, kappa)"],
-    ['f(\\kappa) \\cdot filter3_{\\kappa}(|\\log(\\kappa/\\kappa_t)|, \\alpha, \\kappa)',
-     "f(kappa) * k_filter_3(abs(log(kappa/target_kappa(alpha,sigma))), alpha, kappa)"],
-    ['f(\\kappa) \\cdot filter4_{\\kappa}(|\\log(\\kappa/\\kappa_t)|, \\alpha, \\kappa)',
-     "f(kappa) * k_filter_4(abs(log(kappa/target_kappa(alpha,sigma))), alpha, kappa)"],
+
+    # kappa
+    ["\\log(\\kappa)", "log(kappa)"],
+    ["\\log(\\kappa) \\cdot filter_{\\alpha}(\\alpha)", "log(kappa) * filter_alpha(alpha)"],
 
     # sigma*
     ['|\\log(\\sigma/\\sigma^*)|',
      "abs(log(sigma/stable_sigma(alpha,kappa)))"],
+    ['filter1_{\\sigma}(\\log(\\sigma/\\sigma^*))',
+     "s_filter_1(abs(log(sigma/stable_sigma(alpha,kappa))),kappa)"],
     ['filter2_{\\sigma}(\\log(\\sigma/\\sigma^*))',
      "s_filter_2(abs(log(sigma/stable_sigma(alpha,kappa))),kappa)"],
-    # alpha
-    ['f(\\kappa) \\cdot (\\pi/2 - \\alpha)^2',
-     'f(kappa) * (1.57079632679 - alpha)**2']
+    ['filter3_{\\sigma}(\\log(\\sigma/\\sigma^*))',
+     "s_filter_3(abs(log(sigma/stable_sigma(alpha,kappa))),kappa)"],
+
 ]
 
 helper_functions = {
@@ -56,22 +40,10 @@ helper_functions = {
     "stable_sigma": lambda alpha_, kappa_: get_data_value(alpha_, kappa_, sigma_data['alpha'], sigma_data['kappa'],
                                                           sigma_data['stable_sigma']),
     "f": lambda x: gaussian_filter(x, 0.2, 0.01, 1) * x,
-    "k_filter_1": lambda x: gaussian_filter(x, 0.1, 0.5, 0) * x,
-    "k_filter_2": lambda x, alpha, kappa: gaussian_filter(x,
-                                                          0.1 * (np.log(np.square(kappa)) + 1) * (
-                                                                  np.log(alpha + 1) + 1),
-                                                          0.1 * (np.log(np.square(kappa)) + 1) * (
-                                                                  np.log(alpha + 1) + 1), 0) * x,
-    "k_filter_3": lambda x, alpha, kappa: gaussian_filter(x,
-                                                          0.1 * (np.square(np.log(kappa)) + 1) * (
-                                                                  np.log(alpha + 1) + 1),
-                                                          0.1 * (np.square(np.log(kappa)) + 1) * (
-                                                                  np.log(alpha + 1) + 1), 0) * x,
-    "k_filter_4": lambda x, alpha, kappa: gaussian_filter(x, 0.1 * kappa * (np.log(alpha + 1) + 1),
-                                                          0.1 * kappa * (np.log(alpha + 1) + 1), 0) * x,
-    "s_filter_0": lambda x: gaussian_filter(x, 0.5, 0.5, 0) * x,
-    "s_filter_1": lambda x: gaussian_filter(x, 0.2, 0.5, 0) * x,
-    "s_filter_2": lambda x, kappa: gaussian_filter(x, 0.5, 0.3 * (np.log(kappa)+1), 0) * x,
+    "filter_alpha": lambda x: 1 - spline_filter(x, 1.5707963267948966 / 4, 1.5707963267948966 / 2, 5, 10) * x,
+    "s_filter_1": lambda x, kappa: gaussian_filter(x, 0.5, 0.3 * (np.log(kappa) + 1), 0) * x,
+    "s_filter_2": lambda x, kappa: gaussian_filter(x, 0.1, 0.1 * (np.log(kappa) + 1), 0) * x,
+    "s_filter_3": lambda x, kappa: gaussian_filter(x, 0.01, 0.1 * (np.log(kappa) + 1), 0) * x,
 
     "target_kappa": lambda alpha, sigma: np.where(((np.cos(alpha) + 0.00000001) / sigma) ** 2 < 1, 1,
                                                   ((np.cos(alpha) + 0.00000001) / sigma) ** 2)
