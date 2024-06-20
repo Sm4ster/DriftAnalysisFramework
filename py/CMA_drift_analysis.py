@@ -20,15 +20,15 @@ potential_functions = [
 
     # kappa
     ["\\log(\\kappa)", "log(kappa)"],
-    ["filter_{\\alpha}(\\log(\\kappa),\\alpha)", "filter_alpha(log(kappa),alpha)"],
+    # ["filter_{\\alpha}(\\log(\\kappa),\\alpha)", "filter_alpha(log(kappa),alpha)"],
 
     # sigma*
     ['|\\log(\\sigma/\\sigma^*)|',
      "abs(log(sigma/stable_sigma(alpha,kappa)))"],
-    ['filter1_{\\sigma}(\\log(\\sigma/\\sigma^*))',
-     "s_filter_1(abs(log(sigma/stable_sigma(alpha,kappa))),kappa)"],
-    ['filter2_{\\sigma}(\\log(\\sigma/\\sigma^*))',
-     "s_filter_2(abs(log(sigma/stable_sigma(alpha,kappa))),kappa)"],
+    # ['filter1_{\\sigma}(\\log(\\sigma/\\sigma^*))',
+    #  "s_filter_1(abs(log(sigma/stable_sigma(alpha,kappa))),kappa)"],
+    # ['filter2_{\\sigma}(\\log(\\sigma/\\sigma^*))',
+    #  "s_filter_2(abs(log(sigma/stable_sigma(alpha,kappa))),kappa)"],
     ['filter3_{\\sigma}(\\log(\\sigma/\\sigma^*))',
      "s_filter_3(abs(log(sigma/stable_sigma(alpha,kappa))),kappa)"],
 
