@@ -1,0 +1,38 @@
+{
+  "batch_size": 25000,
+  "sub_batch_size": 25000,
+  "alpha": [
+    0,
+    1.5707963267948966,
+    24
+  ],
+  "kappa": [
+    1,
+    100,
+    256
+  ],
+  "sigma": [
+    0.01,
+    10,
+    368
+  ],
+  "potential_functions": [
+    [
+      "\\log(|m|)",
+      "log(norm(m))"
+    ],
+    [
+      "\\log(\\kappa)",
+      "log(kappa)"
+    ],
+    [
+      "|\\log(\\sigma/\\sigma^*)|",
+      "abs(log(sigma/stable_sigma(alpha,kappa)))"
+    ],
+    [
+      "filter3_{\\sigma}(\\log(\\sigma/\\sigma^*))",
+      "s_filter_3(abs(log(sigma/stable_sigma(alpha,kappa))),kappa)"
+    ]
+  ]
+}
+

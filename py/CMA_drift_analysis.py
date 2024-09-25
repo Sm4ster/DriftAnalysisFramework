@@ -14,26 +14,6 @@ from DriftAnalysisFramework.Filter import gaussian_filter, spline_filter
 parallel_execution = True
 workers = 63
 
-# potential function
-potential_functions = [
-    ['\\log(|m|)', "log(norm(m))"],
-
-    # kappa
-    ["\\log(\\kappa)", "log(kappa)"],
-    # ["filter_{\\alpha}(\\log(\\kappa),\\alpha)", "filter_alpha(log(kappa),alpha)"],
-
-    # sigma*
-    ['|\\log(\\sigma/\\sigma^*)|',
-     "abs(log(sigma/stable_sigma(alpha,kappa)))"],
-    # ['filter1_{\\sigma}(\\log(\\sigma/\\sigma^*))',
-    #  "s_filter_1(abs(log(sigma/stable_sigma(alpha,kappa))),kappa)"],
-    # ['filter2_{\\sigma}(\\log(\\sigma/\\sigma^*))',
-    #  "s_filter_2(abs(log(sigma/stable_sigma(alpha,kappa))),kappa)"],
-    ['filter3_{\\sigma}(\\log(\\sigma/\\sigma^*))',
-     "s_filter_3(abs(log(sigma/stable_sigma(alpha,kappa))),kappa)"],
-
-]
-
 helper_functions = {
     "stable_kappa": lambda alpha_, sigma_: get_data_value(alpha_, sigma_, kappa_data['alpha'], kappa_data['sigma'],
                                                           kappa_data['stable_kappa']),
@@ -49,43 +29,55 @@ helper_functions = {
                                                   ((np.cos(alpha) + 0.00000001) / sigma) ** 2)
 }
 
-# config
-sub_batch_size = 25000
-
-# Initialize the target function and optimization algorithm
-alg = CMA_ES(Sphere(), {
-    "d": 2,
-    "p_target": 0.1818,
-    "c_p": 0.8333,
-    "c_cov": 0.2,
-    "dim": 2
-})
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='This script does drift simulation for CMA')
-    parser.add_argument('--parameter_file', type=str, help='Parameter file name', default='parameters.json')
+
+    parser.add_argument('--potential_functions', type=str, help='JSON String of potential functions', default='')
+    parser.add_argument('--batch_size', type=int, help='Number of samples to test', default=50000)
+    parser.add_argument('--sub_batch_size', type=int, help='Number of samples to test in on iteration', default=25000)
+
+    parser.add_argument('--alpha_start', type=float, help='Stable kappa data file name', default=0)
+    parser.add_argument('--alpha_end', type=float, help='Stable kappa data file name', default=1.5707963267948966)
+    parser.add_argument('--alpha_samples', type=int, help='Stable kappa data file name', default=24)
+
+    parser.add_argument('--kappa_start', type=float, help='Stable kappa data file name', default=1)
+    parser.add_argument('--kappa_end', type=float, help='Stable kappa data file name', default=100)
+    parser.add_argument('--kappa_samples', type=int, help='Stable kappa data file name', default=128)
+
+    parser.add_argument('--sigma_start', type=float, help='Stable kappa data file name', default=0.1)
+    parser.add_argument('--sigma_end', type=float, help='Stable kappa data file name', default=10)
+    parser.add_argument('--sigma_samples', type=int, help='Stable kappa data file name', default=256)
+
     parser.add_argument('--kappa_input', type=str, help='Stable kappa data file name', default='stable_kappa.json')
-    parser.add_argument('--sigma_input', type=str, help='Stable sigma data file name', default='stable_sigma.json')
+    parser.add_argument('--sigma_input', type=str, help='Stable sigma data file name',
+                        default='stable_sigma_with_transformation.json')
     parser.add_argument('--output', type=str, help='Output file name', default='drift_run.json')
     args = parser.parse_args()
+
+    # potential_functions
+    potential_functions = json.loads(args.potential_functions)
 
     # get start time
     start_time = datetime.now()
 
-    # config
-    parameters = json.load(open(f'./{args.parameter_file}'))
+    # Initialize the target function and optimization algorithm
+    alg = CMA_ES(Sphere(), {
+        "d": 2,
+        "p_target": 0.1818,
+        "c_cov": 0.2,
+        "dim": 2
+    })
 
     # create states
-    alpha_sequence = np.linspace(parameters["alpha"][0], parameters["alpha"][1], num=parameters["alpha"][2])
-    kappa_sequence = np.geomspace(parameters["kappa"][0], parameters["kappa"][1], num=parameters["kappa"][2])
-    sigma_sequence = np.geomspace(parameters["sigma"][0], parameters["sigma"][1], num=parameters["sigma"][2])
-
-    batch_size = 500000
+    alpha_sequence = np.linspace(args.alpha_start, args.alpha_end, num=args.alpha_samples)
+    kappa_sequence = np.geomspace(args.kappa_start, args.kappa_end, num=args.kappa_samples)
+    sigma_sequence = np.geomspace(args.sigma_start, args.sigma_end, num=args.sigma_samples)
 
     # Initialize the Drift Analysis class
     da = DriftAnalysis(alg)
-    da.batch_size = parameters["batch_size"]
-    da.sub_batch_size = sub_batch_size
+    da.batch_size = args.batch_size
+    da.sub_batch_size = args.sub_batch_size
 
     # Initialize stable_sigma and stable_kappa
     kappa_data_raw = json.load(open(f'./data/{args.kappa_input}'))
