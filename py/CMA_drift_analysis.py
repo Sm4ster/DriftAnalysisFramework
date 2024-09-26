@@ -20,7 +20,8 @@ helper_functions = {
     "stable_sigma": lambda alpha_, kappa_: get_data_value(alpha_, kappa_, sigma_data['alpha'], sigma_data['kappa'],
                                                           sigma_data['stable_sigma']),
     "f": lambda x: gaussian_filter(x, 0.2, 0.01, 1) * x,
-    "filter_alpha": lambda x, alpha: 1 - spline_filter(alpha, 1.5707963267948966 / 4, 1.5707963267948966 / 2, 5, 10) * x,
+    "filter_alpha": lambda x, alpha: 1 - spline_filter(alpha, 1.5707963267948966 / 4, 1.5707963267948966 / 2, 5,
+                                                       10) * x,
     "s_filter_1": lambda x, kappa: gaussian_filter(x, 0.5, 0.3 * (np.log(kappa) + 1), 0) * x,
     "s_filter_2": lambda x, kappa: gaussian_filter(x, 0.1, 0.1 * (np.log(kappa) + 1), 0) * x,
     "s_filter_3": lambda x, kappa: gaussian_filter(x, 0.01, 0.1 * (np.log(kappa) + 1), 0) * x,
@@ -29,13 +30,15 @@ helper_functions = {
                                                   ((np.cos(alpha) + 0.00000001) / sigma) ** 2)
 }
 
-
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='This script does drift simulation for CMA')
 
     parser.add_argument('--potential_functions', type=str, help='JSON String of potential functions', default='')
     parser.add_argument('--batch_size', type=int, help='Number of samples to test', default=50000)
     parser.add_argument('--sub_batch_size', type=int, help='Number of samples to test in on iteration', default=25000)
+
+    parser.add_argument('--CMA_c_cov', type=float, help='c_cov parameter of CMA-ES', default=0.2)
+    parser.add_argument('--CMA_d', type=float, help='dampening parameter of CMA-ES', default=2)
 
     parser.add_argument('--alpha_start', type=float, help='Stable kappa data file name', default=0)
     parser.add_argument('--alpha_end', type=float, help='Stable kappa data file name', default=1.5707963267948966)
@@ -50,9 +53,9 @@ if __name__ == '__main__':
     parser.add_argument('--sigma_samples', type=int, help='Stable kappa data file name', default=256)
 
     parser.add_argument('--kappa_input', type=str, help='Stable kappa data file name', default='stable_kappa.json')
-    parser.add_argument('--sigma_input', type=str, help='Stable sigma data file name',
-                        default='stable_sigma_with_transformation.json')
-    parser.add_argument('--output', type=str, help='Output file name', default='drift_run.json')
+    parser.add_argument('--sigma_input', type=str, help='Stable sigma data file name', default='stable_sigma.json')
+    parser.add_argument('--output_file', type=str, help='Output file name', default='drift_run.json')
+
     args = parser.parse_args()
 
     # potential_functions
@@ -63,9 +66,9 @@ if __name__ == '__main__':
 
     # Initialize the target function and optimization algorithm
     alg = CMA_ES(Sphere(), {
-        "d": 2,
+        "d": args.CMA_d,
         "p_target": 0.1818,
-        "c_cov": 0.2,
+        "c_cov": args.CMA_c_cov,
         "dim": 2
     })
 
@@ -194,5 +197,5 @@ if __name__ == '__main__':
         'stable_sigma': sigma_data_raw
     }
 
-    with open(f'./data/{args.output}', 'w') as f:
+    with open(f'./data/{args.output_file}', 'w') as f:
         json.dump(data, f)
