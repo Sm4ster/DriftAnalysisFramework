@@ -56,6 +56,79 @@ class CMA_ES:
         self.target = target
 
         # constants
+        self.lamda = 10
+        self.mu = 5
+        self.selection = []  # w_i's - the selection scheme for CMA-ES
+        self.c_m = 1
+        self.c_sigma = 1
+        self.c_cov = 1
+
+        self.d = constants["d"]  # 1 + self.dim / 2
+        self.p_target = constants["p_target"]  # 2 / 11
+        self.c_cov = constants["c_cov"]  # 2 / (np.power(self.dim, 2) + 6)
+
+    def step(self, m, C, sigma, z=None):
+        if z is None:
+            # create standard normal samples and transform them
+            z = np.random.randn(m.shape[0], self.lamda, 2)
+
+        # this is equivalent to Az in the normal form, as the matrix C is diagonal,
+        # therefore matrix A (with AA = C) is [[sqrt(C_00), 0][0, sqrt(C_11)]]
+        # for higher dimensions possibly use (untested): sigma * np.sqrt(np.diagonal(C, axis1=1, axis2=2))
+        sigma_A = np.array([sigma * np.sqrt(C[:, 0, 0]), sigma * np.sqrt(C[:, 1, 1])]).T
+        x = m + z * sigma_A
+
+        # # evaluate samples
+        # fx = self.target.eval(x, keepdims=True)
+        # success = (fx <= 1).astype(np.float64)  # This works because on the sphere in the normal form f(m)=1
+        #
+        # # calculate new m, new sigma and new C
+        # new_m = success * x + (1 - success) * m
+        # new_sigma = sigma * np.exp((1 / self.d) * ((success - self.p_target) / (1 - self.p_target))).reshape(
+        #     sigma.shape[0])
+        # unsuccessful = ((1 - success.reshape(success.shape[0])[:, np.newaxis, np.newaxis]) * C)
+        # s = np.array([z[:, 0] * np.sqrt(C[:, 0, 0]), z[:, 1] * np.sqrt(C[:, 1, 1])]).T
+        # successful = (success.reshape(success.shape[0])[:, np.newaxis, np.newaxis]) * (
+        #         np.array((1 - self.c_cov)) * C + np.array(self.c_cov) * np.einsum("ij,ik->ijk", s, s))
+        # new_C = successful + unsuccessful
+
+        return new_m, new_C, new_sigma, success
+
+    def iterate(self, alpha, kappa, sigma, num=1):
+        # Sanitize, transform and expand the parameters
+        m, C, sigma = CMA_TR.transform_to_parameters(alpha, kappa, sigma, num)
+        raw_state_before = {"m": m, "C": C, "sigma": sigma}
+
+        # create the random samples
+        z = np.random.randn(m.shape[0], self.lamda, 2)
+
+        # vectorized step
+        m, C, sigma, success = self.step(m, C, sigma, z)
+
+        # vectorized transformation
+        alpha, kappa, sigma_normal, transformation_parameters = CMA_TR.transform_to_normal(m, C, sigma)
+
+        # prepare data for return statement
+        raw_state = {"m": m, "C": C, "sigma": sigma}
+        normal_form = {"alpha": alpha, "kappa": kappa, "sigma": sigma_normal}
+
+        return normal_form, raw_state, success, raw_state_before, transformation_parameters
+
+    def iterate_uv(self, alpha, kappa, sigma, num=1):
+        pass
+
+    def step_uv(self, m, C, sigma, z=None):
+        pass
+
+
+class OnePlusOne_CMA_ES:
+    m = None
+
+    def __init__(self, target, constants):
+        # make target function available
+        self.target = target
+
+        # constants
         self.d = constants["d"]  # 1 + self.dim / 2
         self.p_target = constants["p_target"]  # 2 / 11
         self.c_cov = constants["c_cov"]  # 2 / (np.power(self.dim, 2) + 6)

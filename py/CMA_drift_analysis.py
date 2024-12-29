@@ -5,7 +5,7 @@ from datetime import datetime
 from alive_progress import alive_bar
 from concurrent.futures import ProcessPoolExecutor
 
-from DriftAnalysisFramework.Optimization import CMA_ES
+from DriftAnalysisFramework.Optimization import OnePlusOne_CMA_ES, CMA_ES
 from DriftAnalysisFramework.Fitness import Sphere
 from DriftAnalysisFramework.Interpolation import get_data_value
 from DriftAnalysisFramework.Analysis import DriftAnalysis, eval_drift
@@ -37,6 +37,7 @@ if __name__ == '__main__':
     parser.add_argument('--batch_size', type=int, help='Number of samples to test', default=50000)
     parser.add_argument('--sub_batch_size', type=int, help='Number of samples to test in on iteration', default=25000)
 
+    parser.add_argument('--algorithm', type=str, help='[1+1-CMA-ES, CMA-ES]', default="1+1-CMA-ES")
     parser.add_argument('--CMA_c_cov', type=float, help='c_cov parameter of CMA-ES', default=0.2)
     parser.add_argument('--CMA_d', type=float, help='dampening parameter of CMA-ES', default=2)
 
@@ -65,12 +66,24 @@ if __name__ == '__main__':
     start_time = datetime.now()
 
     # Initialize the target function and optimization algorithm
-    alg = CMA_ES(Sphere(), {
-        "d": args.CMA_d,
-        "p_target": 0.1818,
-        "c_cov": args.CMA_c_cov,
-        "dim": 2
-    })
+    if args.algorithm == "1+1-CMA-ES":
+        alg = OnePlusOne_CMA_ES(Sphere(), {
+            "d": args.CMA_d,
+            "p_target": 0.1818,
+            "c_cov": args.CMA_c_cov,
+            "dim": 2
+        })
+    if args.algorithm == "CMA-ES":
+        alg = CMA_ES(Sphere(), {
+            "d": args.CMA_d,
+            "p_target": 0.1818,
+            "c_cov": args.CMA_c_cov,
+            "dim": 2
+        })
+    else:
+        alg = null
+        print("Error: No valid algorithm specified")
+        exit()
 
     # create states
     alpha_sequence = np.linspace(args.alpha_start, args.alpha_end, num=args.alpha_samples)
