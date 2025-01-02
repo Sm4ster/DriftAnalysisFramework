@@ -56,16 +56,23 @@ class CMA_ES:
         self.target = target
 
         # constants
-        self.lamda = 10
-        self.mu = 5
+        self.lamda = 6
+        self.mu = 3
         self.selection = []  # w_i's - the selection scheme for CMA-ES
-        self.c_m = 1
+        self.c_mu = 1
         self.c_sigma = 1
-        self.c_cov = 1
 
-        self.d = constants["d"]  # 1 + self.dim / 2
         self.p_target = constants["p_target"]  # 2 / 11
         self.c_cov = constants["c_cov"]  # 2 / (np.power(self.dim, 2) + 6)
+
+        weights = []
+        for i in range(self.mu):
+            weights.append(np.ln(self.mu) - np.ln(i))
+
+        self.weights = np.array(weights)
+
+        self.weights = self.weights / np.sum(self.weights)
+
 
     def step(self, m, C, sigma, z=None):
         if z is None:
@@ -78,19 +85,8 @@ class CMA_ES:
         sigma_A = np.array([sigma * np.sqrt(C[:, 0, 0]), sigma * np.sqrt(C[:, 1, 1])]).T
         x = m + z * sigma_A
 
-        # # evaluate samples
-        # fx = self.target.eval(x, keepdims=True)
-        # success = (fx <= 1).astype(np.float64)  # This works because on the sphere in the normal form f(m)=1
-        #
-        # # calculate new m, new sigma and new C
-        # new_m = success * x + (1 - success) * m
-        # new_sigma = sigma * np.exp((1 / self.d) * ((success - self.p_target) / (1 - self.p_target))).reshape(
-        #     sigma.shape[0])
-        # unsuccessful = ((1 - success.reshape(success.shape[0])[:, np.newaxis, np.newaxis]) * C)
-        # s = np.array([z[:, 0] * np.sqrt(C[:, 0, 0]), z[:, 1] * np.sqrt(C[:, 1, 1])]).T
-        # successful = (success.reshape(success.shape[0])[:, np.newaxis, np.newaxis]) * (
-        #         np.array((1 - self.c_cov)) * C + np.array(self.c_cov) * np.einsum("ij,ik->ijk", s, s))
-        # new_C = successful + unsuccessful
+        # Compute the norms of each vector in the middle axis
+        norms = np.linalg.norm(data, axis=2)
 
         return new_m, new_C, new_sigma, success
 
