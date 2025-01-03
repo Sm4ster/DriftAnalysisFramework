@@ -1,7 +1,7 @@
 import numpy as np
 
 '''
-This test script simulates a one-step iteration of the CMA-ES algorithm. It does so in a serialized manner with the
+This test script simulates a one-step iteration of the CMA-ES algorithm. It does so in a vectorized manner with the
 assumption that C is in the normal form. 
 '''
 # TODO make these realistic
@@ -78,16 +78,20 @@ x_w_sum = np.einsum("ij,ijk->ik", weights, x)
 print("x_w:\n", x_w)
 print("x_w_sum:\n", x_w_sum)
 
-# TODO make outer product of the y's
-y_w_outer_product = []
+# Make outer product of the y's
+y_w_outer_product = np.einsum('...i,...j->...ij', y_w, y_w)
+y_w_outer_product_sum = np.einsum('pni,pnj->pij', y_w, y_w)
+print("y_w:\n", y_w)
+print("y_w_outer_product:\n", y_w_outer_product)
+print("y_w_outer_product_sum:\n", y_w_outer_product_sum)
 
 # Updates of the thing TODO this isnt final yet (talk to Tobias)
 m = m + c_m * y_w_sum
 sigma = sigma * np.exp(c_sigma * np.linalg.norm(z_w_sum)) #TODO why is this so strangely normalized in the tutorial paper?
-C = (1-c_cov) * C + c_cov * y_w_outer_product
+C = (1-c_cov) * C + c_cov * y_w_outer_product_sum
 
-print("new m:\n", m)
-print("new sigma:\n", sigma)
-print("new C:\n", C)
+# print("new m:\n", m)
+# print("new sigma:\n", sigma)
+# print("new C:\n", C)
 
 
