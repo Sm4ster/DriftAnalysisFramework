@@ -1,10 +1,27 @@
 import numpy as np
 import json
 import cma
+import argparse
 
-drift_data_raw = json.load(open('./data/DENSE_RUN_14.json'))
+def int_list(s):
+    try:
+        return [int(item) for item in s.split(',')]
+    except ValueError:
+        raise argparse.ArgumentTypeError("List must be comma-separated integers.")
+
+parser = argparse.ArgumentParser(description='This script does drift simulation for CMA')
+parser.add_argument('--data_file', help='The data file name.')
+parser.add_argument('--terms', type=int_list, help='index of the terms to optimize. index 0 is always included and serves as a norm. usually this is the log(m) term')
+args = parser.parse_args()
+
+# input parameters
+terms = args.terms
+drift_data_raw = json.load(open(f'./{args.data_file}'))
+
+
+# prepare data to work with
 drift_data = np.array(drift_data_raw["drift"]) + np.array(drift_data_raw["precision"])
-terms = [1, 3]
+
 
 def c_drift(weights):
     cdrift = np.array(drift_data[:, :, :, 0])
@@ -41,6 +58,8 @@ best_solution = es.result.xbest
 
 # Fitness value of the best solution
 best_fitness = es.result.fbest
+
+# TODO add values to a file
 
 print("Best weights vector: ", best_solution)
 print("Fitness value: ", best_fitness)
