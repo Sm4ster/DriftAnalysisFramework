@@ -22,12 +22,11 @@ args = parser.parse_args()
 # input parameters
 terms = args.terms
 drift_data_raw = json.load(open(f'./{args.data_file}'))
-
-
+output_data = json.load(open(f'./{args.output_file}'))
 
 # result vector
 results = {
-    **json.load(args.data),
+    **json.loads(args.data),
     "weights_vector": [],
     "smallest_drift": [],
     "base_drift": []
@@ -51,6 +50,7 @@ def fitness(weights):
 
     return cdrift.max()
 
+
 for i in range(args.iterations):
     # Initial guess for the solution
     x0 = np.ones([len(terms)]) * -0.5
@@ -73,9 +73,10 @@ for i in range(args.iterations):
     # Fitness value of the best solution
     best_fitness = es.result.fbest
 
-    results["weights_vector"].append(best_solution)
-    results["smallest_drift"].append(c_drift(best_solution).max())
-    results["base_drift"].append(drift_data[:, :, :, 0].max())
+    results["weights_vector"].append(best_solution.tolist())
+    results["smallest_drift"].append(c_drift(best_solution).max().tolist())
+    results["base_drift"].append(drift_data[:, :, :, 0].max().tolist())
 
-with open(f'./data/{args.output_file}', 'w') as f:
-    json.dump(results, f)
+output_data.append(results)
+with open(f'./{args.output_file}', 'w') as f:
+    json.dump(output_data, f)
