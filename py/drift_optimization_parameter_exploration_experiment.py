@@ -1,5 +1,7 @@
 import numpy as np
 import subprocess
+import json
+import sys
 
 # List of parameter sets for each execution
 c_cov_sequence = np.geomspace(1 / 16, 2, num=6)
@@ -10,9 +12,11 @@ for param_set in param_sets:
     dataset_name = "./data/" + str(param_set[0]) + "_" + str(param_set[1]) + "_" + "parameter_experiment.json"
 
     command = [
-        '/home/franksyj/DriftAnalysisFramework/py/venv/bin/python', 'CMA_drift_optimization.py',
+        sys.executable, 'CMA_drift_optimization.py',
         "--data_file", dataset_name,
-        "--terms", "1,3"
+        "--output_file", "parameter_experiment_output.json",
+        "--terms", "1,3",
+        "--data", json.dumps({"factors": {"c_cov": param_set[0], "d": param_set[1]}})
     ]
 
     print(command)

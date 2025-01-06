@@ -81,7 +81,7 @@ if __name__ == '__main__':
             "dim": 2
         })
     else:
-        alg = null
+        alg = None
         print("Error: No valid algorithm specified")
         exit()
 
