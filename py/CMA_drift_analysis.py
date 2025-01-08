@@ -38,6 +38,7 @@ if __name__ == '__main__':
     parser.add_argument('--sub_batch_size', type=int, help='Number of samples to test in on iteration', default=25000)
 
     parser.add_argument('--algorithm', type=str, help='[1+1-CMA-ES, CMA-ES]', default="1+1-CMA-ES")
+    parser.add_argument('--CMA_c_sigma', type=float, help='c_sigma parameter of CMA-ES', default=2)
     parser.add_argument('--CMA_c_cov', type=float, help='c_cov parameter of CMA-ES', default=0.2)
     parser.add_argument('--CMA_d', type=float, help='dampening parameter of CMA-ES', default=2)
 
@@ -71,14 +72,11 @@ if __name__ == '__main__':
             "d": args.CMA_d,
             "p_target": 0.1818,
             "c_cov": args.CMA_c_cov,
-            "dim": 2
         })
     if args.algorithm == "CMA-ES":
         alg = CMA_ES(Sphere(), {
-            "d": args.CMA_d,
-            "p_target": 0.1818,
+            "c_sigma": args.CMA_c_sigma,
             "c_cov": args.CMA_c_cov,
-            "dim": 2
         })
     else:
         alg = None

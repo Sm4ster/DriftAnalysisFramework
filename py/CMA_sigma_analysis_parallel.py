@@ -4,18 +4,22 @@ import multiprocessing
 import json
 import argparse
 
-from DriftAnalysisFramework.Optimization import CMA_ES
+from DriftAnalysisFramework.Optimization import CMA_ES, OnePlusOne_CMA_ES
 from DriftAnalysisFramework.Transformation import CMA_ES as TR
 from DriftAnalysisFramework.Fitness import Sphere
 
 from alive_progress import alive_bar
 
 # Globals
-workers = 62
-groove_iteration = 50000
-measured_samples = 1000000
+debug = False
+workers = 20
+groove_iteration = 500
+measured_samples = 100000
 
+# alpha_sequence = np.linspace(0, np.pi / 2, num=1)
 alpha_sequence = np.linspace(0, np.pi / 2, num=64)
+
+# kappa_sequence = np.geomspace(1, 2000, num=1)
 kappa_sequence = np.geomspace(1, 2000, num=2048)
 
 progress_size = 1000
@@ -38,7 +42,7 @@ def experiment(alpha_chunk, kappa_chunk, queue, idx):
 
         # report progress to the queue
         if i > 0 and i % progress_size == 0:
-            queue.put({"message": "progress"})
+            if queue is not None: queue.put({"message": "progress"})
 
     for i in range(measured_samples):
         new_m, new_C, new_sigma, success = alg.step(m, C, sigma)
@@ -50,7 +54,7 @@ def experiment(alpha_chunk, kappa_chunk, queue, idx):
 
         # report progress to the queue
         if i > 0 and i % progress_size == 0:
-            queue.put({"message": "progress"})
+            if queue is not None: queue.put({"message": "progress"})
 
     queue.put({
         "message": "done",
@@ -63,6 +67,11 @@ def experiment(alpha_chunk, kappa_chunk, queue, idx):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='This script computes stable kappa values for CMA.')
     parser.add_argument('--output', type=str, help='Output file name', default='stable_sigma.json')
+    parser.add_argument('--algorithm', type=str, help='[1+1-CMA-ES, CMA-ES]', default="1+1-CMA-ES")
+    parser.add_argument('--Comma_CMA_c_sigma', type=float, help='c_sigma parameter of CMA-ES', default=0.2)
+    parser.add_argument('--Comma_CMA_c_cov', type=float, help='c_cov parameter of CMA-ES', default=0.09182736455463728)
+    parser.add_argument('--Elitist_CMA_c_cov', type=float, help='c_cov parameter of CMA-ES', default=0.3)
+    parser.add_argument('--Elitist_CMA_d', type=float, help='dampening parameter of CMA-ES', default=2)
     args = parser.parse_args()
 
     # stable sigma experiment
@@ -71,13 +80,22 @@ if __name__ == "__main__":
     # get start time
     start_time = datetime.now()
 
-    alg = CMA_ES(Sphere(), {
-        "d": 10,
-        "p_target": 0.1818,
-        "c_p": 0.8333,
-        "c_cov": 0,
-        "dim": 2
-    })
+    # Initialize the target function and optimization algorithm
+    if args.algorithm == "1+1-CMA-ES":
+        alg = OnePlusOne_CMA_ES(Sphere(), {
+            "d": args.Elitist_CMA_d,
+            "p_target": 0.1818,
+            "c_cov": args.Elitist_CMA_c_cov,
+        })
+    if args.algorithm == "CMA-ES":
+        alg = CMA_ES(Sphere(), {
+            "c_sigma": args.Comma_CMA_c_sigma,
+            "c_cov": args.Comma_CMA_c_cov,
+        })
+    else:
+        alg = None
+        print("Error: No valid algorithm specified")
+        exit()
 
     # combine all alphas and kappas
     alpha, kappa= np.repeat(alpha_sequence, kappa_sequence.shape[0]), np.tile(kappa_sequence, alpha_sequence.shape[0])
@@ -87,39 +105,46 @@ if __name__ == "__main__":
     log_sigma_store = np.zeros([alpha_sequence.shape[0] * kappa_sequence.shape[0]])
     success_store = np.zeros([alpha_sequence.shape[0] * kappa_sequence.shape[0]])
 
-    # Create a multiprocessing Queue for progress updates
-    progress_queue = multiprocessing.Queue()
+    if debug:
+        for p_idx in range(workers):
+            l_idx = p_idx * chunk_size
+            h_idx = (p_idx + 1) * chunk_size if p_idx + 1 < workers else alpha.shape[0]
+            experiment(alpha[l_idx:h_idx], kappa[l_idx:h_idx], None, (l_idx, h_idx))
 
-    # List to keep track of processes
-    processes = []
+    else:
+        # Create a multiprocessing Queue for progress updates
+        progress_queue = multiprocessing.Queue()
 
-    # Creating and starting worker processes
-    for p_idx in range(workers):
-        l_idx = p_idx * chunk_size
-        h_idx = (p_idx + 1) * chunk_size if p_idx + 1 < workers else alpha.shape[0]
-        p = multiprocessing.Process(target=experiment,
-                                    args=(alpha[l_idx:h_idx], kappa[l_idx:h_idx], progress_queue, (l_idx, h_idx)))
-        processes.append(p)
-        p.start()
+        # List to keep track of processes
+        processes = []
 
-    total_progress = (((measured_samples + groove_iteration) // progress_size) - 1) * workers
-    with alive_bar(total_progress, force_tty=True, title="Collecting") as bar:
-        completed_workers = 0
-        while completed_workers < len(processes):
-            update = progress_queue.get()  # Block until update is received
-            if update["message"] == 'done':
-                print("A worker has completed")
-                completed_workers += 1
-                l_idx = update["idx"][0]
-                h_idx = update["idx"][1]
-                log_sigma_store[l_idx:h_idx] = update["kappa_data"]
-                success_store[l_idx:h_idx] = update["success_data"]
-            else:
-                bar()
+        # Creating and starting worker processes
+        for p_idx in range(workers):
+            l_idx = p_idx * chunk_size
+            h_idx = (p_idx + 1) * chunk_size if p_idx + 1 < workers else alpha.shape[0]
+            p = multiprocessing.Process(target=experiment,
+                                        args=(alpha[l_idx:h_idx], kappa[l_idx:h_idx], progress_queue, (l_idx, h_idx)))
+            processes.append(p)
+            p.start()
 
-    # Ensure all processes have finished
-    for p in processes:
-        p.join()
+        total_progress = (((measured_samples + groove_iteration) // progress_size) - 1) * workers
+        with alive_bar(total_progress, force_tty=True, title="Collecting") as bar:
+            completed_workers = 0
+            while completed_workers < len(processes):
+                update = progress_queue.get()  # Block until update is received
+                if update["message"] == 'done':
+                    print("A worker has completed")
+                    completed_workers += 1
+                    l_idx = update["idx"][0]
+                    h_idx = update["idx"][1]
+                    log_sigma_store[l_idx:h_idx] = update["kappa_data"]
+                    success_store[l_idx:h_idx] = update["success_data"]
+                else:
+                    bar()
+
+        # Ensure all processes have finished
+        for p in processes:
+            p.join()
 
     # get the end time after te run has finished
     end_time = datetime.now()
@@ -143,4 +168,3 @@ if __name__ == "__main__":
 
     with open(f'./data/{args.output}', 'w') as f:
         json.dump(sigma_data, f)
-

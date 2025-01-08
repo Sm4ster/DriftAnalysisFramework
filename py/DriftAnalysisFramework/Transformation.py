@@ -38,8 +38,8 @@ class CMA_ES:
 
     @staticmethod
     def transform_to_normal(m, C, sigma, normal_form=1):
-        # get the the transformation matrix
-        A = np.linalg.eigh(C)[1]
+        # get the transformation matrix
+        eigval, A = np.linalg.eigh(C)
 
         # rotate the coordinate system such that the eigenvalues of
         # the covariance matrix are parallel to the coordinate axis
@@ -52,7 +52,8 @@ class CMA_ES:
         C_rot[np.abs(C_rot) < 1e-15] = 0
 
         # calculate the scaling factor which brings the covariance matrix to det = 1
-        scaling_factor = np.sqrt(np.linalg.det(C_rot))
+        det = C_rot[:,0,0] * C_rot[:,1,1]
+        scaling_factor = np.sqrt(det)
 
         C_normal = np.einsum('i,ijk->ijk', 1 / scaling_factor, C_rot)
         sigma_scaled = sigma * np.sqrt(scaling_factor)

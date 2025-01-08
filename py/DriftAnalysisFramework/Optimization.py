@@ -58,37 +58,64 @@ class CMA_ES:
         # constants
         self.lamda = 6
         self.mu = 3
-        self.selection = []  # w_i's - the selection scheme for CMA-ES
-        self.c_mu = 1
-        self.c_sigma = 1
 
-        self.p_target = constants["p_target"]  # 2 / 11
+        self.c_sigma = constants["c_sigma"]
         self.c_cov = constants["c_cov"]  # 2 / (np.power(self.dim, 2) + 6)
 
         weights = []
         for i in range(self.mu):
-            weights.append(np.ln(self.mu) - np.ln(i))
+            weights.append(np.log(self.mu) - np.log(i+1))
+
+        for i in range(self.lamda-self.mu):
+            weights.append(0)
 
         self.weights = np.array(weights)
-
         self.weights = self.weights / np.sum(self.weights)
-
+        self.mu_eff = 1 / np.sum(self.weights**2)
+        # print("mu_eff:", 1 / np.sum(self.weights**2))
 
     def step(self, m, C, sigma, z=None):
         if z is None:
             # create standard normal samples and transform them
             z = np.random.randn(m.shape[0], self.lamda, 2)
 
-        # this is equivalent to Az in the normal form, as the matrix C is diagonal,
-        # therefore matrix A (with AA = C) is [[sqrt(C_00), 0][0, sqrt(C_11)]]
+        # Expand and calculate
+        m_expanded = np.repeat(m[:, np.newaxis, :], self.lamda, axis=1)
+
+        # Since this is the normal form the matrix A (with AA = C) is [[sqrt(C_00), 0][0, sqrt(C_11)]]
         # for higher dimensions possibly use (untested): sigma * np.sqrt(np.diagonal(C, axis1=1, axis2=2))
-        sigma_A = np.array([sigma * np.sqrt(C[:, 0, 0]), sigma * np.sqrt(C[:, 1, 1])]).T
-        x = m + z * sigma_A
+        A = np.array([np.sqrt(C[:, 0, 0]), np.sqrt(C[:, 1, 1])]).T
+        A_expanded = np.repeat(A[:, np.newaxis, :], self.lamda, axis=1)
 
-        # Compute the norms of each vector in the middle axis
-        norms = np.linalg.norm(data, axis=2)
+        # y = Az
+        y = A_expanded * z
 
-        return new_m, new_C, new_sigma, success
+        # x = m + sigma Az
+        x = m_expanded + (sigma.reshape(sigma.shape[0], 1, 1) * y)
+
+        # Compute f(x) by computing the norms of each vector in the middle axis
+        norms = np.linalg.norm(x, axis=2)
+
+        # Get sorting indices based on the norms for each subarray in the middle axis
+        indices = np.argsort(norms, axis=1)
+
+        # Apply the weights to the indices
+        weights = np.take(self.weights, indices)
+
+        # m = \sum w_i+x_i
+        new_m =  np.einsum("ij,ijk->ik", weights, x)
+
+        # sigma = sigma * exp(c_sigma * ())
+        z_w_sum = np.einsum("ij,ijk->ik", weights, z)
+        new_sigma = sigma * np.exp(self.c_sigma * (self.mu_eff * np.square(np.linalg.norm(z_w_sum, axis=1)) / 2 - 1))
+
+        # C = (1-c_cov) * C + c_cov \sum w_i * Az_i * (Az_i)^T
+        y_outer_product = np.einsum('...i,...j->...ij', y, y)
+        y_outer_product_w = np.einsum("ij,ijkl->ikl", weights, y_outer_product)
+
+        new_C = (1 - self.c_cov) * C + self.c_cov * y_outer_product_w
+
+        return new_m, new_C, new_sigma, np.zeros([m.shape[0],2])
 
     def iterate(self, alpha, kappa, sigma, num=1):
         # Sanitize, transform and expand the parameters
@@ -109,12 +136,6 @@ class CMA_ES:
         normal_form = {"alpha": alpha, "kappa": kappa, "sigma": sigma_normal}
 
         return normal_form, raw_state, success, raw_state_before, transformation_parameters
-
-    def iterate_uv(self, alpha, kappa, sigma, num=1):
-        pass
-
-    def step_uv(self, m, C, sigma, z=None):
-        pass
 
 
 class OnePlusOne_CMA_ES:

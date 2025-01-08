@@ -35,6 +35,8 @@ results = {
 # prepare data to work with
 drift_data = np.array(drift_data_raw["drift"]) + np.array(drift_data_raw["precision"])
 
+best_solutions = []
+smallest_drifts = []
 
 def c_drift(weights):
     cdrift = np.array(drift_data[:, :, :, 0])
@@ -73,9 +75,14 @@ for i in range(args.iterations):
     # Fitness value of the best solution
     best_fitness = es.result.fbest
 
-    results["weights_vector"].append(best_solution.tolist())
-    results["smallest_drift"].append(c_drift(best_solution).max().tolist())
-    results["base_drift"].append(drift_data[:, :, :, 0].max().tolist())
+
+    best_solutions.append(best_solution)
+    smallest_drifts.append(c_drift(best_solution).max())
+
+idx = np.argmin(smallest_drifts)
+results["weights_vector"] = best_solutions[idx].tolist()
+results["smallest_drift"] = smallest_drifts[idx]
+results["base_drift"] = drift_data[:, :, :, 0].max()
 
 output_data.append(results)
 with open(f'./{args.output_file}', 'w') as f:

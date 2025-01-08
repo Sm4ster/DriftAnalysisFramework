@@ -4,7 +4,7 @@ import multiprocessing
 import json
 import argparse
 
-from DriftAnalysisFramework.Optimization import CMA_ES
+from DriftAnalysisFramework.Optimization import CMA_ES, OnePlusOne_CMA_ES
 from DriftAnalysisFramework.Transformation import CMA_ES as TR
 from DriftAnalysisFramework.Fitness import Sphere
 
@@ -63,6 +63,10 @@ def experiment(alpha_chunk, sigma_chunk, queue, idx):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='This script computes stable sigma values for CMA.')
     parser.add_argument('--output', type=str, help='Output file name', default='stable_sigma.json')
+    parser.add_argument('--algorithm', type=str, help='[1+1-CMA-ES, CMA-ES]', default="1+1-CMA-ES")
+    parser.add_argument('--CMA_c_sigma', type=float, help='c_sigma parameter of CMA-ES', default=2)
+    parser.add_argument('--CMA_c_cov', type=float, help='c_cov parameter of CMA-ES', default=0.2)
+    parser.add_argument('--CMA_d', type=float, help='dampening parameter of CMA-ES', default=2)
     args = parser.parse_args()
 
     # stable kappa experiment
@@ -71,14 +75,22 @@ if __name__ == "__main__":
     # get start time
     start_time = datetime.now()
 
-    # Initialize the algorithm
-    alg = CMA_ES(Sphere(), {
-        "d": 10,
-        "p_target": 0.1818,
-        "c_p": 0.8333,
-        "c_cov": 0.02,
-        "dim": 2
-    })
+    # Initialize the target function and optimization algorithm
+    if args.algorithm == "1+1-CMA-ES":
+        alg = OnePlusOne_CMA_ES(Sphere(), {
+            "d": args.CMA_d,
+            "p_target": 0.1818,
+            "c_cov": args.CMA_c_cov,
+        })
+    if args.algorithm == "CMA-ES":
+        alg = CMA_ES(Sphere(), {
+            "c_sigma": args.CMA_c_sigma,
+            "c_cov": args.CMA_c_cov,
+        })
+    else:
+        alg = None
+        print("Error: No valid algorithm specified")
+        exit()
 
     # combine all alphas and sigmas
     alpha, sigma = np.repeat(alpha_sequence, sigma_sequence.shape[0]), np.tile(sigma_sequence, alpha_sequence.shape[0])

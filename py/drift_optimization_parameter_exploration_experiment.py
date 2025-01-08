@@ -3,7 +3,7 @@ import subprocess
 import json
 import sys
 
-output_file = "parameter_experiment_output.json"
+output_file = "./parameter_experiment_output.json"
 
 with open(output_file, 'w') as file:
     json.dump([], file, indent=4)  # Writing with indentation for readability
@@ -15,6 +15,15 @@ param_sets = np.array(np.meshgrid(c_cov_sequence, d_sequence)).T.reshape(-1, 2)
 
 for param_set in param_sets:
     dataset_name = "./data/" + str(param_set[0]) + "_" + str(param_set[1]) + "_" + "parameter_experiment.json"
+
+    command = [
+        sys.executable, 'CMA_drift_optimization.py',
+        "--data_file", dataset_name,
+        "--output_file", output_file,
+        "--iterations", "5",
+        "--terms", "1,3",
+        "--data", json.dumps({"factors": {"c_cov": param_set[0], "d": param_set[1]}})
+    ]
 
     command = [
         sys.executable, 'CMA_drift_optimization.py',
