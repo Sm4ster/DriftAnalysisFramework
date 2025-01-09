@@ -1,23 +1,33 @@
 import numpy as np
+import argparse
 import subprocess
 import json
 import sys
 
-output_file = "./parameter_experiment_output.json"
+parser = argparse.ArgumentParser(description='This script computes stable kappa values for CMA.')
+parser.add_argument('--output', type=str, help='Output file name', default='stable_sigma.json')
+parser.add_argument('--Comma_CMA_c_sigma', type=float, help='c_sigma parameter of CMA-ES', default=0.2)
+parser.add_argument('--Comma_CMA_c_cov', type=float, help='c_cov parameter of CMA-ES', default=0.09182736455463728)
+parser.add_argument('--Elitist_CMA_c_cov', type=float, help='c_cov parameter of CMA-ES', default=0.3)
+parser.add_argument('--Elitist_CMA_d', type=float, help='dampening parameter of CMA-ES', default=2)
+args = parser.parse_args()
+
+output_file = args.output
+param_sets = np.loadtxt(args.input, delimiter=",")
+
+# slice param sets
+if args.indexes != "all":
+    param_sets = param_sets[int(args.indexes.split(",")[0]):int(args.indexes.split(",")[1])]
+
 
 with open(output_file, 'w') as file:
     json.dump([], file, indent=4)  # Writing with indentation for readability
-
-# List of parameter sets for each execution
-c_cov_sequence = np.geomspace(1 / 16, 2, num=6)
-d_sequence = np.geomspace(1 / 16, 2, num=6)
-param_sets = np.array(np.meshgrid(c_cov_sequence, d_sequence)).T.reshape(-1, 2)
 
 for param_set in param_sets:
     dataset_name = "./data/" + str(param_set[0]) + "_" + str(param_set[1]) + "_" + "parameter_experiment.json"
 
     command = [
-        sys.executable, 'CMA_drift_optimization.py',
+        sys.executable, 'drift_optimization.py',
         "--data_file", dataset_name,
         "--output_file", output_file,
         "--iterations", "5",
@@ -25,14 +35,6 @@ for param_set in param_sets:
         "--data", json.dumps({"factors": {"c_cov": param_set[0], "d": param_set[1]}})
     ]
 
-    command = [
-        sys.executable, 'CMA_drift_optimization.py',
-        "--data_file", dataset_name,
-        "--output_file", output_file,
-        "--iterations", "5",
-        "--terms", "1,3",
-        "--data", json.dumps({"factors": {"c_cov": param_set[0], "d": param_set[1]}})
-    ]
 
     print(command)
 

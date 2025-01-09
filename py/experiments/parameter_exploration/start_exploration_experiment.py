@@ -2,9 +2,12 @@ import subprocess
 import argparse
 import json
 import numpy as np
+import sys
 
 parser = argparse.ArgumentParser(description='This script does drift simulation for CMA')
 parser.add_argument('parameter_file', help='The input file containing all options and parameters for the run.')
+parser.add_argument('--input', type=str, help='Input file name', default='exploration_grid.txt')
+parser.add_argument('--indexes', type=str, help='Start and stop indexes of the input file', default='all')
 parser.add_argument('--output_file', help='The output file name.')
 args = parser.parse_args()
 
@@ -31,6 +34,18 @@ param_sets = np.array(np.meshgrid(c_cov_sequence, d_sequence)).T.reshape(-1, 2)
 
 # Loop over the parameter sets and call the script
 for param_set in param_sets:
+
+    # Initialize the target function and optimization algorithm
+    command = [
+        sys.executable, 'sigma_analysis.py',
+        "--data_file", dataset_name,
+        "--output_file", output_file,
+        "--iterations", "5",
+        "--terms", "1,3",
+        "--data", json.dumps(
+            {"factors": {"c_cov": param_set[0] * args.Elitist_CMA_c_cov, "d": param_set[1] * args.Elitist_CMA_d}})
+    ]
+
     # Parameters to pass
     options = [
         '--output_file',
@@ -71,7 +86,7 @@ for param_set in param_sets:
         str((param_set[1] * data["CMA_d"])) if "CMA_d" in data else str((param_set[1] * defaults["CMA_d"])),
     ]
 
-    command = ['/home/franksyj/DriftAnalysisFramework/py/venv/bin/python', 'CMA_drift_analysis.py'] + options
+    command = ['/home/franksyj/DriftAnalysisFramework/py/venv/bin/python', 'drift_analysis.py'] + options
 
     # Execute the command and wait for it to finish
     try:

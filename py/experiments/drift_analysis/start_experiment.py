@@ -63,7 +63,7 @@ options = [
 ]
 
 # Command to run the other script
-command = ['/home/franksyj/DriftAnalysisFramework/py/venv/bin/python', 'CMA_drift_analysis.py'] + options
+command = ['/home/franksyj/DriftAnalysisFramework/py/venv/bin/python', 'drift_analysis.py'] + options
 
 # Execute the command
 subprocess.run(command)

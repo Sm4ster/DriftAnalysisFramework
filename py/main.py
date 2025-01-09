@@ -12,7 +12,7 @@ command = ['python', 'other_script.py'] + params
 # Loop over the parameter sets and call the script
 for params in param_sets:
     # Construct the command
-    command = ['python', 'CMA_drift_analysis.py'] + options + params
+    command = ['python', 'drift_analysis.py'] + options + params
 
     # Execute the command and wait for it to finish
     try:
