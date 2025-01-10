@@ -19,18 +19,12 @@ args = parser.parse_args()
 
 # Ensure the directory exists
 os.makedirs(os.path.dirname("configurations/" + args.output_dir), exist_ok=True)
-# Get the current working directory
-current_directory = os.getcwd()
-print("Current working directory:", current_directory)
 
 # Load parameter file for the drift run
-print("configurations/" + args.parameter_file)
 config = json.load(open("configurations/" + args.parameter_file))
 
 # Load the parameter weights from the file if provided
 param_sets = np.loadtxt("configurations/" + args.exploration_grid, delimiter=",") if args.exploration_grid else np.array([1, 1])
-
-print(param_sets)
 
 # Loop over the parameter sets and call the script
 for param_set in param_sets:
@@ -54,7 +48,7 @@ for param_set in param_sets:
     # Initialize the target function and optimization algorithm
     command_pre = [
         sys.executable, 'experiments/parameter_analysis/sigma_analysis.py',
-        "stable_sigma_" + str(param_set[0]) + "_" + str(param_set[1]),
+        args.output_dir + "stable_sigma_" + str(param_set[0]) + "_" + str(param_set[1]),
         '--algorithm', config["algorithm"],
         '--constants', json.dumps(constants),
         '--workers', str(args.workers)
@@ -72,7 +66,7 @@ for param_set in param_sets:
     if args.stable_sigma_file:
         options.extend(['--sigma_input', args.stable_sigma_file])
     else:
-        options.extend(['--sigma_input', "stable_sigma_" + str(param_set[0]) + "_" + str(param_set[1])])
+        options.extend(['--sigma_input', args.output_dir + "stable_sigma_" + str(param_set[0]) + "_" + str(param_set[1])])
 
     if "batch_size" in config:
         options.extend(['--batch_size', str(config["batch_size"])])
