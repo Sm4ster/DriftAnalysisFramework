@@ -12,7 +12,7 @@ from alive_progress import alive_bar
 
 # Globals
 debug = False
-workers = 20
+
 groove_iteration = 500
 measured_samples = 100000
 
@@ -23,8 +23,6 @@ alpha_sequence = np.linspace(0, np.pi / 2, num=64)
 kappa_sequence = np.geomspace(1, 2000, num=2048)
 
 progress_size = 1000
-chunk_size = int(np.ceil(alpha_sequence.shape[0] * kappa_sequence.shape[0] / workers))
-
 
 def experiment(alpha_chunk, kappa_chunk, queue, idx):
     chunk_size_ = idx[1] - idx[0]
@@ -66,13 +64,30 @@ def experiment(alpha_chunk, kappa_chunk, queue, idx):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='This script computes stable kappa values for CMA.')
-    parser.add_argument('--output', type=str, help='Output file name', default='stable_sigma.json')
+    parser.add_argument('output', type=str, help='Output file name', default='stable_sigma.json')
     parser.add_argument('--algorithm', type=str, help='[1+1-CMA-ES, CMA-ES]', default="1+1-CMA-ES")
-    parser.add_argument('--Comma_CMA_c_sigma', type=float, help='c_sigma parameter of CMA-ES', default=0.2)
-    parser.add_argument('--Comma_CMA_c_cov', type=float, help='c_cov parameter of CMA-ES', default=0.09182736455463728)
-    parser.add_argument('--Elitist_CMA_c_cov', type=float, help='c_cov parameter of CMA-ES', default=0.3)
-    parser.add_argument('--Elitist_CMA_d', type=float, help='dampening parameter of CMA-ES', default=2)
+    parser.add_argument('--constants', type=str,
+                        help='JSON string specifing the algorithm and the respective parameters of the algorithm')
+    parser.add_argument('--workers', type=int, help='Number of workers running the simulation', default=12)
     args = parser.parse_args()
+
+    workers = args.workers
+    chunk_size = int(np.ceil(alpha_sequence.shape[0] * kappa_sequence.shape[0] / workers))
+
+    defaults = {
+        "CMA-ES": {
+            "c_sigma": 0.2,
+            "c_cov": 0.09182736455463728
+        },
+        "1+1-CMA-ES": {
+            "d": 2,
+            "p_target": 0.1818,
+            "c_cov": 0.3,
+        }
+    }
+
+    config_params = json.loads(args.constants) if args.constants else {}
+    constants = {**defaults[args.algorithm], **config_params}
 
     # stable sigma experiment
     print("Stable Sigma Experiment")
@@ -82,23 +97,16 @@ if __name__ == "__main__":
 
     # Initialize the target function and optimization algorithm
     if args.algorithm == "1+1-CMA-ES":
-        alg = OnePlusOne_CMA_ES(Sphere(), {
-            "d": args.Elitist_CMA_d,
-            "p_target": 0.1818,
-            "c_cov": args.Elitist_CMA_c_cov,
-        })
+        alg = OnePlusOne_CMA_ES(Sphere(), constants)
     if args.algorithm == "CMA-ES":
-        alg = CMA_ES(Sphere(), {
-            "c_sigma": args.Comma_CMA_c_sigma,
-            "c_cov": args.Comma_CMA_c_cov,
-        })
+        alg = CMA_ES(Sphere(), constants)
     else:
         alg = None
         print("Error: No valid algorithm specified")
         exit()
 
     # combine all alphas and kappas
-    alpha, kappa= np.repeat(alpha_sequence, kappa_sequence.shape[0]), np.tile(kappa_sequence, alpha_sequence.shape[0])
+    alpha, kappa = np.repeat(alpha_sequence, kappa_sequence.shape[0]), np.tile(kappa_sequence, alpha_sequence.shape[0])
     assert alpha.shape[0] == kappa.shape[0]
 
     # Initialize data structures to hold results
@@ -150,7 +158,8 @@ if __name__ == "__main__":
     end_time = datetime.now()
 
     # store the data in an efficient form to allow for interpolation later
-    stable_sigma_data = np.exp(log_sigma_store / measured_samples).reshape(alpha_sequence.shape[0], kappa_sequence.shape[0])
+    stable_sigma_data = np.exp(log_sigma_store / measured_samples).reshape(alpha_sequence.shape[0],
+                                                                           kappa_sequence.shape[0])
     success_data = success_store.reshape(alpha_sequence.shape[0], kappa_sequence.shape[0])
 
     sigma_data = {

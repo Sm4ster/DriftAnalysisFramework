@@ -1,9 +1,9 @@
 {
-  "output_file": "parameter_experiment.json",
+  "algorithm": "CMA-ES",
+  "c_sigma": 0.2,
+  "c_cov": 0.09182736455463728,
   "batch_size": 50000,
   "sub_batch_size": 25000,
-  "CMA_d": 2,
-  "CMA_c_cov": 0.2,
   "alpha": [
     0,
     1.5707963267948966,
@@ -19,8 +19,6 @@
     10,
     128
   ],
-  "kappa_input": "stable_kappa.json",
-  "sigma_input": "stable_sigma_with_transformation.json",
   "potential_functions": [
     [
       "\\log(|m|)",

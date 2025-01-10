@@ -35,7 +35,6 @@ for param_set in param_sets:
         "--data", json.dumps({"factors": {"c_cov": param_set[0], "d": param_set[1]}})
     ]
 
-
     print(command)
 
     # Execute the command and wait for it to finish

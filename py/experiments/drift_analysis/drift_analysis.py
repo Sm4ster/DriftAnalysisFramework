@@ -12,11 +12,10 @@ from DriftAnalysisFramework.Analysis import DriftAnalysis, eval_drift
 from DriftAnalysisFramework.Filter import gaussian_filter, spline_filter
 
 parallel_execution = True
-workers = 63
 
 helper_functions = {
-    "stable_kappa": lambda alpha_, sigma_: get_data_value(alpha_, sigma_, kappa_data['alpha'], kappa_data['sigma'],
-                                                          kappa_data['stable_kappa']),
+    # "stable_kappa": lambda alpha_, sigma_: get_data_value(alpha_, sigma_, kappa_data['alpha'], kappa_data['sigma'],
+    #                                                       kappa_data['stable_kappa']),
     "stable_sigma": lambda alpha_, kappa_: get_data_value(alpha_, kappa_, sigma_data['alpha'], sigma_data['kappa'],
                                                           sigma_data['stable_sigma']),
     "f": lambda x: gaussian_filter(x, 0.2, 0.01, 1) * x,
@@ -32,15 +31,15 @@ helper_functions = {
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='This script does drift simulation for CMA')
+    parser.add_argument('output_file', type=str, help='Output file name', default='drift_run.json')
 
-    parser.add_argument('--potential_functions', type=str, help='JSON String of potential functions', default='')
+    parser.add_argument('--potential_functions', type=str, help='JSON String of potential functions')
     parser.add_argument('--batch_size', type=int, help='Number of samples to test', default=50000)
     parser.add_argument('--sub_batch_size', type=int, help='Number of samples to test in on iteration', default=25000)
 
     parser.add_argument('--algorithm', type=str, help='[1+1-CMA-ES, CMA-ES]', default="1+1-CMA-ES")
-    parser.add_argument('--CMA_c_sigma', type=float, help='c_sigma parameter of CMA-ES', default=2)
-    parser.add_argument('--CMA_c_cov', type=float, help='c_cov parameter of CMA-ES', default=0.2)
-    parser.add_argument('--CMA_d', type=float, help='dampening parameter of CMA-ES', default=2)
+    parser.add_argument('--constants', type=str, help='The constants for the run')
+    parser.add_argument('--workers', type=int, help='Number of workers running the simulation', default=12)
 
     parser.add_argument('--alpha_start', type=float, help='Stable kappa data file name', default=0)
     parser.add_argument('--alpha_end', type=float, help='Stable kappa data file name', default=1.5707963267948966)
@@ -56,27 +55,45 @@ if __name__ == '__main__':
 
     parser.add_argument('--kappa_input', type=str, help='Stable kappa data file name', default='stable_kappa.json')
     parser.add_argument('--sigma_input', type=str, help='Stable sigma data file name', default='stable_sigma.json')
-    parser.add_argument('--output_file', type=str, help='Output file name', default='drift_run.json')
+
 
     args = parser.parse_args()
-
-    # potential_functions
-    potential_functions = json.loads(args.potential_functions)
 
     # get start time
     start_time = datetime.now()
 
+    # number of workers
+    workers = args.workers
+
+    # potential_functions
+    potential_functions = json.loads(args.potential_functions)
+
+    # constants
+    defaults = {
+        "CMA-ES": {
+            "c_sigma": 0.2,
+            "c_cov": 0.09182736455463728
+        },
+        "1+1-CMA-ES": {
+            "d": 2,
+            "p_target": 0.1818,
+            "c_cov": 0.3,
+        }
+    }
+    config_params = json.loads(args.constants) if args.constants else {}
+    constants = {**defaults[args.algorithm], **config_params}
+
     # Initialize the target function and optimization algorithm
     if args.algorithm == "1+1-CMA-ES":
         alg = OnePlusOne_CMA_ES(Sphere(), {
-            "d": args.CMA_d,
-            "p_target": 0.1818,
-            "c_cov": args.CMA_c_cov,
+            "d": constants["d"],
+            "p_target": constants["p_target"],
+            "c_cov": constants["c_cov"],
         })
     if args.algorithm == "CMA-ES":
         alg = CMA_ES(Sphere(), {
-            "c_sigma": args.CMA_c_sigma,
-            "c_cov": args.CMA_c_cov,
+            "c_sigma": constants["c_sigma"],
+            "c_cov": constants["c_cov"],
         })
     else:
         alg = None
@@ -94,18 +111,18 @@ if __name__ == '__main__':
     da.sub_batch_size = args.sub_batch_size
 
     # Initialize stable_sigma and stable_kappa
-    kappa_data_raw = json.load(open(f'./data/{args.kappa_input}'))
-    sigma_data_raw = json.load(open(f'./data/{args.sigma_input}'))
+    #kappa_data_raw = json.load(open(f'./data/{args.kappa_input}'))
+    sigma_data_raw = json.load(open(f'./{args.sigma_input}'))
 
-    kappa_data = {
-        "alpha": np.array(
-            next((sequence["sequence"] for sequence in kappa_data_raw["sequences"] if sequence["name"] == "alpha"),
-                 None)),
-        "sigma": np.array(
-            next((sequence["sequence"] for sequence in kappa_data_raw["sequences"] if sequence["name"] == "sigma"),
-                 None)),
-        "stable_kappa": np.array(kappa_data_raw["values"])
-    }
+    # kappa_data = {
+    #     "alpha": np.array(
+    #         next((sequence["sequence"] for sequence in kappa_data_raw["sequences"] if sequence["name"] == "alpha"),
+    #              None)),
+    #     "sigma": np.array(
+    #         next((sequence["sequence"] for sequence in kappa_data_raw["sequences"] if sequence["name"] == "sigma"),
+    #              None)),
+    #     "stable_kappa": np.array(kappa_data_raw["values"])
+    # }
 
     sigma_data = {
         "alpha": np.array(
@@ -118,14 +135,14 @@ if __name__ == '__main__':
     }
 
     # Check if sample sequence and precalculated are compatible
-    if alpha_sequence.min() < kappa_data['alpha'].min() or alpha_sequence.max() > kappa_data['alpha'].max():
-        print("Warning: alpha_sequence_k is out of bounds for the stable_parameter data")
+    # if alpha_sequence.min() < kappa_data['alpha'].min() or alpha_sequence.max() > kappa_data['alpha'].max():
+    #     print("Warning: alpha_sequence_k is out of bounds for the stable_parameter data")
     if alpha_sequence.min() < sigma_data['alpha'].min() or alpha_sequence.max() > sigma_data['alpha'].max():
         print("Warning: alpha_sequence_s is out of bounds for the stable_parameter data")
     if kappa_sequence.min() < sigma_data['kappa'].min() or kappa_sequence.max() > sigma_data['kappa'].max():
         print("Warning: alpha_sequence is out of bounds for the stable_parameter data")
-    if sigma_sequence.min() < kappa_data['sigma'].min() or sigma_sequence.max() > kappa_data['sigma'].max():
-        print("Warning: alpha_sequence is out of bounds for the stable_parameter data")
+    # if sigma_sequence.min() < kappa_data['sigma'].min() or sigma_sequence.max() > kappa_data['sigma'].max():
+    #     print("Warning: alpha_sequence is out of bounds for the stable_parameter data")
 
     # Update the function dict of the potential evaluation
     da.function_dict.update(helper_functions)
@@ -204,7 +221,7 @@ if __name__ == '__main__':
         'success_std': success_std.tolist(),
         'no_success_mean': no_success_mean.tolist(),
         'no_success_std': no_success_std.tolist(),
-        'stable_kappa': kappa_data_raw,
+        #'stable_kappa': kappa_data_raw,
         'stable_sigma': sigma_data_raw
     }
 

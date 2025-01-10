@@ -1,0 +1,42 @@
+{
+  "algorithm": "CMA-ES",
+  "d": 2,
+  "p_target": 0.1818,
+  "c_cov": 0.3,
+  "batch_size": 50000,
+  "sub_batch_size": 25000,
+  "alpha": [
+    0,
+    1.5707963267948966,
+    24
+  ],
+  "kappa": [
+    1,
+    100,
+    128
+  ],
+  "sigma": [
+    0.01,
+    10,
+    128
+  ],
+  "potential_functions": [
+    [
+      "\\log(|m|)",
+      "log(norm(m))"
+    ],
+    [
+      "\\log(\\kappa)",
+      "log(kappa)"
+    ],
+    [
+      "|\\log(\\sigma/\\sigma^*)|",
+      "abs(log(sigma/stable_sigma(alpha,kappa)))"
+    ],
+    [
+      "filter3_{\\sigma}(\\log(\\sigma/\\sigma^*))",
+      "s_filter_3(abs(log(sigma/stable_sigma(alpha,kappa))),kappa)"
+    ]
+  ]
+}
+
