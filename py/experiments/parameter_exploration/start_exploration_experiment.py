@@ -48,7 +48,7 @@ for param_set in param_sets:
     # Initialize the target function and optimization algorithm
     command_pre = [
         sys.executable, 'experiments/parameter_analysis/sigma_analysis.py',
-        args.output_dir + "stable_sigma_" + str(param_set[0]) + "_" + str(param_set[1]),
+        args.output_dir + "/stable_sigma_" + str(param_set[0]) + "_" + str(param_set[1]),
         '--algorithm', config["algorithm"],
         '--constants', json.dumps(constants),
         '--workers', str(args.workers)
@@ -56,7 +56,7 @@ for param_set in param_sets:
 
     # Parameters to pass
     options = [
-        args.output_dir + "drift_" + str(param_set[0]) + "_" + str(param_set[1]),
+        args.output_dir + "/drift_" + str(param_set[0]) + "_" + str(param_set[1]),
         '--algorithm', config["algorithm"],
         '--potential_functions', json.dumps(config["potential_functions"]),
         '--constants', json.dumps(constants),
@@ -66,7 +66,7 @@ for param_set in param_sets:
     if args.stable_sigma_file:
         options.extend(['--sigma_input', args.stable_sigma_file])
     else:
-        options.extend(['--sigma_input', args.output_dir + "stable_sigma_" + str(param_set[0]) + "_" + str(param_set[1])])
+        options.extend(['--sigma_input', args.output_dir + "/stable_sigma_" + str(param_set[0]) + "_" + str(param_set[1])])
 
     if "batch_size" in config:
         options.extend(['--batch_size', str(config["batch_size"])])
