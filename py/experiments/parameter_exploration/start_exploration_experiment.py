@@ -18,7 +18,10 @@ parser.add_argument('--stable_sigma_file', type=str, help='Skips parameter analy
 args = parser.parse_args()
 
 # Ensure the directory exists
-os.makedirs(os.path.dirname("data/" + args.output_dir), exist_ok=True)
+path = "data/" + args.output_dir
+if not os.path.exists(path):
+    # Create the directory
+    os.makedirs(path)
 
 # Load parameter file for the drift run
 config = json.load(open("configurations/" + args.parameter_file))
