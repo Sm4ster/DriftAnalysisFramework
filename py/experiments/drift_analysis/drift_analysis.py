@@ -112,7 +112,7 @@ if __name__ == '__main__':
 
     # Initialize stable_sigma and stable_kappa
     #kappa_data_raw = json.load(open(f'./data/{args.kappa_input}'))
-    sigma_data_raw = json.load(open(f'./{args.sigma_input}'))
+    sigma_data_raw = json.load(open(f'./data/{args.sigma_input}'))
 
     # kappa_data = {
     #     "alpha": np.array(
