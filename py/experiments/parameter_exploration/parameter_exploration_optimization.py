@@ -15,11 +15,6 @@ args = parser.parse_args()
 output_file = args.output
 param_sets = np.loadtxt(args.input, delimiter=",")
 
-# slice param sets
-if args.indexes != "all":
-    param_sets = param_sets[int(args.indexes.split(",")[0]):int(args.indexes.split(",")[1])]
-
-
 with open(output_file, 'w') as file:
     json.dump([], file, indent=4)  # Writing with indentation for readability
 

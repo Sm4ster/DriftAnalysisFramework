@@ -26,6 +26,10 @@ config = json.load(open("configurations/" + args.parameter_file))
 # Load the parameter weights from the file if provided
 param_sets = np.loadtxt("configurations/" + args.exploration_grid, delimiter=",") if args.exploration_grid else np.array([1, 1])
 
+# slice param sets
+if args.indexes != "all":
+    param_sets = param_sets[int(args.indexes.split(",")[0]):int(args.indexes.split(",")[1])]
+
 # Loop over the parameter sets and call the script
 for param_set in param_sets:
     constants = []
