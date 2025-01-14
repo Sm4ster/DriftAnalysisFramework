@@ -75,7 +75,6 @@ for i in range(args.iterations):
     # Fitness value of the best solution
     best_fitness = es.result.fbest
 
-
     best_solutions.append(best_solution)
     smallest_drifts.append(c_drift(best_solution).max())
 

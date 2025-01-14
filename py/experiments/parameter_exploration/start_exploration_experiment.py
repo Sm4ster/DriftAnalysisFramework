@@ -2,6 +2,7 @@ import subprocess
 import argparse
 import json
 import numpy as np
+import shutil
 import sys
 import os
 
@@ -17,24 +18,37 @@ parser.add_argument('--indexes', type=str, help='Start and stop indexes of the i
 parser.add_argument('--stable_sigma_file', type=str, help='Skips parameter analysis and uses the provided file')
 args = parser.parse_args()
 
-# Ensure the directory exists
-path = "data/" + args.output_dir
-if not os.path.exists(path):
-    # Create the directory
-    os.makedirs(path)
+# Build the output directory with subdirectories
+data_path = "data/" + args.output_dir
+if not os.path.exists(data_path):
+    os.makedirs(data_path)
+
+stable_sigma_path = data_path + "/2_stable_sigma/"
+if not os.path.exists(stable_sigma_path):
+    os.makedirs(stable_sigma_path)
+
+drift_path = data_path + "/3_drift/"
+if not os.path.exists(drift_path):
+    os.makedirs(drift_path)
+
+shutil.copy("configurations/" + args.exploration_grid, data_path + "/1_grid.txt")
+shutil.copy("configurations/" + args.parameter_file, data_path + "/0_configuration.json")
 
 # Load parameter file for the drift run
 config = json.load(open("configurations/" + args.parameter_file))
 
 # Load the parameter weights from the file if provided
-param_sets = np.loadtxt("configurations/" + args.exploration_grid, delimiter=",") if args.exploration_grid else np.array([1, 1])
+param_sets = np.loadtxt("configurations/" + args.exploration_grid,
+                        delimiter=",") if args.exploration_grid else np.array([1, 1])
 
 # slice param sets
+start_idx = 0
 if args.indexes != "all":
-    param_sets = param_sets[int(args.indexes.split(",")[0]):int(args.indexes.split(",")[1])]
+    start_idx = int(args.indexes.split(",")[0])
+    param_sets = param_sets[start_idx:int(args.indexes.split(",")[1])]
 
 # Loop over the parameter sets and call the script
-for param_set in param_sets:
+for idx, param_set in enumerate(param_sets):
     constants = []
 
     if config["algorithm"] == "1+1-CMA-ES":
@@ -42,20 +56,22 @@ for param_set in param_sets:
             "c_cov": param_set[0] * config["c_cov"],
             "d": param_set[1] * config["d"]
         }
-    if config["algorithm"] == "CMA-ES":
+    elif config["algorithm"] == "CMA-ES":
         constants = {
             "c_cov": param_set[0] * config["c_cov"],
             "c_sigma": param_set[1] * config["c_sigma"]
         }
     else:
         alg = None
-        print("Error: No valid algorithm specified")
+        print("Error: No valid algorithm specified! Algorithm found: " + config["algorithm"])
+        print()
         exit()
 
     # Initialize the target function and optimization algorithm
+    filename = str(param_set[0]) + "_" + str(param_set[1])
     command_pre = [
         sys.executable, 'experiments/parameter_analysis/sigma_analysis.py',
-        args.output_dir + "/stable_sigma_" + str(param_set[0]) + "_" + str(param_set[1]),
+        stable_sigma_path + filename,
         '--algorithm', config["algorithm"],
         '--constants', json.dumps(constants),
         '--workers', str(args.workers)
@@ -63,7 +79,7 @@ for param_set in param_sets:
 
     # Parameters to pass
     options = [
-        args.output_dir + "/drift_" + str(param_set[0]) + "_" + str(param_set[1]),
+        drift_path + filename,
         '--algorithm', config["algorithm"],
         '--potential_functions', json.dumps(config["potential_functions"]),
         '--constants', json.dumps(constants),
@@ -73,7 +89,7 @@ for param_set in param_sets:
     if args.stable_sigma_file:
         options.extend(['--sigma_input', args.stable_sigma_file])
     else:
-        options.extend(['--sigma_input', args.output_dir + "/stable_sigma_" + str(param_set[0]) + "_" + str(param_set[1])])
+        options.extend(['--sigma_input', stable_sigma_path + filename])
 
     if "batch_size" in config:
         options.extend(['--batch_size', str(config["batch_size"])])
@@ -108,20 +124,29 @@ for param_set in param_sets:
     if "sigma" in config:
         options.extend(['--sigma_samples', str(config["sigma"][2])])
 
-
     command_main = [sys.executable, 'experiments/drift_analysis/drift_analysis.py'] + options
 
     # Execute the command and wait for it to finish
     try:
         # Command to run the other script
+        print("\n\n************** Iteration " + str(idx) + " (index "+ str(start_idx+idx) + ") **************")
         if not args.stable_sigma_file:
-            result = subprocess.run(command_pre)
-            print(f"Execution of parameter analysis with parameters {param_set} completed successfully.")
-            print("Standard Output:", result.stdout)
+            print(f"Starting stable sigma experiment ({param_set}):")
+            if os.path.isfile(stable_sigma_path + filename):
+                print("\n... file already exists ... skipping")
+            else:
+                print("\n" + " ".join(map(str, command_pre)) + "\n")
+                result = subprocess.run(command_pre)
+                print(f"...completed successfully.")
 
-        result = subprocess.run(command_main)
-        print(f"Execution of drift analysis with parameters {param_set} completed successfully.")
-        print("Standard Output:", result.stdout)
+        if os.path.isfile(drift_path + filename):
+            print("\n... file already exists ... skipping")
+        else:
+            print(f"\nStarting drift analysis experiment ({param_set}):")
+            print("\n" + " ".join(map(str, command_main)) + "\n")
+            result = subprocess.run(command_main)
+            print(f"Execution of drift analysis with parameters  completed successfully.")
+
     except subprocess.CalledProcessError as e:
         print(f"An error occurred with parameters {param_set}.")
         print("Standard Error:", e.stderr)

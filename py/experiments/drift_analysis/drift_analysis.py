@@ -90,7 +90,7 @@ if __name__ == '__main__':
             "p_target": constants["p_target"],
             "c_cov": constants["c_cov"],
         })
-    if args.algorithm == "CMA-ES":
+    elif args.algorithm == "CMA-ES":
         alg = CMA_ES(Sphere(), {
             "c_sigma": constants["c_sigma"],
             "c_cov": constants["c_cov"],
@@ -112,7 +112,7 @@ if __name__ == '__main__':
 
     # Initialize stable_sigma and stable_kappa
     #kappa_data_raw = json.load(open(f'./data/{args.kappa_input}'))
-    sigma_data_raw = json.load(open(f'./data/{args.sigma_input}'))
+    sigma_data_raw = json.load(open(f'./{args.sigma_input}'))
 
     # kappa_data = {
     #     "alpha": np.array(
@@ -225,5 +225,5 @@ if __name__ == '__main__':
         'stable_sigma': sigma_data_raw
     }
 
-    with open(f'./data/{args.output_file}', 'w') as f:
+    with open(f'./{args.output_file}', 'w') as f:
         json.dump(data, f)

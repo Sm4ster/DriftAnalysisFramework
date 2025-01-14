@@ -98,7 +98,7 @@ if __name__ == "__main__":
     # Initialize the target function and optimization algorithm
     if args.algorithm == "1+1-CMA-ES":
         alg = OnePlusOne_CMA_ES(Sphere(), constants)
-    if args.algorithm == "CMA-ES":
+    elif args.algorithm == "CMA-ES":
         alg = CMA_ES(Sphere(), constants)
     else:
         alg = None
@@ -141,7 +141,6 @@ if __name__ == "__main__":
             while completed_workers < len(processes):
                 update = progress_queue.get()  # Block until update is received
                 if update["message"] == 'done':
-                    print("A worker has completed")
                     completed_workers += 1
                     l_idx = update["idx"][0]
                     h_idx = update["idx"][1]
@@ -175,5 +174,5 @@ if __name__ == "__main__":
         'success': success_data.tolist()
     }
 
-    with open(f'./data/{args.output}', 'w') as f:
+    with open(f'./{args.output}', 'w') as f:
         json.dump(sigma_data, f)
