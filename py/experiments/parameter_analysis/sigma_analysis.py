@@ -13,9 +13,6 @@ from alive_progress import alive_bar
 # Globals
 debug = False
 
-groove_iteration = 500
-measured_samples = 100000
-
 # alpha_sequence = np.linspace(0, np.pi / 2, num=1)
 alpha_sequence = np.linspace(0, np.pi / 2, num=64)
 
@@ -69,9 +66,15 @@ if __name__ == "__main__":
     parser.add_argument('--constants', type=str,
                         help='JSON string specifing the algorithm and the respective parameters of the algorithm')
     parser.add_argument('--workers', type=int, help='Number of workers running the simulation', default=12)
+    parser.add_argument('--groove_iterations', type=int, help='Number of groove iterations before data gets recorded', default=5000)
+    parser.add_argument('--measured_samples', type=int, help='Number of iterations that are measured and averaged', default=1000000)
     args = parser.parse_args()
 
     workers = args.workers
+
+    groove_iteration = args.groove_iterations
+    measured_samples = args.measured_samples
+
     chunk_size = int(np.ceil(alpha_sequence.shape[0] * kappa_sequence.shape[0] / workers))
 
     defaults = {

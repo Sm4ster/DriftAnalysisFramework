@@ -2,8 +2,10 @@
   "algorithm": "CMA-ES",
   "c_sigma": 0.2,
   "c_cov": 0.09182736455463728,
-  "batch_size": 50000,
-  "sub_batch_size": 25000,
+  "groove_iterations": 10000,
+  "measured_samples": 1000000,
+  "batch_size": 150000,
+  "sub_batch_size": 50000,
   "alpha": [
     0,
     1.5707963267948966,

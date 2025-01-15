@@ -31,7 +31,7 @@ drift_path = data_path + "/3_drift/"
 if not os.path.exists(drift_path):
     os.makedirs(drift_path)
 
-shutil.copy("configurations/" + args.exploration_grid, data_path + "/1_grid.txt")
+if args.exploration_grid: shutil.copy("configurations/" + args.exploration_grid, data_path + "/1_grid.txt")
 shutil.copy("configurations/" + args.parameter_file, data_path + "/0_configuration.json")
 
 # Load parameter file for the drift run
@@ -39,7 +39,7 @@ config = json.load(open("configurations/" + args.parameter_file))
 
 # Load the parameter weights from the file if provided
 param_sets = np.loadtxt("configurations/" + args.exploration_grid,
-                        delimiter=",") if args.exploration_grid else np.array([1, 1])
+                        delimiter=",") if args.exploration_grid else np.array([[1, 1]])
 
 # slice param sets
 start_idx = 0
@@ -76,6 +76,12 @@ for idx, param_set in enumerate(param_sets):
         '--constants', json.dumps(constants),
         '--workers', str(args.workers)
     ]
+
+    if "groove_iterations" in config:
+        command_pre.extend(['--groove_iterations', str(config["groove_iterations"])])
+
+    if "measured_samples" in config:
+        command_pre.extend(['--measured_samples', str(config["measured_samples"])])
 
     # Parameters to pass
     options = [

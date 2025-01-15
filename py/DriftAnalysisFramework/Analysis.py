@@ -120,7 +120,7 @@ def eval_drift(alpha, kappa, sigma, potential_expressions, potential_before, alg
             # calculate the drift
             drifts[expr_idx] = potential_after - potential_before[expr_idx]
 
-        # save successful and unsuccessful follow up state
+        # save successful and unsuccessful follow-up state
         # for mean, geometrical mean, variance and geometrical variance
         # we ignore errors as they come from dealing with the logs
         with np.errstate(divide='ignore', invalid='ignore'):

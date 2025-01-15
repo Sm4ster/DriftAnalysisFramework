@@ -7,7 +7,7 @@ import sys
 parser = argparse.ArgumentParser(description='This script computes stable kappa values for CMA.')
 parser.add_argument('input_dir', type=str, help='Input directory name')
 parser.add_argument('--output', type=str, help='Output file name', default='4_drift_results.json')
-parser.add_argument('--exploration_grid', type=str, help='Exploration grid file name', default='exploration_grid.txt')
+parser.add_argument('--exploration_grid', type=str, help='Exploration grid file name', default='1_grid.txt')
 parser.add_argument('--terms', type=str, help='Comma separated terms', default='1,2')
 parser.add_argument('--iterations', type=str, help='iterations to find the best value', default='3')
 args = parser.parse_args()
