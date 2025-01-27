@@ -1,5 +1,7 @@
 {
   "algorithm": "1+1-CMA-ES",
+  "groove_iterations": 10000,
+  "measured_samples": 250000,
   "d": 2,
   "p_target": 0.1818,
   "c_cov": 0.2,
