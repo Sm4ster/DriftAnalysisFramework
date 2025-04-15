@@ -4,6 +4,15 @@ import argparse
 from datetime import datetime
 from alive_progress import alive_bar
 from concurrent.futures import ProcessPoolExecutor
+import signal
+import sys
+
+def handle_sigint(signum, frame):
+    print("SIGINT received. Cleaning up...")
+    # Add your cleanup code here
+    sys.exit(0)
+
+signal.signal(signal.SIGINT, handle_sigint)
 
 from DriftAnalysisFramework.Optimization import OnePlusOne_CMA_ES, CMA_ES
 from DriftAnalysisFramework.Fitness import Sphere
@@ -175,6 +184,7 @@ if __name__ == '__main__':
                 success_std[idx[0], idx[1], idx[2]] = follow_up_success.std
                 no_success_mean[idx[0], idx[1], idx[2]] = follow_up_no_success.mean
                 no_success_std[idx[0], idx[1], idx[2]] = follow_up_no_success.std
+
                 bar()
 
 
@@ -182,6 +192,9 @@ if __name__ == '__main__':
                 for i in range(da.states.shape[0]):
                     future = executor.submit(eval_drift, *da.get_eval_args(i))
                     future.add_done_callback(callback)
+
+                executor.shutdown(wait=True)
+
     else:
         with alive_bar(da.states.shape[0], force_tty=True, title="Evaluating") as bar:
             for i in range(da.states.shape[0]):

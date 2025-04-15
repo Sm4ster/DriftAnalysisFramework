@@ -1,0 +1,39 @@
+{
+  "algorithm": "CMA-ES",
+  "c_sigma": 0.2,
+  "c_cov": 0.09182736455463728,
+  "groove_iterations": 100000,
+  "measured_samples": 10000000,
+  "batch_size": 150000,
+  "sub_batch_size": 50000,
+  "alpha": [
+    0,
+    1.5707963267948966,
+    24
+  ],
+  "kappa": [
+    1,
+    100,
+    128
+  ],
+  "sigma": [
+    0.01,
+    10,
+    128
+  ],
+  "potential_functions": [
+    [
+      "\\log(|m| + 2\\sigma + 2\\kappa)",
+      "log(norm(m) + (2 * sigma) + (2 * kappa)) "
+    ],
+    [
+      "\\log(\\kappa)",
+      "log(kappa)"
+    ],
+    [
+      "filter3_{\\sigma}(\\log(\\sigma/\\sigma^*))",
+      "s_filter_3(abs(log(sigma/stable_sigma(alpha,kappa))),kappa)"
+    ]
+  ]
+}
+

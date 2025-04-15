@@ -1,6 +1,6 @@
 import numpy as np
 import scipy.special as special
-from scipy.stats import ttest_1samp
+import warnings
 
 def p_value(mean, variance, sample_size, deviation=0.10):
     """
@@ -8,6 +8,11 @@ def p_value(mean, variance, sample_size, deviation=0.10):
     deviating mean [mean + abs(deviation * mean)] is larger than the given mean.
     The null-hypothesis is both means are equal.
     """
+    if variance < 1e-10:
+        warnings.warn("Variance is zero! Setting variance to 1e-10.", UserWarning)
+        variance = 1e-10
+
+
     # Calculate alternative population mean with the deviation
     pop_mean_plus = mean + abs(deviation * mean)
 

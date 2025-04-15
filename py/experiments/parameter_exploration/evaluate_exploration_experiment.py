@@ -9,11 +9,15 @@ parser.add_argument('input_dir', type=str, help='Input directory name')
 parser.add_argument('--output', type=str, help='Output file name', default='4_drift_results.json')
 parser.add_argument('--exploration_grid', type=str, help='Exploration grid file name', default='1_grid.txt')
 parser.add_argument('--terms', type=str, help='Comma separated terms', default='1,2')
+parser.add_argument('--base_term', type=str, help='The base term that norms the thing', default="0")
 parser.add_argument('--iterations', type=str, help='iterations to find the best value', default='3')
 args = parser.parse_args()
 
 output_file = args.output
 param_sets = np.loadtxt("data/" + args.input_dir + "/" + args.exploration_grid, delimiter=",")
+
+if param_sets.ndim == 1:
+    param_sets = np.expand_dims(param_sets, axis=0)
 
 with open("data/" + args.input_dir + "/" + output_file, 'w') as file:
     json.dump([], file, indent=4)  # Writing with indentation for readability
@@ -27,6 +31,7 @@ for param_set in param_sets:
         "--output_file", "data/" + args.input_dir + "/" + output_file,
         "--iterations", args.iterations,
         "--terms", args.terms,
+        "--base_term", args.base_term,
         "--data", json.dumps({"factors": [param_set[0], param_set[1]]})
     ]
 

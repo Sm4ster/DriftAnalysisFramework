@@ -39,7 +39,10 @@ config = json.load(open("configurations/" + args.parameter_file))
 
 # Load the parameter weights from the file if provided
 param_sets = np.loadtxt("configurations/" + args.exploration_grid,
-                        delimiter=",") if args.exploration_grid else np.array([[1, 1]])
+                        delimiter=",") if args.exploration_grid else np.array([[1.0, 1.0]])
+
+if param_sets.ndim == 1:
+    param_sets = np.expand_dims(param_sets, axis=0)
 
 # slice param sets
 start_idx = 0

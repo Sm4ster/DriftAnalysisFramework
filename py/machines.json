@@ -1,0 +1,8 @@
+[
+  {
+    "hostname": "lux20", "workers": 2
+  },
+  {
+    "hostname": "cuda01", "workers": 2
+  }
+]

@@ -92,11 +92,14 @@ class FollowUpState:
 
 def eval_drift(alpha, kappa, sigma, potential_expressions, potential_before, alg, batch_size, sub_batch_size,
                target_p_value, position):
+
     # init result data structures
     successes = 0
     drift = Welford()
     follow_up_succ = Welford()
     follow_up_no_succ = Welford()
+
+
 
     # ensure that sub_batching will work properly
     assert batch_size % sub_batch_size == 0
@@ -150,7 +153,9 @@ def eval_drift(alpha, kappa, sigma, potential_expressions, potential_before, alg
         drift.add_all(drifts.T)
         successes += success.sum()
 
-    # collect data for follow up states to return
+
+
+    # collect data for follow-up states to return
     if successes > 0:
         state_succ = FollowUpState(
             follow_up_succ.mean[0:3],
@@ -167,12 +172,21 @@ def eval_drift(alpha, kappa, sigma, potential_expressions, potential_before, alg
         np.sqrt(follow_up_no_succ.var_p[0:3])
     )
 
+
     # calc precision of the drift values
     precision = np.zeros([len(potential_expressions)])
     for idx in range(len(potential_expressions)):
-        deviation = optimize.golden(
-            lambda x: abs(target_p_value - p_value(drift.mean[idx], drift.var_s[idx], batch_size, x)), brack=(0, 1)
-        )
-        precision[idx] = abs(drift.mean[idx] * deviation)
+        try:
+            deviation = optimize.golden(
+                lambda x: abs(target_p_value - p_value(drift.mean[idx], drift.var_s[idx], batch_size, x)), brack=(0, 1)
+            )
+            precision[idx] = abs(drift.mean[idx] * deviation)
+        except ValueError:
+            print("Could not optimize for a valid precision value, setting precision to 0.")
+            print("drift.mean", drift.mean[idx])
+            print("drift.var_s", drift.var_s[idx])
+            print("batch_size", batch_size)
+            precision[idx] = 0
+
 
     return drift.mean, np.sqrt(drift.var_p), precision, successes, state_succ, state_no_succ, position
