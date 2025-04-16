@@ -1,8 +1,11 @@
 [
   {
-    "hostname": "lux20", "workers": 2
+    "hostname": "lux20", "workers": 10
   },
   {
-    "hostname": "cuda01", "workers": 2
+    "hostname": "cuda01", "workers": 12
+  },
+    {
+    "hostname": "cuda02", "workers": 20
   }
 ]

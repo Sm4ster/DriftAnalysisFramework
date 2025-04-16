@@ -99,8 +99,6 @@ def eval_drift(alpha, kappa, sigma, potential_expressions, potential_before, alg
     follow_up_succ = Welford()
     follow_up_no_succ = Welford()
 
-
-
     # ensure that sub_batching will work properly
     assert batch_size % sub_batch_size == 0
     batch_count = batch_size // sub_batch_size
@@ -153,8 +151,6 @@ def eval_drift(alpha, kappa, sigma, potential_expressions, potential_before, alg
         drift.add_all(drifts.T)
         successes += success.sum()
 
-
-
     # collect data for follow-up states to return
     if successes > 0:
         state_succ = FollowUpState(
@@ -172,7 +168,6 @@ def eval_drift(alpha, kappa, sigma, potential_expressions, potential_before, alg
         np.sqrt(follow_up_no_succ.var_p[0:3])
     )
 
-
     # calc precision of the drift values
     precision = np.zeros([len(potential_expressions)])
     for idx in range(len(potential_expressions)):
@@ -187,6 +182,5 @@ def eval_drift(alpha, kappa, sigma, potential_expressions, potential_before, alg
             print("drift.var_s", drift.var_s[idx])
             print("batch_size", batch_size)
             precision[idx] = 0
-
 
     return drift.mean, np.sqrt(drift.var_p), precision, successes, state_succ, state_no_succ, position

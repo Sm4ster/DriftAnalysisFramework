@@ -1,0 +1,36 @@
+{
+  "algorithm": "1+1-CMA-ES",
+  "stable_sigma_file": "stable_sigma.json",
+  "batch_size": 10000,
+  "sub_batch_size": 5000,
+  "alpha": [
+    0,
+    1.5707963267948966,
+    6
+  ],
+  "kappa": [
+    1,
+    100,
+    12
+  ],
+  "sigma": [
+    0.01,
+    10,
+    12
+  ],
+  "potential_functions": [
+    [
+      "\\log(|m|)",
+      "log(norm(m))"
+    ],
+    [
+      "\\log(\\kappa)",
+      "log(kappa)"
+    ],
+    [
+      "filter3_{\\sigma}(\\log(\\sigma/\\sigma^*))",
+      "s_filter_3(abs(log(sigma/stable_sigma(alpha,kappa))),kappa)"
+    ]
+  ]
+}
+

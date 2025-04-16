@@ -1,6 +1,8 @@
 import numpy as np
 import json
+import os
 import argparse
+import subprocess
 from datetime import datetime
 from alive_progress import alive_bar
 from concurrent.futures import ProcessPoolExecutor
@@ -9,7 +11,8 @@ import sys
 
 def handle_sigint(signum, frame):
     print("SIGINT received. Cleaning up...")
-    # Add your cleanup code here
+    # Kill all python processes from my user
+    subprocess.run(["pkill", "-u", os.getlogin(), "-f", "python"])
     sys.exit(0)
 
 signal.signal(signal.SIGINT, handle_sigint)
@@ -49,6 +52,7 @@ if __name__ == '__main__':
     parser.add_argument('--algorithm', type=str, help='[1+1-CMA-ES, CMA-ES]', default="1+1-CMA-ES")
     parser.add_argument('--constants', type=str, help='The constants for the run')
     parser.add_argument('--workers', type=int, help='Number of workers running the simulation', default=12)
+    parser.add_argument('--indexes', type=str, help='Start and stop indexes for distributed execution', default='all')
 
     parser.add_argument('--alpha_start', type=float, help='Stable kappa data file name', default=0)
     parser.add_argument('--alpha_end', type=float, help='Stable kappa data file name', default=1.5707963267948966)
@@ -62,9 +66,7 @@ if __name__ == '__main__':
     parser.add_argument('--sigma_end', type=float, help='Stable kappa data file name', default=10)
     parser.add_argument('--sigma_samples', type=int, help='Stable kappa data file name', default=256)
 
-    parser.add_argument('--kappa_input', type=str, help='Stable kappa data file name', default='stable_kappa.json')
     parser.add_argument('--sigma_input', type=str, help='Stable sigma data file name', default='stable_sigma.json')
-
 
     args = parser.parse_args()
 
@@ -119,20 +121,8 @@ if __name__ == '__main__':
     da.batch_size = args.batch_size
     da.sub_batch_size = args.sub_batch_size
 
-    # Initialize stable_sigma and stable_kappa
-    #kappa_data_raw = json.load(open(f'./data/{args.kappa_input}'))
+    # Initialize stable_sigma
     sigma_data_raw = json.load(open(f'./{args.sigma_input}'))
-
-    # kappa_data = {
-    #     "alpha": np.array(
-    #         next((sequence["sequence"] for sequence in kappa_data_raw["sequences"] if sequence["name"] == "alpha"),
-    #              None)),
-    #     "sigma": np.array(
-    #         next((sequence["sequence"] for sequence in kappa_data_raw["sequences"] if sequence["name"] == "sigma"),
-    #              None)),
-    #     "stable_kappa": np.array(kappa_data_raw["values"])
-    # }
-
     sigma_data = {
         "alpha": np.array(
             next((sequence["sequence"] for sequence in sigma_data_raw["sequences"] if sequence["name"] == "alpha"),
@@ -144,14 +134,10 @@ if __name__ == '__main__':
     }
 
     # Check if sample sequence and precalculated are compatible
-    # if alpha_sequence.min() < kappa_data['alpha'].min() or alpha_sequence.max() > kappa_data['alpha'].max():
-    #     print("Warning: alpha_sequence_k is out of bounds for the stable_parameter data")
     if alpha_sequence.min() < sigma_data['alpha'].min() or alpha_sequence.max() > sigma_data['alpha'].max():
         print("Warning: alpha_sequence_s is out of bounds for the stable_parameter data")
     if kappa_sequence.min() < sigma_data['kappa'].min() or kappa_sequence.max() > sigma_data['kappa'].max():
         print("Warning: alpha_sequence is out of bounds for the stable_parameter data")
-    # if sigma_sequence.min() < kappa_data['sigma'].min() or sigma_sequence.max() > kappa_data['sigma'].max():
-    #     print("Warning: alpha_sequence is out of bounds for the stable_parameter data")
 
     # Update the function dict of the potential evaluation
     da.function_dict.update(helper_functions)
@@ -160,19 +146,30 @@ if __name__ == '__main__':
     da.eval_potential([e[1] for e in potential_functions], alpha_sequence, kappa_sequence, sigma_sequence)
 
     # Initialize data structures to hold results
-    drifts = np.zeros([len(alpha_sequence), len(kappa_sequence), len(sigma_sequence), len(da.potential_expr)])
-    standard_deviations = np.zeros(
-        [len(alpha_sequence), len(kappa_sequence), len(sigma_sequence), len(da.potential_expr)])
-    precisions = np.zeros([len(alpha_sequence), len(kappa_sequence), len(sigma_sequence), len(da.potential_expr)])
-    successes = np.zeros([len(alpha_sequence), len(kappa_sequence), len(sigma_sequence)])
-    success_mean = np.zeros([len(alpha_sequence), len(kappa_sequence), len(sigma_sequence), 3])
-    success_std = np.zeros([len(alpha_sequence), len(kappa_sequence), len(sigma_sequence), 3])
-    no_success_mean = np.zeros([len(alpha_sequence), len(kappa_sequence), len(sigma_sequence), 3])
-    no_success_std = np.zeros([len(alpha_sequence), len(kappa_sequence), len(sigma_sequence), 3])
+    drifts = np.full([len(alpha_sequence), len(kappa_sequence), len(sigma_sequence), len(da.potential_expr)], np.nan)
+    standard_deviations = np.full(
+        [len(alpha_sequence), len(kappa_sequence), len(sigma_sequence), len(da.potential_expr)],np.nan)
+    precisions = np.full([len(alpha_sequence), len(kappa_sequence), len(sigma_sequence), len(da.potential_expr)], np.nan)
+    successes = np.full([len(alpha_sequence), len(kappa_sequence), len(sigma_sequence)], np.nan)
+    success_mean = np.full([len(alpha_sequence), len(kappa_sequence), len(sigma_sequence), 3], np.nan)
+    success_std = np.full([len(alpha_sequence), len(kappa_sequence), len(sigma_sequence), 3], np.nan)
+    no_success_mean = np.full([len(alpha_sequence), len(kappa_sequence), len(sigma_sequence), 3], np.nan)
+    no_success_std = np.full([len(alpha_sequence), len(kappa_sequence), len(sigma_sequence), 3], np.nan)
+
+    start_idx = 0
+    stop_idx = da.states.shape[0]
+
+    if args.indexes != "all":
+        start_idx = int(args.indexes.split("_")[0])
+        stop_idx = int(args.indexes.split("_")[1])
+
+    print(f"Indexes (start-stop): {start_idx}-{stop_idx}")
+    print(f"Number of grid points (batch/total): {stop_idx - start_idx}/{da.states.shape[0]}")
+
 
     # For debugging the critical function and performance comparisons
     if parallel_execution:
-        with alive_bar(da.states.shape[0], force_tty=True, title="Evaluating") as bar:
+        with alive_bar(stop_idx-start_idx, force_tty=True, title="Evaluating") as bar:
             def callback(future_):
                 mean, std, precision, successes_, follow_up_success, follow_up_no_success, idx = future_.result()
 
@@ -187,13 +184,13 @@ if __name__ == '__main__':
 
                 bar()
 
-
             with ProcessPoolExecutor(max_workers=workers) as executor:
-                for i in range(da.states.shape[0]):
+                for i in range(start_idx, stop_idx):
                     future = executor.submit(eval_drift, *da.get_eval_args(i))
                     future.add_done_callback(callback)
 
                 executor.shutdown(wait=True)
+
 
     else:
         with alive_bar(da.states.shape[0], force_tty=True, title="Evaluating") as bar:
@@ -234,7 +231,6 @@ if __name__ == '__main__':
         'success_std': success_std.tolist(),
         'no_success_mean': no_success_mean.tolist(),
         'no_success_std': no_success_std.tolist(),
-        #'stable_kappa': kappa_data_raw,
         'stable_sigma': sigma_data_raw
     }
 

@@ -1,51 +1,114 @@
 import json
+import argparse
 import subprocess
 import sys
 from pathlib import Path
 
-# Path to your JSON file
-JSON_FILE = "machines.json"
+
+parser = argparse.ArgumentParser(description='This script does a parallel start for the empirical drift analysis')
+parser.add_argument('parameter_file', help='The input file containing all options and parameters for the run.')
+parser.add_argument('output_dir', help='The output directory name.')
+parser.add_argument('--compute_resources', default='machines.json', help='A JSON file with all machines used to compute the simulation run.')
+parser.add_argument('--session_name', default='empirical_drift_analysis', help='The name for the tmux session.')
+args = parser.parse_args()
+
+
 
 # Name of the main tmux session
 TMUX_SESSION = "remote_workers"
 
 # Command to run remotely – change this to your actual task
-REMOTE_COMMAND_TEMPLATE = "echo 'This should be the actual command for the run'"
+REMOTE_COMMAND = ("/home/franksyj/DriftAnalysisFramework/py/py.sh "
+                  "/home/franksyj/DriftAnalysisFramework/py/experiments/drift_analysis/start_experiment.py "
+                  "{parameter_file} "
+                  "{output_dir} "
+                  "--worker {workers} "
+                  "--indexes {start_idx}_{stop_idx} ")
 
-def load_machine_list(json_path):
-    with open(json_path, "r") as f:
-        return json.load(f)
-
-def add_tmux_window(session_name, window_name, ssh_command):
+def add_tmux_window(session_name, window_name):
     subprocess.run([
-        "tmux", "new-window",  "-t", session_name, "-n", window_name,
-        ssh_command
+        "tmux", "new-window",  "-t", session_name, "-n", window_name
     ], check=True)
 
-def main():
-    json_path = Path(JSON_FILE)
-    if not json_path.exists():
-        print(f"JSON file not found: {json_path}")
-        sys.exit(1)
+def run_tmux_command(session_name, window_name, command):
+     # Send the command to the new window and press Enter
+    subprocess.run([
+        "tmux", "send-keys", "-t", f"{session_name}:{window_name}", command, "C-m"
+    ], check=True)
 
-    machine_list = load_machine_list(json_path)
+def get_unique_session_name(base_name):
+    session_name = base_name
+    counter = 1
+    while True:
+        result = subprocess.run(["tmux", "has-session", "-t", session_name],
+                                stdout=subprocess.DEVNULL,
+                                stderr=subprocess.DEVNULL)
+        if result.returncode != 0:
+            # Session does not exist
+            return session_name
+        # Session exists, try a new name
+        session_name = f"{base_name}_{counter}"
+        counter += 1
+
+def distribute_jobs_by_cores(num_jobs, cores_per_machine):
+    total_cores = sum(cores_per_machine)
+    job_shares = [core / total_cores * num_jobs for core in cores_per_machine]
+
+    # Round down each share and track the fractional remainders
+    job_counts = [int(share) for share in job_shares]
+    remainders = [share - count for share, count in zip(job_shares, job_counts)]
+
+    # Distribute leftover jobs to machines with largest remainders
+    leftover_jobs = num_jobs - sum(job_counts)
+    for _ in range(leftover_jobs):
+        idx = remainders.index(max(remainders))
+        job_counts[idx] += 1
+        remainders[idx] = 0  # prevent giving another extra to the same machine
+
+    # Convert to start/end ranges
+    result = []
+    current = 0
+    for count in job_counts:
+        result.append((current, current + count))
+        current += count
+
+    return result
+
+def main():
+    machine_list = json.load(open(f'./{args.compute_resources}'))
+    core_list = []
+    for idx, entry in enumerate(machine_list):
+        core_list.append(entry["workers"])
+
+    config = json.load(open(f'./configurations/{args.parameter_file}'))
+    num_jobs = config['alpha'][2] * config['kappa'][2] * config['sigma'][2]
+
+    index_list = distribute_jobs_by_cores(num_jobs, core_list)
+
 
     # create tmux session
-    session_name = f"remote_workers"
+    session_name = get_unique_session_name(args.session_name)
     subprocess.run(["tmux", "new-session", "-d", "-s", session_name], check=True)
 
     for idx, entry in enumerate(machine_list):
         hostname = entry["hostname"]
         workers = entry["workers"]
 
-
-        remote_cmd = REMOTE_COMMAND_TEMPLATE.format(workers=workers)
-        ssh_cmd = f"ssh {hostname} 'echo $(hostname); {remote_cmd}; exec $SHELL -l; '"
-
-        print(f"Creating tmux session '{session_name}' to run on {hostname}...")
+        ssh_cmd = f"ssh {hostname}"
 
         # add commands in new windows
-        add_tmux_window(session_name, hostname, ssh_cmd)
+        print(f"Creating tmux window in '{session_name}'")
+        add_tmux_window(session_name, hostname)
+
+        # starting command in those sessions
+        print(f"Logging into {hostname}...")
+        run_tmux_command(session_name, hostname, ssh_cmd)
+
+        # run the command to start the run
+        remote_cmd = REMOTE_COMMAND.format(parameter_file=args.parameter_file, output_dir=args.output_dir, workers=workers, start_idx=index_list[idx][0], stop_idx=index_list[idx][1])
+        print(f"Starting run... \n {remote_cmd}")
+        run_tmux_command(session_name, hostname, "cd /home/franksyj/DriftAnalysisFramework/py")
+        run_tmux_command(session_name, hostname, remote_cmd)
 
     # remove the first window of the session, as it is not used
     subprocess.run(["tmux", "kill-window", "-t", f"{session_name}:1"], check=True)
