@@ -88,4 +88,6 @@ class CMA_ES:
                 np.array([1]) - swap), m_normal[:, 0] * swap + m_normal[:, 1] * (np.array([1]) - swap)
 
         return np.arccos(m_normal[:, 0]), C_normal[:, 0, 0], sigma_normal, {"scaling_factor": scaling_factor,
-                                                                            "distance_factor": distance_factor}
+                                                                            "distance_factor": distance_factor,
+                                                                            "C_rot": C_rot,
+                                                                            "m_rot": m_rot}

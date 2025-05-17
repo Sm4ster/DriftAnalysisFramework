@@ -1,0 +1,57 @@
+{
+  "algorithm": "CMA-ES",
+  "c_sigma": 0.2,
+  "c_cov": 0.09182736455463728,
+  "batch_size": 300000,
+  "sub_batch_size": 50000,
+  "alpha": [
+    0,
+    1.5707963267948966,
+    24
+  ],
+  "kappa": [
+    1,
+    100,
+    128
+  ],
+  "sigma": [
+    0.01,
+    10,
+    128
+  ],
+  "potential_functions": [
+    [
+      "|m|",
+      "norm(m)"
+    ],
+    [
+      "\\sigma",
+      "sigma"
+    ],
+    [
+      "\\kappa",
+      "kappa"
+    ],
+    [
+      "\\log(|m|)",
+      "log(norm(m))"
+    ],
+    [
+      "\\log(\\kappa)",
+      "log(kappa)"
+    ],
+    [
+      "\\log(\\sigma)",
+      "log(sigma)"
+    ],
+    [
+      "\\log(|m| + 2\\sigma)",
+      "log(norm(m) + (2 * sigma)) "
+    ],
+    [
+      "\\log(\\frac{\\sigma_{raw} \\cdot Tr(C)}{||C^\\frac12 \\cdot m||})",
+      "log((sigma_raw * tr(C)) / norm_C_12_m(C_rot,m_rot))"
+    ]
+  ]
+}
+

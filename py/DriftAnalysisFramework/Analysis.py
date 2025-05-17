@@ -54,8 +54,15 @@ class DriftAnalysis:
 
         # Evaluate all before states
         alpha, kappa, sigma = self.states[:, 0], self.states[:, 1], self.states[:, 2]
-        m, C, _ = TR.transform_to_parameters(alpha, kappa, sigma)
-        before_dict = {"alpha": alpha, "kappa": kappa, "sigma": sigma, "sigma_raw": sigma, "m": m, "C": C}
+        # Transform to real parameters and in order to have intermediate values too
+        m, C, sigma_raw = TR.transform_to_parameters(alpha, kappa, sigma)
+        alpha, kappa, sigma_normal, transformation_parameters = TR.transform_to_normal(m, C, sigma)
+
+        raw_state = {"m": m, "C": C, "sigma_raw": sigma_raw}
+        normal_form = {"alpha": alpha, "kappa": kappa, "sigma": sigma_normal}
+
+        before_dict = {**normal_form, **raw_state, **transformation_parameters}
+        # before_dict = {"alpha": alpha, "kappa": kappa, "sigma": sigma, "sigma_raw": sigma, "m": m, "C": C}
 
         # evaluate the before potential
         potential = np.zeros([len(self.potential_expr), len(self.states)])
@@ -107,11 +114,12 @@ def eval_drift(alpha, kappa, sigma, potential_expressions, potential_before, alg
         drifts = np.zeros([len(potential_expressions), sub_batch_size])
 
         # make step
-        normal_form, raw_params, success, *_ = alg.iterate(alpha, kappa, sigma, num=sub_batch_size)
+        normal_form, raw_params, success, raw_state_before, transformation_parameters = alg.iterate(alpha, kappa, sigma,
+                                                                                                    num=sub_batch_size)
 
         # collect base variables (make sure the raw sigma does not get overwritten by the transformed one)
         raw_params["sigma_raw"] = raw_params["sigma"]
-        after_dict = {**normal_form, **raw_params}
+        after_dict = {**normal_form, **raw_params, **transformation_parameters}
 
         # evaluate the after potential
         for expr_idx, potential_expr in enumerate(potential_expressions):
