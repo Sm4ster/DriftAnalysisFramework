@@ -115,7 +115,7 @@ class CMA_ES:
 
         new_C = (1 - self.c_cov) * C + self.c_cov * y_outer_product_w
 
-        return new_m, new_C, new_sigma, np.zeros([m.shape[0],2])
+        return new_m, new_C, new_sigma, {}
 
     def iterate(self, alpha, kappa, sigma, num=1):
         # Sanitize, transform and expand the parameters
@@ -126,23 +126,24 @@ class CMA_ES:
         z = np.random.randn(m.shape[0], self.lamda, 2)
 
         # vectorized step
-        m, C, sigma, success = self.step(m, C, sigma, z)
+        m, C, sigma, info = self.step(m, C, sigma, z)
 
         # vectorized transformation
         alpha, kappa, sigma_normal, transformation_parameters = CMA_TR.transform_to_normal(m, C, sigma)
 
-        # prepare data for return statement
+        # prepare data for the return statement
         raw_state = {"m": m, "C": C, "sigma": sigma}
         normal_form = {"alpha": alpha, "kappa": kappa, "sigma": sigma_normal}
+        misc_parameters = {}
 
-        return normal_form, raw_state, success, raw_state_before, transformation_parameters
+        return normal_form, raw_state, transformation_parameters, misc_parameters
 
 
 class OnePlusOne_CMA_ES:
     m = None
 
     def __init__(self, target, constants):
-        # make target function available
+        # make the target function available
         self.target = target
 
         # constants
@@ -156,7 +157,7 @@ class OnePlusOne_CMA_ES:
             z = np.array([np.random.standard_normal(m.shape[0]), np.random.standard_normal(m.shape[0])]).T
 
         # this is equivalent to Az in the normal form, as the matrix C is diagonal,
-        # therefore matrix A (with AA = C) is [[sqrt(C_00), 0][0, sqrt(C_11)]]
+        # therefore the matrix A (with AA = C) is [[sqrt(C_00), 0][0, sqrt(C_11)]]
         # for higher dimensions possibly use (untested): sigma * np.sqrt(np.diagonal(C, axis1=1, axis2=2))
         sigma_A = np.array([sigma * np.sqrt(C[:, 0, 0]), sigma * np.sqrt(C[:, 1, 1])]).T
         x = m + z * sigma_A
@@ -175,7 +176,7 @@ class OnePlusOne_CMA_ES:
                 np.array((1 - self.c_cov)) * C + np.array(self.c_cov) * np.einsum("ij,ik->ijk", s, s))
         new_C = successful + unsuccessful
 
-        return new_m, new_C, new_sigma, success
+        return new_m, new_C, new_sigma, {"success": success}
 
     def iterate(self, alpha, kappa, sigma, num=1):
         # Sanitize, transform and expand the parameters
@@ -186,13 +187,14 @@ class OnePlusOne_CMA_ES:
         z = np.array([np.random.standard_normal(m.shape[0]), np.random.standard_normal(m.shape[0])]).T
 
         # vectorized step
-        m, C, sigma, success = self.step(m, C, sigma, z)
 
+        m, C, sigma, info = self.step(m, C, sigma, z)
         # vectorized transformation
         alpha, kappa, sigma_normal, transformation_parameters = CMA_TR.transform_to_normal(m, C, sigma)
 
-        # prepare data for return statement
+        # prepare data for the return statement
         raw_state = {"m": m, "C": C, "sigma": sigma}
         normal_form = {"alpha": alpha, "kappa": kappa, "sigma": sigma_normal}
+        misc_parameters = {"success": info["success"]}
 
-        return normal_form, raw_state, success, raw_state_before, transformation_parameters
+        return normal_form, raw_state, transformation_parameters, misc_parameters

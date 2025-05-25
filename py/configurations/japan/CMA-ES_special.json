@@ -2,22 +2,22 @@
   "algorithm": "CMA-ES",
   "c_sigma": 0.2,
   "c_cov": 0.09182736455463728,
-  "batch_size": 500000,
+  "batch_size": 1000000,
   "sub_batch_size": 50000,
   "alpha": [
     0,
     1.5707963267948966,
-    32
+    1
   ],
   "kappa": [
     1,
     1000,
-    192
+    1
   ],
   "sigma": [
-    0.01,
-    100,
-    192
+    0.0001,
+    10000,
+    19200
   ],
   "potential_functions": [
     [

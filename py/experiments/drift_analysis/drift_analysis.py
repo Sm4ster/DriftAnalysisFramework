@@ -18,6 +18,7 @@ def handle_sigint(signum, frame):
 signal.signal(signal.SIGINT, handle_sigint)
 
 from DriftAnalysisFramework.Optimization import OnePlusOne_CMA_ES, CMA_ES
+from DriftAnalysisFramework.Info import OnePlusOne_CMA_ES as OnePlusOne_CMA_ES_Info, CMA_ES as CMA_ES_Info
 from DriftAnalysisFramework.Fitness import Sphere
 from DriftAnalysisFramework.Interpolation import get_data_value
 from DriftAnalysisFramework.Analysis import DriftAnalysis, eval_drift
@@ -101,11 +102,13 @@ if __name__ == '__main__':
             "p_target": constants["p_target"],
             "c_cov": constants["c_cov"],
         })
+        info = OnePlusOne_CMA_ES_Info()
     elif args.algorithm == "CMA-ES":
         alg = CMA_ES(Sphere(), {
             "c_sigma": constants["c_sigma"],
             "c_cov": constants["c_cov"],
         })
+        info = CMA_ES_Info()
     else:
         alg = None
         print("Error: No valid algorithm specified")
@@ -117,7 +120,7 @@ if __name__ == '__main__':
     sigma_sequence = np.geomspace(args.sigma_start, args.sigma_end, num=args.sigma_samples)
 
     # Initialize the Drift Analysis class
-    da = DriftAnalysis(alg)
+    da = DriftAnalysis(alg, info)
     da.batch_size = args.batch_size
     da.sub_batch_size = args.sub_batch_size
 
@@ -133,7 +136,7 @@ if __name__ == '__main__':
         "stable_sigma": np.array(sigma_data_raw["values"])
     }
 
-    # Check if sample sequence and precalculated are compatible
+    # Check if the sample sequence and precalculated are compatible
     if alpha_sequence.min() < sigma_data['alpha'].min() or alpha_sequence.max() > sigma_data['alpha'].max():
         print("Warning: alpha_sequence_s is out of bounds for the stable_parameter data")
     if kappa_sequence.min() < sigma_data['kappa'].min() or kappa_sequence.max() > sigma_data['kappa'].max():
@@ -147,14 +150,21 @@ if __name__ == '__main__':
 
     # Initialize data structures to hold results
     drifts = np.full([len(alpha_sequence), len(kappa_sequence), len(sigma_sequence), len(da.potential_expr)], np.nan)
+    potential_after = np.full([len(alpha_sequence), len(kappa_sequence), len(sigma_sequence), len(da.potential_expr)],
+                              np.nan)
     standard_deviations = np.full(
         [len(alpha_sequence), len(kappa_sequence), len(sigma_sequence), len(da.potential_expr)],np.nan)
     precisions = np.full([len(alpha_sequence), len(kappa_sequence), len(sigma_sequence), len(da.potential_expr)], np.nan)
-    successes = np.full([len(alpha_sequence), len(kappa_sequence), len(sigma_sequence)], np.nan)
-    success_mean = np.full([len(alpha_sequence), len(kappa_sequence), len(sigma_sequence), 3], np.nan)
-    success_std = np.full([len(alpha_sequence), len(kappa_sequence), len(sigma_sequence), 3], np.nan)
-    no_success_mean = np.full([len(alpha_sequence), len(kappa_sequence), len(sigma_sequence), 3], np.nan)
-    no_success_std = np.full([len(alpha_sequence), len(kappa_sequence), len(sigma_sequence), 3], np.nan)
+
+    info_data = {}
+    for key, field_info in da.info.fields.items():
+        info_data[key] = np.full(
+            [len(alpha_sequence), len(kappa_sequence), len(sigma_sequence), *field_info["shape"]], np.nan)
+
+        if field_info["type"] == "mean":
+            info_data[key + "_std"] = np.full(
+                [len(alpha_sequence), len(kappa_sequence), len(sigma_sequence), *field_info["shape"]], np.nan)
+
 
     start_idx = 0
     stop_idx = da.states.shape[0]
@@ -171,16 +181,18 @@ if __name__ == '__main__':
     if parallel_execution:
         with alive_bar(stop_idx-start_idx, force_tty=True, title="Evaluating") as bar:
             def callback(future_):
-                mean, std, precision, successes_, follow_up_success, follow_up_no_success, idx = future_.result()
+                mean, std, precision, potential, info, idx = future_.result()
 
                 drifts[idx[0], idx[1], idx[2]] = mean
                 standard_deviations[idx[0], idx[1], idx[2]] = std
                 precisions[idx[0], idx[1], idx[2]] = precision
-                successes[idx[0], idx[1], idx[2]] = successes_
-                success_mean[idx[0], idx[1], idx[2]] = follow_up_success.mean
-                success_std[idx[0], idx[1], idx[2]] = follow_up_success.std
-                no_success_mean[idx[0], idx[1], idx[2]] = follow_up_no_success.mean
-                no_success_std[idx[0], idx[1], idx[2]] = follow_up_no_success.std
+                potential_after[idx[0], idx[1], idx[2]] = potential
+
+                for key, field_info in da.info.fields.items():
+                    info_data[key][idx[0], idx[1], idx[2]] = info[key]
+
+                    if field_info["type"] == "mean":
+                        info_data[key + "_std"][idx[0], idx[1], idx[2]] = info[key + "_std"]
 
                 bar()
 
@@ -195,24 +207,26 @@ if __name__ == '__main__':
     else:
         with alive_bar(da.states.shape[0], force_tty=True, title="Evaluating") as bar:
             for i in range(da.states.shape[0]):
-                mean, std, precision, successes_, follow_up_success, follow_up_no_success, idx = \
-                    eval_drift(*da.get_eval_args(i))
+                mean, std, precision, potential, info, idx = eval_drift(*da.get_eval_args(i))
 
                 drifts[idx[0], idx[1], idx[2]] = mean
                 standard_deviations[idx[0], idx[1], idx[2]] = std
                 precisions[idx[0], idx[1], idx[2]] = precision
-                successes[idx[0], idx[1], idx[2]] = successes_
-                success_mean[idx[0], idx[1], idx[2]] = follow_up_success.mean
-                success_std[idx[0], idx[1], idx[2]] = follow_up_success.std
-                no_success_mean[idx[0], idx[1], idx[2]] = follow_up_no_success.mean
-                no_success_std[idx[0], idx[1], idx[2]] = follow_up_no_success.std
+                potential_after[idx[0], idx[1], idx[2]] = potential
+
+                for key, field_info in da.info.fields.items():
+                    assert np.shape(info[key]) == tuple(field_info["shape"])
+                    info_data[key][idx[0], idx[1], idx[2]] = info[key]
+
+                    if field_info["type"] == "mean":
+                        info_data[key + "_std"][idx[0], idx[1], idx[2]] = info[key + "_std"]
 
                 bar()
 
-    # get the end time after te run has finished
+    # get the end time after the run has finished
     end_time = datetime.now()
 
-    # Save data to file
+    # Save data to a file
     data = {
         'run_started': start_time.strftime("%d.%m.%Y %H:%M:%S"),
         'run_finished': end_time.strftime("%d.%m.%Y %H:%M:%S"),
@@ -224,15 +238,19 @@ if __name__ == '__main__':
             {'name': 'sigma', 'sequence': sigma_sequence.tolist()}
         ],
         'drift': drifts.tolist(),
-        'standard_deviation': standard_deviations.tolist(),
-        'success': successes.tolist(),
+        'potential_after': potential_after.tolist(),
         'precision': precisions.tolist(),
-        'success_mean': success_mean.tolist(),
-        'success_std': success_std.tolist(),
-        'no_success_mean': no_success_mean.tolist(),
-        'no_success_std': no_success_std.tolist(),
-        'stable_sigma': sigma_data_raw
+        'standard_deviation': standard_deviations.tolist(),
+
+        "info": {},
+        # 'stable_sigma': sigma_data_raw
     }
+
+    for key, field_info in da.info.fields.items():
+        data["info"][key] = info_data[key].tolist()
+
+        if field_info["type"] == "mean":
+            data["info"][key + "_std"] = info_data[key + "_std"].tolist()
 
     with open(f'./{args.output_file}', 'w') as f:
         json.dump(data, f)

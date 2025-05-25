@@ -8,8 +8,9 @@ from scipy import optimize
 
 
 class DriftAnalysis:
-    def __init__(self, alg):
+    def __init__(self, alg, info):
         self.alg = alg
+        self.info = info
         self.function_dict = function_dict
         self.batch_size = 1000000
         self.sub_batch_size = 50000
@@ -82,6 +83,7 @@ class DriftAnalysis:
             self.potential_expr, \
             self.potential_before[i], \
             self.alg, \
+            self.info, \
             self.batch_size, \
             self.sub_batch_size, \
             self.target_p_value, \
@@ -91,20 +93,11 @@ class DriftAnalysis:
         eval_drift(self.get_eval_args(i))
 
 
-class FollowUpState:
-    def __init__(self, mean, std):
-        self.mean = mean
-        self.std = std
-
-
-def eval_drift(alpha, kappa, sigma, potential_expressions, potential_before, alg, batch_size, sub_batch_size,
+def eval_drift(alpha, kappa, sigma, potential_expressions, potential_before, alg, info, batch_size, sub_batch_size,
                target_p_value, position):
-
     # init result data structures
-    successes = 0
     drift = Welford()
-    follow_up_succ = Welford()
-    follow_up_no_succ = Welford()
+    potential = Welford()
 
     # ensure that sub_batching will work properly
     assert batch_size % sub_batch_size == 0
@@ -112,10 +105,14 @@ def eval_drift(alpha, kappa, sigma, potential_expressions, potential_before, alg
 
     for _ in range(batch_count):
         drifts = np.zeros([len(potential_expressions), sub_batch_size])
+        potentials = np.zeros([len(potential_expressions), sub_batch_size])
 
-        # make step
-        normal_form, raw_params, success, raw_state_before, transformation_parameters = alg.iterate(alpha, kappa, sigma,
-                                                                                                    num=sub_batch_size)
+        # make a step
+        normal_form, raw_params, transformation_parameters, misc_parameters = alg.iterate(alpha, kappa, sigma,
+                                                                                          num=sub_batch_size)
+
+        # save info
+        info.add_data(normal_form, raw_params, transformation_parameters, misc_parameters)
 
         # collect base variables (make sure the raw sigma does not get overwritten by the transformed one)
         raw_params["sigma_raw"] = raw_params["sigma"]
@@ -129,52 +126,15 @@ def eval_drift(alpha, kappa, sigma, potential_expressions, potential_before, alg
             # calculate the drift
             drifts[expr_idx] = potential_after - potential_before[expr_idx]
 
-        # save successful and unsuccessful follow-up state
-        # for mean, geometrical mean, variance and geometrical variance
-        # we ignore errors as they come from dealing with the logs
-        with np.errstate(divide='ignore', invalid='ignore'):
-            mask = np.array(success == 1).T[0]
-            follow_up_succ.add_all(
-                np.array(
-                    [
-                        normal_form["alpha"][mask],
-                        normal_form["kappa"][mask],
-                        normal_form["sigma"][mask],
-                    ]
-                ).T
-            )
-
-            mask = np.array(success == 0).T[0]
-            follow_up_no_succ.add_all(
-                np.array(
-                    [
-                        normal_form["alpha"][mask],
-                        normal_form["kappa"][mask],
-                        normal_form["sigma"][mask],
-                    ]
-                ).T
-            )
+            # save potential
+            potentials[expr_idx] = potential_after
 
         # save drift for mean and variance
         drift.add_all(drifts.T)
-        successes += success.sum()
 
-    # collect data for follow-up states to return
-    if successes > 0:
-        state_succ = FollowUpState(
-            follow_up_succ.mean[0:3],
-            np.sqrt(follow_up_succ.var_p[0:3])
-        )
-    else:
-        state_succ =  FollowUpState(
-            [-1,-1,-1],
-            [-1,-1,-1]
-        )
+        # save potential
+        potential.add_all(potentials.T)
 
-    state_no_succ = FollowUpState(
-        follow_up_no_succ.mean[0:3],
-        np.sqrt(follow_up_no_succ.var_p[0:3])
-    )
 
     # calc precision of the drift values
     precision = np.zeros([len(potential_expressions)])
@@ -191,4 +151,4 @@ def eval_drift(alpha, kappa, sigma, potential_expressions, potential_before, alg
             print("batch_size", batch_size)
             precision[idx] = 0
 
-    return drift.mean, np.sqrt(drift.var_p), precision, successes, state_succ, state_no_succ, position
+    return drift.mean, np.sqrt(drift.var_p), precision, potential.mean, info.get_data(), position

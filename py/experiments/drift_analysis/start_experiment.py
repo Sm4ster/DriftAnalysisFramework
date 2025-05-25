@@ -31,7 +31,7 @@ config = json.load(open(f'./configurations/{args.parameter_file}'))
 
 filename=args.output_file
 if args.indexes != "all":
-    filename = part_results_path + args.indexes
+    filename = part_results_path + args.indexes + ".json"
 
 # Parameters to pass
 options = [

@@ -2,22 +2,22 @@
   "algorithm": "CMA-ES",
   "c_sigma": 0.2,
   "c_cov": 0.09182736455463728,
-  "batch_size": 500000,
+  "batch_size": 50000,
   "sub_batch_size": 50000,
   "alpha": [
     0,
     1.5707963267948966,
-    32
+    10
   ],
   "kappa": [
     1,
-    1000,
-    192
+    100,
+    10
   ],
   "sigma": [
-    0.01,
-    100,
-    192
+    0.1,
+    10,
+    10
   ],
   "potential_functions": [
     [
@@ -37,12 +37,12 @@
       "log((sigma_raw * tr(C)) / norm_C_12_m(C_rot,m_rot))"
     ],
     [
-      "\\log^+(\\frac{\\sigma_{raw} \\cdot Tr(C)}{||m||})",
-      "max(log((sigma_raw * tr(C)) / norm(m)), 0)"
+      "\\log^+(\\frac{\\sigma_{raw} \\cdot Tr(C)}{0.95 \\cdot ||C^\\frac12 \\cdot m||})",
+      "max(log((sigma_raw * tr(C)) / (0.95 * norm_C_12_m(C_rot,m_rot))), 0)"
     ],
     [
-      "\\log^+(\\frac{||m||}{\\sigma_{raw} \\cdot Tr(C)})",
-      "max(log(norm(m) / (sigma_raw * tr(C))), 0)"
+      "\\log^+(\\frac{||C^\\frac12 \\cdot m||}{1.05 \\cdot \\sigma_{raw} \\cdot Tr(C)})",
+      "max(log((1.05 * norm_C_12_m(C_rot,m_rot)) / (sigma_raw * tr(C))), 0)"
     ],
     [
       "\\log^+(\\frac{\\sigma_{raw} \\cdot Tr(C)}{||C^\\frac12 \\cdot m||})",
@@ -51,18 +51,6 @@
     [
       "\\log^+(\\frac{||C^\\frac12 \\cdot m||}{\\sigma_{raw} \\cdot Tr(C)})",
       "max(log((norm_C_12_m(C_rot,m_rot)) / (sigma_raw * tr(C))), 0)"
-    ],
-    [
-      "Tr(C)",
-      "tr(C)"
-    ],
-    [
-      "\\sigma_{raw} \\cdot Tr(C)",
-      "sigma_raw * tr(C)"
-    ],
-    [
-      "||C^\\frac12 \\cdot m||",
-      "norm_C_12_m(C_rot,m_rot)"
     ]
   ]
 }

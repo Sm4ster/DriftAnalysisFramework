@@ -14,6 +14,7 @@ for filename in os.listdir(directory_path):
     filepath = os.path.join(directory_path, filename)
     with open(filepath, 'r', encoding='utf-8') as f:
         data.append(json.load(f))
+import numpy as np
 
 
 def combine_nan_arrays(arrays):
@@ -27,9 +28,9 @@ def combine_nan_arrays(arrays):
 
 
 # Initialisierung
-keys = ['drift', 'standard_deviation', 'success', 'precision', 'success_mean', 'success_std', 'no_success_mean',
-        'no_success_std']
+keys = ['drift', 'standard_deviation', 'potential_after', 'precision']
 combined = {key: [] for key in keys}
+combined_info = {}
 meta = None
 
 final_data = {}
@@ -43,11 +44,19 @@ for i, filename in enumerate(sorted(os.listdir(directory_path))):
     for key in keys:
         array = np.array(content[key])
         combined[key].append(array)
+    for key, value in content["info"].items():
+        array = np.array(value)
+        if i == 0: combined_info[key] = []
+        combined_info[key].append(array)
 
 # Arrays kombinieren
 for key in keys:
     combined_array = combine_nan_arrays(combined[key])
     final_data[key] = combined_array.tolist()
+
+for key in final_data["info"].keys():
+    combined_array = combine_nan_arrays(combined_info[key])
+    final_data["info"][key] = combined_array.tolist()
 
 # Ergebnis speichern
 output_path = f'./data/{args.input_dir}/1_result.json'
