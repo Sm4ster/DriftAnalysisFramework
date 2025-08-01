@@ -1,3 +1,0 @@
-#!/bin/bash
-
-/home/franksyj/DriftAnalysisFramework/py/py.sh /home/franksyj/DriftAnalysisFramework/py/experiments/drift_analysis/start_experiment.py test_cases/parallel_test.json parallel_test_case
