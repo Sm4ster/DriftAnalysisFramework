@@ -159,6 +159,8 @@ def replace_functions(potential_function, local_dict, function_dict_=None):
                         argument_list.append(local_dict[name])
                     else:
                         if tuple_token not in local_dict:
+                            for key in local_dict.keys():
+                                print(key)
                             raise Exception("The argument is not defined: " + tuple_token)
                         else:
                             argument_name_list.append(tuple_token)

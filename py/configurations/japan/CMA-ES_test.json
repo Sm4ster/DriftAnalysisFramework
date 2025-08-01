@@ -12,17 +12,21 @@
   "kappa": [
     1,
     100,
-    10
+    100
   ],
   "sigma": [
     0.1,
     10,
-    10
+    100
   ],
   "potential_functions": [
     [
       "\\log(|m|)",
       "log(norm(m))"
+    ],
+    [
+      "\\log(|m| + 2\\sigma)",
+      "log(norm(m) + (2 * sigma)) "
     ],
     [
       "\\log(\\kappa)",
@@ -33,24 +37,40 @@
       "log(norm(m) * norm(m) + sigma_raw*sigma_raw*tr(C)) "
     ],
     [
+      "\\log(\\frac{\\sigma_{raw} \\cdot Tr(C)}{||m||})",
+      "log((sigma_raw * tr(C)) / norm(m))"
+    ],
+     [
+      "\\log^+(\\frac{\\sigma_{raw} \\cdot Tr(C)}{||m||})",
+      "log_plus((sigma_raw * tr(C)) / norm(m))"
+    ],
+    [
+      "\\log^+(\\frac{||m||}{\\sigma_{raw} \\cdot Tr(C)})",
+      "log_plus(norm(m) / (sigma_raw * tr(C)))"
+    ],
+    [
       "\\log(\\frac{\\sigma_{raw} \\cdot Tr(C)}{||C^\\frac12 \\cdot m||})",
       "log((sigma_raw * tr(C)) / norm_C_12_m(C_rot,m_rot))"
     ],
     [
-      "\\log^+(\\frac{\\sigma_{raw} \\cdot Tr(C)}{0.95 \\cdot ||C^\\frac12 \\cdot m||})",
-      "max(log((sigma_raw * tr(C)) / (0.95 * norm_C_12_m(C_rot,m_rot))), 0)"
-    ],
-    [
-      "\\log^+(\\frac{||C^\\frac12 \\cdot m||}{1.05 \\cdot \\sigma_{raw} \\cdot Tr(C)})",
-      "max(log((1.05 * norm_C_12_m(C_rot,m_rot)) / (sigma_raw * tr(C))), 0)"
-    ],
-    [
       "\\log^+(\\frac{\\sigma_{raw} \\cdot Tr(C)}{||C^\\frac12 \\cdot m||})",
-      "max(log((sigma_raw * tr(C)) / (norm_C_12_m(C_rot,m_rot))), 0)"
+      "log_plus((sigma_raw * tr(C)) / (norm_C_12_m(C_rot,m_rot)))"
     ],
     [
       "\\log^+(\\frac{||C^\\frac12 \\cdot m||}{\\sigma_{raw} \\cdot Tr(C)})",
-      "max(log((norm_C_12_m(C_rot,m_rot)) / (sigma_raw * tr(C))), 0)"
+      "log_plus((norm_C_12_m(C_rot,m_rot)) / (sigma_raw * tr(C)))"
+    ],
+    [
+      "Tr(C)",
+      "tr(C)"
+    ],
+    [
+      "\\sigma_{raw} \\cdot Tr(C)",
+      "sigma_raw * tr(C)"
+    ],
+    [
+      "||C^\\frac12 \\cdot m||",
+      "norm_C_12_m(C_rot,m_rot)"
     ]
   ]
 }

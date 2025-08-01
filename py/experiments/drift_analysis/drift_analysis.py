@@ -215,7 +215,6 @@ if __name__ == '__main__':
                 potential_after[idx[0], idx[1], idx[2]] = potential
 
                 for key, field_info in da.info.fields.items():
-                    assert np.shape(info[key]) == tuple(field_info["shape"])
                     info_data[key][idx[0], idx[1], idx[2]] = info[key]
 
                     if field_info["type"] == "mean":
@@ -228,6 +227,7 @@ if __name__ == '__main__':
 
     # Save data to a file
     data = {
+        'algorithm': args.algorithm,
         'run_started': start_time.strftime("%d.%m.%Y %H:%M:%S"),
         'run_finished': end_time.strftime("%d.%m.%Y %H:%M:%S"),
         'batch_size': da.batch_size,

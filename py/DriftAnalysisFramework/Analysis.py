@@ -139,16 +139,46 @@ def eval_drift(alpha, kappa, sigma, potential_expressions, potential_before, alg
     # calc precision of the drift values
     precision = np.zeros([len(potential_expressions)])
     for idx in range(len(potential_expressions)):
+
         try:
-            deviation = optimize.golden(
-                lambda x: abs(target_p_value - p_value(drift.mean[idx], drift.var_s[idx], batch_size, x)), brack=(0, 1)
-            )
-            precision[idx] = abs(drift.mean[idx] * deviation)
-        except ValueError:
+            mean = drift.mean[idx]
+            var = drift.var_s[idx]
+
+            def objective(x):
+                val = p_value(mean, var, batch_size, x)
+                if not np.isfinite(val):
+                    return np.inf
+                return abs(target_p_value - val)
+
+            # --- Precheck auf konstantes oder ungültiges Verhalten
+            val0 = objective(0)
+            val1 = objective(1)
+            if not np.isfinite(val0) or not np.isfinite(val1) or val0 == val1:
+                # print(f"[Precheck] Skipping optimization at idx={idx} due to constant or invalid objective.")
+                precision[idx] = 0
+                continue
+
+            deviation = optimize.golden(objective, brack=(0, 1))
+            precision[idx] = abs(mean * deviation)
+
+        except (ValueError, RuntimeError, optimize.OptimizeWarning) as e:
             print("Could not optimize for a valid precision value, setting precision to 0.")
-            print("drift.mean", drift.mean[idx])
-            print("drift.var_s", drift.var_s[idx])
-            print("batch_size", batch_size)
+            print("Expression_idx =", idx)
+            print(f"  parameters = {alpha}, {kappa}, {sigma}")
+            print("  mean =", drift.mean[idx])
+            print("  var  =", drift.var_s[idx])
+            print("  batch_size =", batch_size)
             precision[idx] = 0
+        # try:
+        #     deviation = optimize.golden(
+        #         lambda x: abs(target_p_value - p_value(drift.mean[idx], drift.var_s[idx], batch_size, x)), brack=(0, 1)
+        #     )
+        #     precision[idx] = abs(drift.mean[idx] * deviation)
+        # except ValueError:
+        #     print("Could not optimize for a valid precision value, setting precision to 0.")
+        #     print("drift.mean", drift.mean[idx])
+        #     print("drift.var_s", drift.var_s[idx])
+        #     print("batch_size", batch_size)
+        #     precision[idx] = 0
 
     return drift.mean, np.sqrt(drift.var_p), precision, potential.mean, info.get_data(), position
