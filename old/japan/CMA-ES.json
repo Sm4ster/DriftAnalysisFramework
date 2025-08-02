@@ -33,7 +33,7 @@
       "log(kappa)"
     ],
     [
-      "\\log(||m||^2 + Tr(\\sigma_{raw}^2 \\cdot Tr(C)))",
+      "\\log(||m||^2 + \\sigma_{raw}^2 \\cdot Tr(C))",
       "log(norm(m) * norm(m) + sigma_raw*sigma_raw*tr(C)) "
     ],
     [

@@ -1,0 +1,57 @@
+{
+  "algorithm": "CMA-ES",
+  "potential_functions": [
+    {
+      "latex": "\\log(|m|)",
+      "code": "log(norm(m))"
+    },
+    {
+      "latex": "\\log(|m| + 2\\sigma)",
+      "code": "log(norm(m) + (2 * sigma))"
+    },
+    {
+      "latex": "\\log(\\kappa)",
+      "code": "log(kappa)"
+    },
+    {
+      "latex": "\\log(||m||^2 + \\sigma_{raw}^2 \\cdot Tr(C))",
+      "code": "log(norm(m) * norm(m) + sigma_raw*sigma_raw*tr(C))"
+    },
+    {
+      "latex": "\\log(\\frac{\\sigma_{raw} \\cdot Tr(C)}{||m||})",
+      "code": "log((sigma_raw * tr(C)) / norm(m))"
+    },
+    {
+      "latex": "\\log^+(\\frac{\\sigma_{raw} \\cdot Tr(C)}{||m||})",
+      "code": "log_plus((sigma_raw * tr(C)) / norm(m))"
+    },
+    {
+      "latex": "\\log^+(\\frac{||m||}{\\sigma_{raw} \\cdot Tr(C)})",
+      "code": "log_plus(norm(m) / (sigma_raw * tr(C)))"
+    },
+    {
+      "latex": "\\log(\\frac{\\sigma_{raw} \\cdot Tr(C)}{||C^\\frac12 \\cdot m||})",
+      "code": "log((sigma_raw * tr(C)) / norm_C_12_m(C_rot,m_rot))"
+    },
+    {
+      "latex": "\\log^+(\\frac{\\sigma_{raw} \\cdot Tr(C)}{||C^\\frac12 \\cdot m||})",
+      "code": "log_plus((sigma_raw * tr(C)) / (norm_C_12_m(C_rot,m_rot)))"
+    },
+    {
+      "latex": "\\log^+(\\frac{||C^\\frac12 \\cdot m||}{\\sigma_{raw} \\cdot Tr(C)})",
+      "code": "log_plus((norm_C_12_m(C_rot,m_rot)) / (sigma_raw * tr(C)))"
+    },
+    {
+      "latex": "Tr(C)",
+      "code": "tr(C)"
+    },
+    {
+      "latex": "\\sigma_{raw} \\cdot Tr(C)",
+      "code": "sigma_raw * tr(C)"
+    },
+    {
+      "latex": "||C^\\frac12 \\cdot m||",
+      "code": "norm_C_12_m(C_rot,m_rot)"
+    }
+  ]
+}

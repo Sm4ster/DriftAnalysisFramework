@@ -26,7 +26,7 @@ for param_set in param_sets:
     dataset_name = "./data/" + args.input_dir + "/3_drift/" + str(param_set[0]) + "_" + str(param_set[1])
 
     command = [
-        sys.executable, 'experiments/drift_analysis/drift_optimization.py',
+        sys.executable, 'tools/drift_analysis/drift_optimization.py',
         "--data_file", dataset_name,
         "--output_file", "data/" + args.input_dir + "/" + output_file,
         "--iterations", args.iterations,

@@ -6,38 +6,37 @@ import sys
 import os
 
 # Change the working directory
-os.chdir("/home/franksyj/DriftAnalysisFramework/py/")
+os.chdir("/home/franksyj/DriftAnalysisFramework/")
 
 parser = argparse.ArgumentParser(description='This script does drift simulation for CMA')
+parser.add_argument('potential_function_file', help='The input file containing all potential functions for the run.')
 parser.add_argument('parameter_file', help='The input file containing all options and parameters for the run.')
 parser.add_argument('output_dir', help='The output directory name.')
-parser.add_argument('--output_file', help='The output file name.', default='results.json')
 parser.add_argument('--indexes', type=str, help='Start and stop indexes of the input file', default='all')
 parser.add_argument('--workers', type=str, help='Number of workers running the simulation', default=12)
 args = parser.parse_args()
 
 # Build the output directory with subdirectories
-data_path = "data/" + args.output_dir
+data_path = args.output_dir
 if not os.path.exists(data_path):
     os.makedirs(data_path)
 
-part_results_path = data_path + "/part_results/"
-if not os.path.exists(part_results_path):
-    os.makedirs(part_results_path)
-
-shutil.copy("configurations/" + args.parameter_file, data_path + "/0_configuration.json")
-
-config = json.load(open(f'./configurations/{args.parameter_file}'))
-
-filename=args.output_file
 if args.indexes != "all":
-    filename = part_results_path + args.indexes + ".json"
+    part_results_path = data_path + "/parts/"
+    if not os.path.exists(part_results_path):
+        os.makedirs(part_results_path)
+
+
+# shutil.copy("configurations/" + args.parameter_file, data_path + "/0_configuration.json")
+
+config = json.load(open(f'./configurations/run_parameters/{args.parameter_file}'))
+potential_functions = json.load(open(f'./configurations/potential_functions/{args.potential_function_file}'))
 
 # Parameters to pass
 options = [
-    filename,
-    '--algorithm', config["algorithm"],
-    '--potential_functions', json.dumps(config["potential_functions"]),
+    args.output_dir,
+    '--algorithm', potential_functions["algorithm"],
+    '--potential_functions', json.dumps(potential_functions["potential_functions"]),
     '--workers', str(args.workers),
     '--indexes', args.indexes
 ]
@@ -78,7 +77,7 @@ if "kappa" in config:
 if "sigma" in config:
     options.extend(['--sigma_samples', str(config["sigma"][2])])
 
-command = [sys.executable, 'experiments/drift_analysis/drift_analysis.py'] + options
+command = [sys.executable, 'tools/drift_analysis/drift_analysis.py'] + options
 
 print(command)
 

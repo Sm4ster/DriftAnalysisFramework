@@ -1,13 +1,12 @@
 import json
 import argparse
 import subprocess
-import sys
-from pathlib import Path
 
 
 parser = argparse.ArgumentParser(description='This script does a parallel start for the empirical drift analysis')
+parser.add_argument('potential_function_file', help='The input file containing all potential functions for the run.')
 parser.add_argument('parameter_file', help='The input file containing all options and parameters for the run.')
-parser.add_argument('output_dir', help='The output directory name.')
+parser.add_argument('--output_dir', default='data', help='The output directory name.')
 parser.add_argument('--compute_resources', default='machines.json', help='A JSON file with all machines used to compute the simulation run.')
 parser.add_argument('--session_name', default='empirical_drift_analysis', help='The name for the tmux session.')
 args = parser.parse_args()
@@ -18,8 +17,9 @@ args = parser.parse_args()
 TMUX_SESSION = "remote_workers"
 
 # Command to run remotely – change this to your actual task
-REMOTE_COMMAND = ("/home/franksyj/DriftAnalysisFramework/py/py.sh "
-                  "/home/franksyj/DriftAnalysisFramework/py/experiments/drift_analysis/start_experiment.py "
+REMOTE_COMMAND = ("/home/franksyj/DriftAnalysisFramework/py.sh "
+                  "/home/franksyj/DriftAnalysisFramework/tools/drift_analysis/start_experiment.py "
+                  "{potential_function_file} "
                   "{parameter_file} "
                   "{output_dir} "
                   "--worker {workers} "
@@ -80,7 +80,7 @@ def main():
     for idx, entry in enumerate(machine_list):
         core_list.append(entry["workers"])
 
-    config = json.load(open(f'./configurations/{args.parameter_file}'))
+    config = json.load(open(f'./configurations/run_parameters/{args.parameter_file}.json'))
     num_jobs = config['alpha'][2] * config['kappa'][2] * config['sigma'][2]
 
     index_list = distribute_jobs_by_cores(num_jobs, core_list)
@@ -105,9 +105,16 @@ def main():
         run_tmux_command(session_name, hostname, ssh_cmd)
 
         # run the command to start the run
-        remote_cmd = REMOTE_COMMAND.format(parameter_file=args.parameter_file, output_dir=args.output_dir, workers=workers, start_idx=index_list[idx][0], stop_idx=index_list[idx][1])
+        remote_cmd = REMOTE_COMMAND.format(
+            potential_function_file=args.potential_function_file,
+            parameter_file=args.parameter_file,
+            output_dir=args.output_dir,
+            workers=workers,
+            start_idx=index_list[idx][0],
+            stop_idx=index_list[idx][1]
+        )
         print(f"Starting run... \n {remote_cmd}")
-        run_tmux_command(session_name, hostname, "cd /home/franksyj/DriftAnalysisFramework/py")
+        run_tmux_command(session_name, hostname, "cd /home/franksyj/DriftAnalysisFramework")
         run_tmux_command(session_name, hostname, remote_cmd)
 
     # remove the first window of the session, as it is not used

@@ -73,7 +73,7 @@ for idx, param_set in enumerate(param_sets):
     # Initialize the target function and optimization algorithm
     filename = str(param_set[0]) + "_" + str(param_set[1])
     command_pre = [
-        sys.executable, 'experiments/parameter_analysis/sigma_analysis.py',
+        sys.executable, 'tools/parameter_analysis/sigma_analysis.py',
         stable_sigma_path + filename,
         '--algorithm', config["algorithm"],
         '--constants', json.dumps(constants),
@@ -133,7 +133,7 @@ for idx, param_set in enumerate(param_sets):
     if "sigma" in config:
         options.extend(['--sigma_samples', str(config["sigma"][2])])
 
-    command_main = [sys.executable, 'experiments/drift_analysis/drift_analysis.py'] + options
+    command_main = [sys.executable, 'tools/drift_analysis/drift_analysis.py'] + options
 
     # Execute the command and wait for it to finish
     try:

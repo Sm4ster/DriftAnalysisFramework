@@ -8,12 +8,15 @@ from alive_progress import alive_bar
 from concurrent.futures import ProcessPoolExecutor
 import signal
 import sys
+import hashlib
+
 
 def handle_sigint(signum, frame):
     print("SIGINT received. Cleaning up...")
     # Kill all python processes from my user
     subprocess.run(["pkill", "-u", os.getlogin(), "-f", "python"])
     sys.exit(0)
+
 
 signal.signal(signal.SIGINT, handle_sigint)
 
@@ -44,7 +47,7 @@ helper_functions = {
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='This script does drift simulation for CMA')
-    parser.add_argument('output_file', type=str, help='Output file name', default='drift_run.json')
+    parser.add_argument('output_path', type=str, help='Path to which the files are written', default='data')
 
     parser.add_argument('--potential_functions', type=str, help='JSON String of potential functions')
     parser.add_argument('--batch_size', type=int, help='Number of samples to test', default=50000)
@@ -77,7 +80,7 @@ if __name__ == '__main__':
     # number of workers
     workers = args.workers
 
-    # potential_functions
+    # potential_expressions
     potential_functions = json.loads(args.potential_functions)
 
     # constants
@@ -146,15 +149,16 @@ if __name__ == '__main__':
     da.function_dict.update(helper_functions)
 
     # Evaluate the before potential to set up the class
-    da.eval_potential([e[1] for e in potential_functions], alpha_sequence, kappa_sequence, sigma_sequence)
+    da.eval_potential([e["code"] for e in potential_functions], alpha_sequence, kappa_sequence, sigma_sequence)
 
     # Initialize data structures to hold results
     drifts = np.full([len(alpha_sequence), len(kappa_sequence), len(sigma_sequence), len(da.potential_expr)], np.nan)
     potential_after = np.full([len(alpha_sequence), len(kappa_sequence), len(sigma_sequence), len(da.potential_expr)],
                               np.nan)
     standard_deviations = np.full(
-        [len(alpha_sequence), len(kappa_sequence), len(sigma_sequence), len(da.potential_expr)],np.nan)
-    precisions = np.full([len(alpha_sequence), len(kappa_sequence), len(sigma_sequence), len(da.potential_expr)], np.nan)
+        [len(alpha_sequence), len(kappa_sequence), len(sigma_sequence), len(da.potential_expr)], np.nan)
+    precisions = np.full([len(alpha_sequence), len(kappa_sequence), len(sigma_sequence), len(da.potential_expr)],
+                         np.nan)
 
     info_data = {}
     for key, field_info in da.info.fields.items():
@@ -164,7 +168,6 @@ if __name__ == '__main__':
         if field_info["type"] == "mean":
             info_data[key + "_std"] = np.full(
                 [len(alpha_sequence), len(kappa_sequence), len(sigma_sequence), *field_info["shape"]], np.nan)
-
 
     start_idx = 0
     stop_idx = da.states.shape[0]
@@ -176,10 +179,9 @@ if __name__ == '__main__':
     print(f"Indexes (start-stop): {start_idx}-{stop_idx}")
     print(f"Number of grid points (batch/total): {stop_idx - start_idx}/{da.states.shape[0]}")
 
-
     # For debugging the critical function and performance comparisons
     if parallel_execution:
-        with alive_bar(stop_idx-start_idx, force_tty=True, title="Evaluating") as bar:
+        with alive_bar(stop_idx - start_idx, force_tty=True, title="Evaluating") as bar:
             def callback(future_):
                 mean, std, precision, potential, info, idx = future_.result()
 
@@ -195,6 +197,7 @@ if __name__ == '__main__':
                         info_data[key + "_std"][idx[0], idx[1], idx[2]] = info[key + "_std"]
 
                 bar()
+
 
             with ProcessPoolExecutor(max_workers=workers) as executor:
                 for i in range(start_idx, stop_idx):
@@ -225,32 +228,52 @@ if __name__ == '__main__':
     # get the end time after the run has finished
     end_time = datetime.now()
 
-    # Save data to a file
-    data = {
-        'algorithm': args.algorithm,
-        'run_started': start_time.strftime("%d.%m.%Y %H:%M:%S"),
-        'run_finished': end_time.strftime("%d.%m.%Y %H:%M:%S"),
-        'batch_size': da.batch_size,
-        'potential_function': potential_functions,
-        'sequences': [
-            {'name': 'alpha', 'sequence': alpha_sequence.tolist()},
-            {'name': 'kappa', 'sequence': kappa_sequence.tolist()},
-            {'name': 'sigma', 'sequence': sigma_sequence.tolist()}
-        ],
-        'drift': drifts.tolist(),
-        'potential_after': potential_after.tolist(),
-        'precision': precisions.tolist(),
-        'standard_deviation': standard_deviations.tolist(),
+    # Save data to a files
+    for potential_function in potential_functions:
+        # create a unique string for this potential function and run
+        unique = {
+            "algorithm": args.algorithm,
+            "potential_expression": potential_function["code"].replace(" ", ""),
+            'batch_size': da.batch_size,
+            'sequences': [
+                {'name': 'alpha', 'sequence': alpha_sequence.tolist()},
+                {'name': 'kappa', 'sequence': kappa_sequence.tolist()},
+                {'name': 'sigma', 'sequence': sigma_sequence.tolist()}
+            ]
+        }
 
-        "info": {},
-        # 'stable_sigma': sigma_data_raw
-    }
+        unique_string = json.dumps(unique, sort_keys=True)
+        filename = hashlib.sha256(unique_string.encode()).hexdigest()
 
-    for key, field_info in da.info.fields.items():
-        data["info"][key] = info_data[key].tolist()
+        data = {
+            'algorithm': args.algorithm,
+            'potential_function': potential_function,
+            'drift': drifts.tolist(),
+            'potential_after': potential_after.tolist(),
+            'precision': precisions.tolist(),
+            'standard_deviation': standard_deviations.tolist(),
+            "info": {
+                'batch_size': da.batch_size,
+                'run_started': start_time.strftime("%d.%m.%Y %H:%M:%S"),
+                'run_finished': end_time.strftime("%d.%m.%Y %H:%M:%S"),
+                'sequences': [
+                    {'name': 'alpha', 'sequence': alpha_sequence.tolist()},
+                    {'name': 'kappa', 'sequence': kappa_sequence.tolist()},
+                    {'name': 'sigma', 'sequence': sigma_sequence.tolist()}
+                ],
+            },
+        }
 
-        if field_info["type"] == "mean":
-            data["info"][key + "_std"] = info_data[key + "_std"].tolist()
+        for key, field_info in da.info.fields.items():
+            data["info"][key] = info_data[key].tolist()
 
-    with open(f'./{args.output_file}', 'w') as f:
-        json.dump(data, f)
+            if field_info["type"] == "mean":
+                data["info"][key + "_std"] = info_data[key + "_std"].tolist()
+
+        if args.indexes != "all":
+            filename = f'./{args.output_path}/{filename}_{start_idx}-{stop_idx}.part'
+        else:
+            filename = f'./{args.output_path}/{filename}.json'
+
+        with open(filename, 'w') as f:
+            json.dump(data, f)
