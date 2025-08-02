@@ -29,8 +29,8 @@ if args.indexes != "all":
 
 # shutil.copy("configurations/" + args.parameter_file, data_path + "/0_configuration.json")
 
-config = json.load(open(f'./configurations/run_parameters/{args.parameter_file}'))
-potential_functions = json.load(open(f'./configurations/potential_functions/{args.potential_function_file}'))
+config = json.load(open(f'./configurations/run_parameters/{args.parameter_file}.json'))
+potential_functions = json.load(open(f'./configurations/potential_functions/{args.potential_function_file}.json'))
 
 # Parameters to pass
 options = [

@@ -32,8 +32,8 @@ parallel_execution = True
 helper_functions = {
     # "stable_kappa": lambda alpha_, sigma_: get_data_value(alpha_, sigma_, kappa_data['alpha'], kappa_data['sigma'],
     #                                                       kappa_data['stable_kappa']),
-    "stable_sigma": lambda alpha_, kappa_: get_data_value(alpha_, kappa_, sigma_data['alpha'], sigma_data['kappa'],
-                                                          sigma_data['stable_sigma']),
+    # "stable_sigma": lambda alpha_, kappa_: get_data_value(alpha_, kappa_, sigma_data['alpha'], sigma_data['kappa'],
+    #                                                       sigma_data['stable_sigma']),
     "f": lambda x: gaussian_filter(x, 0.2, 0.01, 1) * x,
     "filter_alpha": lambda x, alpha: 1 - spline_filter(alpha, 1.5707963267948966 / 4, 1.5707963267948966 / 2, 5,
                                                        10) * x,
@@ -70,7 +70,7 @@ if __name__ == '__main__':
     parser.add_argument('--sigma_end', type=float, help='Stable kappa data file name', default=10)
     parser.add_argument('--sigma_samples', type=int, help='Stable kappa data file name', default=256)
 
-    parser.add_argument('--sigma_input', type=str, help='Stable sigma data file name', default='stable_sigma.json')
+    # parser.add_argument('--sigma_input', type=str, help='Stable sigma data file name', default='stable_sigma.json')
 
     args = parser.parse_args()
 
@@ -128,22 +128,22 @@ if __name__ == '__main__':
     da.sub_batch_size = args.sub_batch_size
 
     # Initialize stable_sigma
-    sigma_data_raw = json.load(open(f'./{args.sigma_input}'))
-    sigma_data = {
-        "alpha": np.array(
-            next((sequence["sequence"] for sequence in sigma_data_raw["sequences"] if sequence["name"] == "alpha"),
-                 None)),
-        "kappa": np.array(
-            next((sequence["sequence"] for sequence in sigma_data_raw["sequences"] if sequence["name"] == "kappa"),
-                 None)),
-        "stable_sigma": np.array(sigma_data_raw["values"])
-    }
+    # sigma_data_raw = json.load(open(f'./{args.sigma_input}'))
+    # sigma_data = {
+    #     "alpha": np.array(
+    #         next((sequence["sequence"] for sequence in sigma_data_raw["sequences"] if sequence["name"] == "alpha"),
+    #              None)),
+    #     "kappa": np.array(
+    #         next((sequence["sequence"] for sequence in sigma_data_raw["sequences"] if sequence["name"] == "kappa"),
+    #              None)),
+    #     "stable_sigma": np.array(sigma_data_raw["values"])
+    # }
 
     # Check if the sample sequence and precalculated are compatible
-    if alpha_sequence.min() < sigma_data['alpha'].min() or alpha_sequence.max() > sigma_data['alpha'].max():
-        print("Warning: alpha_sequence_s is out of bounds for the stable_parameter data")
-    if kappa_sequence.min() < sigma_data['kappa'].min() or kappa_sequence.max() > sigma_data['kappa'].max():
-        print("Warning: alpha_sequence is out of bounds for the stable_parameter data")
+    # if alpha_sequence.min() < sigma_data['alpha'].min() or alpha_sequence.max() > sigma_data['alpha'].max():
+    #     print("Warning: alpha_sequence_s is out of bounds for the stable_parameter data")
+    # if kappa_sequence.min() < sigma_data['kappa'].min() or kappa_sequence.max() > sigma_data['kappa'].max():
+    #     print("Warning: alpha_sequence is out of bounds for the stable_parameter data")
 
     # Update the function dict of the potential evaluation
     da.function_dict.update(helper_functions)
@@ -229,7 +229,7 @@ if __name__ == '__main__':
     end_time = datetime.now()
 
     # Save data to a files
-    for potential_function in potential_functions:
+    for idx, potential_function in enumerate(potential_functions):
         # create a unique string for this potential function and run
         unique = {
             "algorithm": args.algorithm,
@@ -243,15 +243,15 @@ if __name__ == '__main__':
         }
 
         unique_string = json.dumps(unique, sort_keys=True)
-        filename = hashlib.sha256(unique_string.encode()).hexdigest()
+        filename = hashlib.sha256(unique_string.encode()).hexdigest()[:10]
 
         data = {
             'algorithm': args.algorithm,
             'potential_function': potential_function,
-            'drift': drifts.tolist(),
-            'potential_after': potential_after.tolist(),
-            'precision': precisions.tolist(),
-            'standard_deviation': standard_deviations.tolist(),
+            'drift': drifts[:, :, :, idx].tolist(),
+            'potential_after': potential_after[:, :, :, idx].tolist(),
+            'precision': precisions[:, :, :, idx].tolist(),
+            'standard_deviation': standard_deviations[:, :, :, idx].tolist(),
             "info": {
                 'batch_size': da.batch_size,
                 'run_started': start_time.strftime("%d.%m.%Y %H:%M:%S"),
@@ -271,7 +271,7 @@ if __name__ == '__main__':
                 data["info"][key + "_std"] = info_data[key + "_std"].tolist()
 
         if args.indexes != "all":
-            filename = f'./{args.output_path}/{filename}_{start_idx}-{stop_idx}.part'
+            filename = f'./{args.output_path}/parts/{filename}_{start_idx}-{stop_idx}.part'
         else:
             filename = f'./{args.output_path}/{filename}.json'
 
