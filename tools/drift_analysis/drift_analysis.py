@@ -122,6 +122,31 @@ if __name__ == '__main__':
     kappa_sequence = np.geomspace(args.kappa_start, args.kappa_end, num=args.kappa_samples)
     sigma_sequence = np.geomspace(args.sigma_start, args.sigma_end, num=args.sigma_samples)
 
+    start_idx = 0
+    stop_idx = da.states.shape[0]
+
+    if args.indexes != "all":
+        start_idx = int(args.indexes.split("_")[0])
+        stop_idx = int(args.indexes.split("_")[1])
+
+    print(f"Indexes (start-stop): {start_idx}-{stop_idx}")
+    print(f"Number of grid points (batch/total): {stop_idx - start_idx}/{da.states.shape[0]}")
+
+    # create a unique string for this run
+    unique = {
+        "algorithm": args.algorithm,
+        "potential_expression": potential_functions.tolist(),
+        'batch_size': args.batch_size,
+        'sequences': [
+            {'name': 'alpha', 'sequence': alpha_sequence.tolist()},
+            {'name': 'kappa', 'sequence': kappa_sequence.tolist()},
+            {'name': 'sigma', 'sequence': sigma_sequence.tolist()}
+        ]
+    }
+
+    unique_string = json.dumps(unique, sort_keys=True)
+    run_hash = hashlib.sha256(unique_string.encode()).hexdigest()[:8]
+
     # Initialize the Drift Analysis class
     da = DriftAnalysis(alg, info)
     da.batch_size = args.batch_size
@@ -169,15 +194,6 @@ if __name__ == '__main__':
             info_data[key + "_std"] = np.full(
                 [len(alpha_sequence), len(kappa_sequence), len(sigma_sequence), *field_info["shape"]], np.nan)
 
-    start_idx = 0
-    stop_idx = da.states.shape[0]
-
-    if args.indexes != "all":
-        start_idx = int(args.indexes.split("_")[0])
-        stop_idx = int(args.indexes.split("_")[1])
-
-    print(f"Indexes (start-stop): {start_idx}-{stop_idx}")
-    print(f"Number of grid points (batch/total): {stop_idx - start_idx}/{da.states.shape[0]}")
 
     # For debugging the critical function and performance comparisons
     if parallel_execution:
@@ -252,7 +268,7 @@ if __name__ == '__main__':
             'potential_after': potential_after[:, :, :, idx].tolist(),
             'precision': precisions[:, :, :, idx].tolist(),
             'standard_deviation': standard_deviations[:, :, :, idx].tolist(),
-            "info": {
+            "meta": {
                 'batch_size': da.batch_size,
                 'run_started': start_time.strftime("%d.%m.%Y %H:%M:%S"),
                 'run_finished': end_time.strftime("%d.%m.%Y %H:%M:%S"),
@@ -262,6 +278,7 @@ if __name__ == '__main__':
                     {'name': 'sigma', 'sequence': sigma_sequence.tolist()}
                 ],
             },
+            "info": {},
         }
 
         for key, field_info in da.info.fields.items():
