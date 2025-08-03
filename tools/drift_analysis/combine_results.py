@@ -75,4 +75,10 @@ print(f'Combined result written to: {output_path}')
 for file in directory.glob(f"{args.filename}_*.part"):
     file.unlink()
 
+# remove parts directory
+try:
+    os.rmdir(directory_path)
+except OSError:
+    pass
+
 print(f'Partial files deleted.')

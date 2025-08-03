@@ -9,6 +9,7 @@ from concurrent.futures import ProcessPoolExecutor
 import signal
 import sys
 import hashlib
+import glob
 
 
 def handle_sigint(signum, frame):
@@ -23,17 +24,12 @@ signal.signal(signal.SIGINT, handle_sigint)
 from DriftAnalysisFramework.Optimization import OnePlusOne_CMA_ES, CMA_ES
 from DriftAnalysisFramework.Info import OnePlusOne_CMA_ES as OnePlusOne_CMA_ES_Info, CMA_ES as CMA_ES_Info
 from DriftAnalysisFramework.Fitness import Sphere
-from DriftAnalysisFramework.Interpolation import get_data_value
 from DriftAnalysisFramework.Analysis import DriftAnalysis, eval_drift
 from DriftAnalysisFramework.Filter import gaussian_filter, spline_filter
 
 parallel_execution = True
 
 helper_functions = {
-    # "stable_kappa": lambda alpha_, sigma_: get_data_value(alpha_, sigma_, kappa_data['alpha'], kappa_data['sigma'],
-    #                                                       kappa_data['stable_kappa']),
-    # "stable_sigma": lambda alpha_, kappa_: get_data_value(alpha_, kappa_, sigma_data['alpha'], sigma_data['kappa'],
-    #                                                       sigma_data['stable_sigma']),
     "f": lambda x: gaussian_filter(x, 0.2, 0.01, 1) * x,
     "filter_alpha": lambda x, alpha: 1 - spline_filter(alpha, 1.5707963267948966 / 4, 1.5707963267948966 / 2, 5,
                                                        10) * x,
@@ -48,6 +44,10 @@ helper_functions = {
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='This script does drift simulation for CMA')
     parser.add_argument('output_path', type=str, help='Path to which the files are written', default='data')
+
+    parser.add_argument('--run_id', type=str, help='The run_id to distinguish runs', default="default")
+    parser.add_argument('--server_id', type=int, help='Identifier of this server and process', default=0)
+    parser.add_argument('--max_servers', type=int, help='Total number of servers', default=1)
 
     parser.add_argument('--potential_functions', type=str, help='JSON String of potential functions')
     parser.add_argument('--batch_size', type=int, help='Number of samples to test', default=50000)
@@ -69,8 +69,6 @@ if __name__ == '__main__':
     parser.add_argument('--sigma_start', type=float, help='Stable kappa data file name', default=0.1)
     parser.add_argument('--sigma_end', type=float, help='Stable kappa data file name', default=10)
     parser.add_argument('--sigma_samples', type=int, help='Stable kappa data file name', default=256)
-
-    # parser.add_argument('--sigma_input', type=str, help='Stable sigma data file name', default='stable_sigma.json')
 
     args = parser.parse_args()
 
@@ -122,53 +120,41 @@ if __name__ == '__main__':
     kappa_sequence = np.geomspace(args.kappa_start, args.kappa_end, num=args.kappa_samples)
     sigma_sequence = np.geomspace(args.sigma_start, args.sigma_end, num=args.sigma_samples)
 
-    start_idx = 0
-    stop_idx = da.states.shape[0]
+    filenames = []
+    filtered_potential_functions = []
+    for idx, potential_function in enumerate(potential_functions):
+        # create a unique string for this potential function and run
+        unique = {
+            "algorithm": args.algorithm,
+            "potential_expression": potential_function["code"].replace(" ", ""),
+            'batch_size': args.batch_size,
+            'sequences': [
+                {'name': 'alpha', 'sequence': alpha_sequence.tolist()},
+                {'name': 'kappa', 'sequence': kappa_sequence.tolist()},
+                {'name': 'sigma', 'sequence': sigma_sequence.tolist()}
+            ]
+        }
 
-    if args.indexes != "all":
-        start_idx = int(args.indexes.split("_")[0])
-        stop_idx = int(args.indexes.split("_")[1])
+        unique_string = json.dumps(unique, sort_keys=True)
+        unique_filename = hashlib.sha256(unique_string.encode()).hexdigest()[:10]
 
-    print(f"Indexes (start-stop): {start_idx}-{stop_idx}")
-    print(f"Number of grid points (batch/total): {stop_idx - start_idx}/{da.states.shape[0]}")
+        if not os.path.exists(f"{args.output_path}/{unique_filename}.json"):
+            filenames.append(unique_filename)
+            filtered_potential_functions.append(potential_function)
+        else:
+            print(f"[SKIP] Already exists: {unique_filename}.json")
 
-    # create a unique string for this run
-    unique = {
-        "algorithm": args.algorithm,
-        "potential_expression": potential_functions.tolist(),
-        'batch_size': args.batch_size,
-        'sequences': [
-            {'name': 'alpha', 'sequence': alpha_sequence.tolist()},
-            {'name': 'kappa', 'sequence': kappa_sequence.tolist()},
-            {'name': 'sigma', 'sequence': sigma_sequence.tolist()}
-        ]
-    }
+    potential_functions = filtered_potential_functions
 
-    unique_string = json.dumps(unique, sort_keys=True)
-    run_hash = hashlib.sha256(unique_string.encode()).hexdigest()[:8]
+    if len(potential_functions) == 0:
+        print("[INFO] All potential functions already computed. Nothing to do.")
+        print("[INFO] To re-run, delete or move files in ./data/")
+        sys.exit(0)
 
     # Initialize the Drift Analysis class
     da = DriftAnalysis(alg, info)
     da.batch_size = args.batch_size
     da.sub_batch_size = args.sub_batch_size
-
-    # Initialize stable_sigma
-    # sigma_data_raw = json.load(open(f'./{args.sigma_input}'))
-    # sigma_data = {
-    #     "alpha": np.array(
-    #         next((sequence["sequence"] for sequence in sigma_data_raw["sequences"] if sequence["name"] == "alpha"),
-    #              None)),
-    #     "kappa": np.array(
-    #         next((sequence["sequence"] for sequence in sigma_data_raw["sequences"] if sequence["name"] == "kappa"),
-    #              None)),
-    #     "stable_sigma": np.array(sigma_data_raw["values"])
-    # }
-
-    # Check if the sample sequence and precalculated are compatible
-    # if alpha_sequence.min() < sigma_data['alpha'].min() or alpha_sequence.max() > sigma_data['alpha'].max():
-    #     print("Warning: alpha_sequence_s is out of bounds for the stable_parameter data")
-    # if kappa_sequence.min() < sigma_data['kappa'].min() or kappa_sequence.max() > sigma_data['kappa'].max():
-    #     print("Warning: alpha_sequence is out of bounds for the stable_parameter data")
 
     # Update the function dict of the potential evaluation
     da.function_dict.update(helper_functions)
@@ -194,6 +180,22 @@ if __name__ == '__main__':
             info_data[key + "_std"] = np.full(
                 [len(alpha_sequence), len(kappa_sequence), len(sigma_sequence), *field_info["shape"]], np.nan)
 
+    start_idx = 0
+    stop_idx = da.states.shape[0]
+
+    if args.indexes != "all":
+        start_idx = int(args.indexes.split("_")[0])
+        stop_idx = int(args.indexes.split("_")[1])
+
+    print(f"Indexes (start-stop): {start_idx}-{stop_idx}")
+    print(f"Number of grid points (batch/total): {stop_idx - start_idx}/{da.states.shape[0]}")
+
+    # make lockfile
+    lock_dir = os.path.join(args.output_path, "locks", str(args.run_id))
+    os.makedirs(lock_dir, exist_ok=True)
+    lockfile = os.path.join(f"{args.output_path}/locks/{args.run_id}", f"job_{args.server_id}.lock")
+    with open(lockfile, "w") as f:
+        f.write("")
 
     # For debugging the critical function and performance comparisons
     if parallel_execution:
@@ -246,21 +248,6 @@ if __name__ == '__main__':
 
     # Save data to a files
     for idx, potential_function in enumerate(potential_functions):
-        # create a unique string for this potential function and run
-        unique = {
-            "algorithm": args.algorithm,
-            "potential_expression": potential_function["code"].replace(" ", ""),
-            'batch_size': da.batch_size,
-            'sequences': [
-                {'name': 'alpha', 'sequence': alpha_sequence.tolist()},
-                {'name': 'kappa', 'sequence': kappa_sequence.tolist()},
-                {'name': 'sigma', 'sequence': sigma_sequence.tolist()}
-            ]
-        }
-
-        unique_string = json.dumps(unique, sort_keys=True)
-        filename = hashlib.sha256(unique_string.encode()).hexdigest()[:10]
-
         data = {
             'algorithm': args.algorithm,
             'potential_function': potential_function,
@@ -288,9 +275,40 @@ if __name__ == '__main__':
                 data["info"][key + "_std"] = info_data[key + "_std"].tolist()
 
         if args.indexes != "all":
-            filename = f'./{args.output_path}/parts/{filename}_{start_idx}-{stop_idx}.part'
+            filename = f'./{args.output_path}/parts/{filenames[idx]}_{start_idx}-{stop_idx}.part'
         else:
-            filename = f'./{args.output_path}/{filename}.json'
+            filename = f'./{args.output_path}/{filenames[idx]}.json'
 
         with open(filename, 'w') as f:
             json.dump(data, f)
+
+    # remove lock file and combine if this was the last one
+    try:
+        os.remove(lockfile)
+    except FileNotFoundError:
+        pass
+
+    remaining = glob.glob(os.path.join(lock_dir, "*.lock"))
+    if not remaining:
+        # Combine data to files
+        print("[INFO] Last worker done – calling combine_results.py")
+        for idx, potential_function in enumerate(potential_functions):
+            subprocess.run([
+                sys.executable,
+                "tools/drift_analysis/combine_results.py",
+                args.output_path,
+                filenames[idx]
+            ])
+
+        # remove lock directory
+        try:
+            os.rmdir(lock_dir)
+        except OSError:
+            pass
+
+        # remove parent lock directory
+        locks_parent = os.path.dirname(lock_dir)
+        try:
+            os.rmdir(locks_parent)
+        except OSError:
+            pass

@@ -1,6 +1,7 @@
 import json
 import argparse
 import subprocess
+import uuid
 
 
 parser = argparse.ArgumentParser(description='This script does a parallel start for the empirical drift analysis')
@@ -22,6 +23,9 @@ REMOTE_COMMAND = ("/home/franksyj/DriftAnalysisFramework/py.sh "
                   "{potential_function_file} "
                   "{parameter_file} "
                   "{output_dir} "
+                  "--run_id {run_id} "
+                  "--server_id {server_id} "
+                  "--max_servers {max_servers} "
                   "--worker {workers} "
                   "--indexes {start_idx}_{stop_idx} ")
 
@@ -85,6 +89,7 @@ def main():
 
     index_list = distribute_jobs_by_cores(num_jobs, core_list)
 
+    run_id = uuid.uuid4().hex
 
     # create tmux session
     session_name = get_unique_session_name(args.session_name)
@@ -109,6 +114,9 @@ def main():
             potential_function_file=args.potential_function_file,
             parameter_file=args.parameter_file,
             output_dir=args.output_dir,
+            run_id=run_id,
+            server_id=idx,
+            max_servers=len(machine_list),
             workers=workers,
             start_idx=index_list[idx][0],
             stop_idx=index_list[idx][1]
