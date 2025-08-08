@@ -2,8 +2,10 @@ import numpy as np
 
 
 class CMA_ES:
-    @staticmethod
-    def transform_to_parameters(alpha, kappa, sigma, num=1):
+    def __init__(self, normalization="determinant"):
+        self.normalization = normalization
+
+    def transform_to_parameters(self, alpha, kappa, sigma, num=1):
         # Determine which parameters are arrays and their lengths
         is_array = [isinstance(param, np.ndarray) for param in [alpha, kappa, sigma]]
         array_lengths = [len(param) if is_array[i] else None for i, param in enumerate([alpha, kappa, sigma])]
@@ -31,13 +33,18 @@ class CMA_ES:
 
         # create C from kappa
         C = np.zeros((array_length, 2, 2), dtype=float)
-        C[:, 0, 0] = kappa
-        C[:, 1, 1] = (1 / kappa)
+
+        if self.normalization == "determinant":
+            C[:, 0, 0] = kappa
+            C[:, 1, 1] = (1 / kappa)
+
+        if self.normalization == "trace":
+            C[:, 0, 0] = kappa
+            C[:, 1, 1] = (1 - kappa)
 
         return m, C, sigma
 
-    @staticmethod
-    def transform_to_normal(m, C, sigma):
+    def transform_to_normal(self, m, C, sigma):
         # get the transformation matrix
         eigval, A = np.linalg.eigh(C)
 
@@ -51,9 +58,12 @@ class CMA_ES:
         # make values close to zero equal zero
         C_rot[np.abs(C_rot) < 1e-15] = 0
 
-        # calculate the scaling factor which brings the covariance matrix to det = 1
-        det = C_rot[:,0,0] * C_rot[:,1,1]
-        scaling_factor = np.sqrt(det)
+        # calculate the scaling factor
+        scaling_factor = 1
+        if self.normalization == "determinant":
+            scaling_factor = np.sqrt(C_rot[:, 0, 0] * C_rot[:, 1, 1])
+        if self.normalization == "trace":
+            scaling_factor = C_rot[:, 0, 0] + C_rot[:, 1, 1]
 
         C_normal = np.einsum('i,ijk->ijk', 1 / scaling_factor, C_rot)
         sigma_scaled = sigma * np.sqrt(scaling_factor)

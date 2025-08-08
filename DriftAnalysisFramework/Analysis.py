@@ -1,7 +1,6 @@
 import numpy as np
 import numexpr as ne
 from DriftAnalysisFramework.Potential import replace_functions, parse_expression, function_dict
-from DriftAnalysisFramework.Transformation import CMA_ES as TR
 from DriftAnalysisFramework.Statistics import p_value
 from welford import Welford
 from scipy import optimize
@@ -12,9 +11,8 @@ class DriftAnalysis:
         self.alg = alg
         self.info = info
         self.function_dict = function_dict
-        self.batch_size = 1000000
-        self.sub_batch_size = 50000
-        self.max_executions = 1
+        self.sample_size = 1000000
+        self.batch_size = 50000
         self.target_p_value = 0.001
 
         self.states_idx = None
@@ -28,8 +26,8 @@ class DriftAnalysis:
         self.potential_expr = []
         self.potential_before = []
 
-        if (self.batch_size % self.sub_batch_size) != 0:
-            raise Exception("Batch_size must be a multiple of the sub_batch_size.")
+        if (self.batch_size % self.batch_size) != 0:
+            raise Exception("Batch_size must be a multiple of the batch_size.")
 
     def eval_potential(self, potential_functions, alpha_sequence, kappa_sequence, sigma_sequence):
         self.alpha_sequence = alpha_sequence
@@ -56,8 +54,8 @@ class DriftAnalysis:
         # Evaluate all before states
         alpha, kappa, sigma = self.states[:, 0], self.states[:, 1], self.states[:, 2]
         # Transform to real parameters and in order to have intermediate values too
-        m, C, sigma_raw = TR.transform_to_parameters(alpha, kappa, sigma)
-        alpha, kappa, sigma_normal, transformation_parameters = TR.transform_to_normal(m, C, sigma)
+        m, C, sigma_raw = self.alg.transformation.transform_to_parameters(alpha, kappa, sigma)
+        alpha, kappa, sigma_normal, transformation_parameters = self.alg.transformation.transform_to_normal(m, C, sigma)
 
         raw_state = {"m": m, "C": C, "sigma_raw": sigma_raw}
         normal_form = {"alpha": alpha, "kappa": kappa, "sigma": sigma_normal}
@@ -84,8 +82,8 @@ class DriftAnalysis:
             self.potential_before[i], \
             self.alg, \
             self.info, \
+            self.sample_size, \
             self.batch_size, \
-            self.sub_batch_size, \
             self.target_p_value, \
             self.states_idx[i]
 
@@ -93,23 +91,23 @@ class DriftAnalysis:
         eval_drift(self.get_eval_args(i))
 
 
-def eval_drift(alpha, kappa, sigma, potential_expressions, potential_before, alg, info, batch_size, sub_batch_size,
+def eval_drift(alpha, kappa, sigma, potential_expressions, potential_before, alg, info, sample_size, batch_size,
                target_p_value, position):
     # init result data structures
     drift = Welford()
     potential = Welford()
 
-    # ensure that sub_batching will work properly
-    assert batch_size % sub_batch_size == 0
-    batch_count = batch_size // sub_batch_size
+    # ensure that batching will work properly
+    assert sample_size % batch_size == 0
+    batch_count = sample_size // batch_size
 
     for _ in range(batch_count):
-        drifts = np.zeros([len(potential_expressions), sub_batch_size])
-        potentials = np.zeros([len(potential_expressions), sub_batch_size])
+        drifts = np.zeros([len(potential_expressions), batch_size])
+        potentials = np.zeros([len(potential_expressions), batch_size])
 
         # make a step
         normal_form, raw_params, transformation_parameters, misc_parameters = alg.iterate(alpha, kappa, sigma,
-                                                                                          num=sub_batch_size)
+                                                                                          num=batch_size)
 
         # save info
         info.add_data(normal_form, raw_params, transformation_parameters, misc_parameters)
@@ -145,7 +143,7 @@ def eval_drift(alpha, kappa, sigma, potential_expressions, potential_before, alg
             var = drift.var_s[idx]
 
             def objective(x):
-                val = p_value(mean, var, batch_size, x)
+                val = p_value(mean, var, sample_size, x)
                 if not np.isfinite(val):
                     return np.inf
                 return abs(target_p_value - val)
@@ -167,18 +165,7 @@ def eval_drift(alpha, kappa, sigma, potential_expressions, potential_before, alg
             print(f"  parameters = {alpha}, {kappa}, {sigma}")
             print("  mean =", drift.mean[idx])
             print("  var  =", drift.var_s[idx])
-            print("  batch_size =", batch_size)
+            print("  sample_size =", sample_size)
             precision[idx] = 0
-        # try:
-        #     deviation = optimize.golden(
-        #         lambda x: abs(target_p_value - p_value(drift.mean[idx], drift.var_s[idx], batch_size, x)), brack=(0, 1)
-        #     )
-        #     precision[idx] = abs(drift.mean[idx] * deviation)
-        # except ValueError:
-        #     print("Could not optimize for a valid precision value, setting precision to 0.")
-        #     print("drift.mean", drift.mean[idx])
-        #     print("drift.var_s", drift.var_s[idx])
-        #     print("batch_size", batch_size)
-        #     precision[idx] = 0
 
     return drift.mean, np.sqrt(drift.var_p), precision, potential.mean, info.get_data(), position

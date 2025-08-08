@@ -1,5 +1,25 @@
 [
   {
+    "hostname": "gpu01",
+    "workers": 64
+  },
+  {
+    "hostname": "gpu02",
+    "workers": 64
+  },
+    {
+    "hostname": "gpu03",
+    "workers": 64
+  },
+  {
+    "hostname": "cuda01",
+    "workers": 12
+  },
+  {
+    "hostname": "cuda02",
+    "workers": 20
+  },
+  {
     "hostname": "cuda03",
     "workers": 32
   },

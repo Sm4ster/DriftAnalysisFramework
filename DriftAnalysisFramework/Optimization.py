@@ -5,8 +5,10 @@ from DriftAnalysisFramework.Transformation import CMA_ES as CMA_TR
 class OnePlusOne_ES:
     m = None
 
-    def __init__(self, target, constants):
+    def __init__(self, target, transformation, constants):
         self.dim = 2
+
+        self.transformation = transformation
 
         # make target function available
         self.target = target
@@ -51,27 +53,28 @@ class OnePlusOne_ES:
 class CMA_ES:
     m = None
 
-    def __init__(self, target, constants):
+    def __init__(self, target, transformation, constants):
         # make target function available
         self.target = target
+
+        self.transformation = transformation
 
         # constants
         self.lamda = 6
         self.mu = 3
 
-        self.c_sigma = constants["c_sigma"]
-        self.c_cov = constants["c_cov"]  # 2 / (np.power(self.dim, 2) + 6)
+        self.c_mu = constants["c_mu"]
 
         weights = []
         for i in range(self.mu):
-            weights.append(np.log(self.mu) - np.log(i+1))
+            weights.append(np.log(self.mu) - np.log(i + 1))
 
-        for i in range(self.lamda-self.mu):
+        for i in range(self.lamda - self.mu):
             weights.append(0)
 
         self.weights = np.array(weights)
         self.weights = self.weights / np.sum(self.weights)
-        self.mu_eff = 1 / np.sum(self.weights**2)
+        self.mu_eff = 1 / np.sum(self.weights ** 2)
         # print("mu_eff:", 1 / np.sum(self.weights**2))
 
     def step(self, m, C, sigma, z=None):
@@ -102,24 +105,26 @@ class CMA_ES:
         # Apply the weights to the indices
         weights = np.take(self.weights, indices)
 
-        # m = \sum w_i+x_i
-        new_m =  np.einsum("ij,ijk->ik", weights, x)
+        ## Parameter updates
+        # m = \sum w_i * x_i (or m + \sigma * \sum w_i+y_i)
+        new_m = np.einsum("ij,ijk->ik", weights, x)
 
-        # sigma = sigma * exp(c_sigma * ())
-        z_w_sum = np.einsum("ij,ijk->ik", weights, z)
-        new_sigma = sigma * np.exp(self.c_sigma * (self.mu_eff * np.square(np.linalg.norm(z_w_sum, axis=1)) / 2 - 1))
+        # \sigma = \sigma * exp(1/2 *
+        #   (2 * \mu_eff \sum w_i z_i) / (\sqrt{2\pi}) - 1)\right)
+        norm_z_w_sum = np.linalg.norm(np.einsum("ij,ijk->ik", weights, z), axis=1)
+        new_sigma = sigma * np.exp(0.5 * (((self.mu_eff * norm_z_w_sum) / np.sqrt(2 * np.pi)) - 1))
 
         # C = (1-c_cov) * C + c_cov \sum w_i * Az_i * (Az_i)^T
         y_outer_product = np.einsum('...i,...j->...ij', y, y)
         y_outer_product_w = np.einsum("ij,ijkl->ikl", weights, y_outer_product)
 
-        new_C = (1 - self.c_cov) * C + self.c_cov * y_outer_product_w
+        new_C = (1 - self.c_mu) * C + self.c_mu * y_outer_product_w
 
         return new_m, new_C, new_sigma, {}
 
     def iterate(self, alpha, kappa, sigma, num=1):
         # Sanitize, transform and expand the parameters
-        m, C, sigma = CMA_TR.transform_to_parameters(alpha, kappa, sigma, num)
+        m, C, sigma = self.transformation.transform_to_parameters(alpha, kappa, sigma, num)
         raw_state_before = {"m": m, "C": C, "sigma": sigma}
 
         # create the random samples
@@ -129,7 +134,7 @@ class CMA_ES:
         m, C, sigma, info = self.step(m, C, sigma, z)
 
         # vectorized transformation
-        alpha, kappa, sigma_normal, transformation_parameters = CMA_TR.transform_to_normal(m, C, sigma)
+        alpha, kappa, sigma_normal, transformation_parameters = self.transformation.transform_to_normal(m, C, sigma)
 
         # prepare data for the return statement
         raw_state = {"m": m, "C": C, "sigma": sigma}
@@ -142,9 +147,11 @@ class CMA_ES:
 class OnePlusOne_CMA_ES:
     m = None
 
-    def __init__(self, target, constants):
+    def __init__(self, target, transformation, constants):
         # make the target function available
         self.target = target
+
+        self.transformation = transformation
 
         # constants
         self.d = constants["d"]  # 1 + self.dim / 2
@@ -180,7 +187,7 @@ class OnePlusOne_CMA_ES:
 
     def iterate(self, alpha, kappa, sigma, num=1):
         # Sanitize, transform and expand the parameters
-        m, C, sigma = CMA_TR.transform_to_parameters(alpha, kappa, sigma, num)
+        m, C, sigma = self.transformation.transform_to_parameters(alpha, kappa, sigma, num)
         raw_state_before = {"m": m, "C": C, "sigma": sigma}
 
         # create the random samples
@@ -190,7 +197,7 @@ class OnePlusOne_CMA_ES:
 
         m, C, sigma, info = self.step(m, C, sigma, z)
         # vectorized transformation
-        alpha, kappa, sigma_normal, transformation_parameters = CMA_TR.transform_to_normal(m, C, sigma)
+        alpha, kappa, sigma_normal, transformation_parameters = self.transformation.transform_to_normal(m, C, sigma)
 
         # prepare data for the return statement
         raw_state = {"m": m, "C": C, "sigma": sigma}

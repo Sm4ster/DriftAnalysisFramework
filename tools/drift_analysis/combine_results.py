@@ -11,15 +11,6 @@ args = parser.parse_args()
 
 directory_path = f'./{args.input_dir}/parts/'
 
-
-# data = []
-# for filename in os.listdir(directory_path):
-#     filepath = os.path.join(directory_path, filename)
-#     with open(filepath, 'r', encoding='utf-8') as f:
-#         data.append(json.load(f))
-#
-
-
 def combine_nan_arrays(arrays):
     if not arrays:
         raise ValueError("No arrays provided.")

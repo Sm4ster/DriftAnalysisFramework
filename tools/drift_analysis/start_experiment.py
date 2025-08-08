@@ -42,16 +42,17 @@ options = [
     '--server_id', str(args.server_id),
     '--max_servers', str(args.max_servers),
     '--algorithm', potential_functions["algorithm"],
+    '--normal_form', potential_functions["normal_form"],
     '--potential_functions', json.dumps(potential_functions["potential_functions"]),
     '--workers', str(args.workers),
     '--indexes', args.indexes
 ]
 
+if "sample_size" in config:
+    options.extend(['--sample_size', str(config["sample_size"])])
+
 if "batch_size" in config:
     options.extend(['--batch_size', str(config["batch_size"])])
-
-if "sub_batch_size" in config:
-    options.extend(['--sub_batch_size', str(config["sub_batch_size"])])
 
 if "alpha" in config:
     options.extend(['--alpha_start', str(config["alpha"][0])])

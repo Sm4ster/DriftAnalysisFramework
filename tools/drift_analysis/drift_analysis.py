@@ -23,6 +23,7 @@ signal.signal(signal.SIGINT, handle_sigint)
 
 from DriftAnalysisFramework.Optimization import OnePlusOne_CMA_ES, CMA_ES
 from DriftAnalysisFramework.Info import OnePlusOne_CMA_ES as OnePlusOne_CMA_ES_Info, CMA_ES as CMA_ES_Info
+from DriftAnalysisFramework.Transformation import CMA_ES as CMA_TR
 from DriftAnalysisFramework.Fitness import Sphere
 from DriftAnalysisFramework.Analysis import DriftAnalysis, eval_drift
 from DriftAnalysisFramework.Filter import gaussian_filter, spline_filter
@@ -50,10 +51,11 @@ if __name__ == '__main__':
     parser.add_argument('--max_servers', type=int, help='Total number of servers', default=1)
 
     parser.add_argument('--potential_functions', type=str, help='JSON String of potential functions')
-    parser.add_argument('--batch_size', type=int, help='Number of samples to test', default=50000)
-    parser.add_argument('--sub_batch_size', type=int, help='Number of samples to test in on iteration', default=25000)
+    parser.add_argument('--sample_size', type=int, help='Number of samples to test', default=50000)
+    parser.add_argument('--batch_size', type=int, help='Number of samples to test in on iteration', default=25000)
 
     parser.add_argument('--algorithm', type=str, help='[1+1-CMA-ES, CMA-ES]', default="1+1-CMA-ES")
+    parser.add_argument('--normal_form', type=str, help='[determinant, trace]', default="determinant")
     parser.add_argument('--constants', type=str, help='The constants for the run')
     parser.add_argument('--workers', type=int, help='Number of workers running the simulation', default=12)
     parser.add_argument('--indexes', type=str, help='Start and stop indexes for distributed execution', default='all')
@@ -98,17 +100,24 @@ if __name__ == '__main__':
 
     # Initialize the target function and optimization algorithm
     if args.algorithm == "1+1-CMA-ES":
-        alg = OnePlusOne_CMA_ES(Sphere(), {
-            "d": constants["d"],
-            "p_target": constants["p_target"],
-            "c_cov": constants["c_cov"],
-        })
+        alg = OnePlusOne_CMA_ES(
+            Sphere(),
+            CMA_TR(args.normal_form),
+            {
+                "d": constants["d"],
+                "p_target": constants["p_target"],
+                "c_cov": constants["c_cov"],
+            }
+        )
         info = OnePlusOne_CMA_ES_Info()
     elif args.algorithm == "CMA-ES":
-        alg = CMA_ES(Sphere(), {
-            "c_sigma": constants["c_sigma"],
-            "c_cov": constants["c_cov"],
-        })
+        alg = CMA_ES(
+            Sphere(),
+            CMA_TR(args.normal_form),
+            {
+                "c_mu": constants["c_cov"],
+            },
+        )
         info = CMA_ES_Info()
     else:
         alg = None
@@ -122,20 +131,22 @@ if __name__ == '__main__':
 
     filenames = []
     filtered_potential_functions = []
+    run_configs = []
     for idx, potential_function in enumerate(potential_functions):
         # create a unique string for this potential function and run
-        unique = {
-            "algorithm": args.algorithm,
-            "potential_expression": potential_function["code"].replace(" ", ""),
-            'batch_size': args.batch_size,
-            'sequences': [
+        run_configs.append({
+            'algorithm': args.algorithm,
+            'normal_form': args.normal_form,
+            'potential_function': potential_function,
+            'samples_size': args.sample_size,
+            'grid': [
                 {'name': 'alpha', 'sequence': alpha_sequence.tolist()},
                 {'name': 'kappa', 'sequence': kappa_sequence.tolist()},
                 {'name': 'sigma', 'sequence': sigma_sequence.tolist()}
-            ]
-        }
+            ],
+        }),
 
-        unique_string = json.dumps(unique, sort_keys=True)
+        unique_string = json.dumps(run_configs[idx], sort_keys=True)
         unique_filename = hashlib.sha256(unique_string.encode()).hexdigest()[:10]
 
         if not os.path.exists(f"{args.output_path}/{unique_filename}.json"):
@@ -153,8 +164,8 @@ if __name__ == '__main__':
 
     # Initialize the Drift Analysis class
     da = DriftAnalysis(alg, info)
+    da.sample_size = args.sample_size
     da.batch_size = args.batch_size
-    da.sub_batch_size = args.sub_batch_size
 
     # Update the function dict of the potential evaluation
     da.function_dict.update(helper_functions)
@@ -249,21 +260,15 @@ if __name__ == '__main__':
     # Save data to a files
     for idx, potential_function in enumerate(potential_functions):
         data = {
-            'algorithm': args.algorithm,
-            'potential_function': potential_function,
+            'run_config': run_configs[idx],
             'drift': drifts[:, :, :, idx].tolist(),
             'potential_after': potential_after[:, :, :, idx].tolist(),
             'precision': precisions[:, :, :, idx].tolist(),
             'standard_deviation': standard_deviations[:, :, :, idx].tolist(),
             "meta": {
-                'batch_size': da.batch_size,
                 'run_started': start_time.strftime("%d.%m.%Y %H:%M:%S"),
                 'run_finished': end_time.strftime("%d.%m.%Y %H:%M:%S"),
-                'sequences': [
-                    {'name': 'alpha', 'sequence': alpha_sequence.tolist()},
-                    {'name': 'kappa', 'sequence': kappa_sequence.tolist()},
-                    {'name': 'sigma', 'sequence': sigma_sequence.tolist()}
-                ],
+                'batch_size': da.batch_size
             },
             "info": {},
         }
