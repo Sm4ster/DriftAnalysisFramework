@@ -3,7 +3,7 @@ from DriftAnalysisFramework.Transformation import CMA_ES as TR
 
 
 def transform_to_normal_unvectorized(m, C, sigma, normal_form=0):
-    # get the the transformation matrix
+    # get the transformation matrix
     A = np.linalg.eigh(C)[1]
 
     # rotate the coordinate system such that the eigenvalues of

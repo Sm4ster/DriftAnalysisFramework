@@ -39,8 +39,8 @@ class CMA_ES:
             C[:, 1, 1] = (1 / kappa)
 
         if self.normalization == "trace":
-            C[:, 0, 0] = kappa
-            C[:, 1, 1] = (1 - kappa)
+            C[:, 0, 0] = 2 * kappa / (kappa + 1)
+            C[:, 1, 1] = 2 / (kappa + 1)
 
         return m, C, sigma
 
@@ -59,11 +59,11 @@ class CMA_ES:
         C_rot[np.abs(C_rot) < 1e-15] = 0
 
         # calculate the scaling factor
-        scaling_factor = 1
+        scaling_factor = np.ones(C_rot.shape[0])
         if self.normalization == "determinant":
             scaling_factor = np.sqrt(C_rot[:, 0, 0] * C_rot[:, 1, 1])
         if self.normalization == "trace":
-            scaling_factor = C_rot[:, 0, 0] + C_rot[:, 1, 1]
+            scaling_factor = np.einsum('...ii', C_rot) / 2
 
         C_normal = np.einsum('i,ijk->ijk', 1 / scaling_factor, C_rot)
         sigma_scaled = sigma * np.sqrt(scaling_factor)
