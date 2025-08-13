@@ -6,10 +6,13 @@ from pathlib import Path
 
 parser = argparse.ArgumentParser(description='This script computes stable kappa values for CMA.')
 parser.add_argument('input_dir', type=str, help='Input directory name')
+parser.add_argument('run_id', type=str, help='Unique identifier string of the run')
 parser.add_argument('filename', type=str, help='File hash name')
+parser.add_argument('--delete_files', type=bool, default=False, help='Delete partial files after merging')
 args = parser.parse_args()
 
-directory_path = f'./{args.input_dir}/parts/'
+directory_path = f'./{args.input_dir}/parts/{args.run_id}'
+
 
 def combine_nan_arrays(arrays):
     if not arrays:
@@ -63,13 +66,14 @@ with open(output_path, 'w', encoding='utf-8') as f:
 
 print(f'Combined result written to: {output_path}')
 
-for file in directory.glob(f"{args.filename}_*.part"):
-    file.unlink()
+if args.delete_files:
+    for file in directory.glob(f"{args.filename}_*.part"):
+        file.unlink()
 
-# remove parts directory
-try:
-    os.rmdir(directory_path)
-except OSError:
-    pass
+    # remove parts directory
+    try:
+        os.rmdir(directory_path)
+    except OSError:
+        pass
 
-print(f'Partial files deleted.')
+    print(f'Partial files deleted.')

@@ -10,6 +10,7 @@ import signal
 import sys
 import hashlib
 import glob
+import socket
 
 
 def handle_sigint(signum, frame):
@@ -159,7 +160,7 @@ if __name__ == '__main__':
 
     if len(potential_functions) == 0:
         print("[INFO] All potential functions already computed. Nothing to do.")
-        print("[INFO] To re-run, delete or move files in ./data/")
+        print(f"[INFO] To re-run, delete or move files in ./{args.output_path}/")
         sys.exit(0)
 
     # Initialize the Drift Analysis class
@@ -204,7 +205,8 @@ if __name__ == '__main__':
     # make lockfile
     lock_dir = os.path.join(args.output_path, "locks", str(args.run_id))
     os.makedirs(lock_dir, exist_ok=True)
-    lockfile = os.path.join(f"{args.output_path}/locks/{args.run_id}", f"job_{args.server_id}.lock")
+    lockfile = os.path.join(f"{args.output_path}/locks/{args.run_id}",
+                            f"job_{args.server_id}_{socket.gethostname()}.lock")
     with open(lockfile, "w") as f:
         f.write("")
 
@@ -280,7 +282,7 @@ if __name__ == '__main__':
                 data["info"][key + "_std"] = info_data[key + "_std"].tolist()
 
         if args.indexes != "all":
-            filename = f'./{args.output_path}/parts/{filenames[idx]}_{start_idx}-{stop_idx}.part'
+            filename = f'./{args.output_path}/parts/{args.run_id}/{filenames[idx]}_{start_idx}-{stop_idx}.part'
         else:
             filename = f'./{args.output_path}/{filenames[idx]}.json'
 
@@ -302,6 +304,7 @@ if __name__ == '__main__':
                 sys.executable,
                 "tools/drift_analysis/combine_results.py",
                 args.output_path,
+                args.run_id,
                 filenames[idx]
             ])
 

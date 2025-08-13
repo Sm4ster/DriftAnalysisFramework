@@ -9,7 +9,7 @@ def p_value(mean, variance, sample_size, deviation=0.10):
     The null-hypothesis is both means are equal.
     """
     if variance < 1e-10:
-        warnings.warn("Variance is zero! Setting variance to 1e-10.", UserWarning)
+        warnings.warn("Variance is smaller than 1e-10! Setting variance to 1e-10.", UserWarning)
         variance = 1e-10
 
 

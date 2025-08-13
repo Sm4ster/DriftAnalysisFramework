@@ -25,12 +25,10 @@ if not os.path.exists(data_path):
     os.makedirs(data_path)
 
 if args.indexes != "all":
-    part_results_path = data_path + "/parts/"
+    part_results_path = data_path + "/parts/" + args.run_id
     if not os.path.exists(part_results_path):
         os.makedirs(part_results_path)
 
-
-# shutil.copy("configurations/" + args.parameter_file, data_path + "/0_configuration.json")
 
 config = json.load(open(f'./configurations/run_parameters/{args.parameter_file}.json'))
 potential_functions = json.load(open(f'./configurations/potential_functions/{args.potential_function_file}.json'))

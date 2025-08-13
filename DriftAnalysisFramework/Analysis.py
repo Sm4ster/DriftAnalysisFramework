@@ -137,10 +137,13 @@ def eval_drift(alpha, kappa, sigma, potential_expressions, potential_before, alg
     # calc precision of the drift values
     precision = np.zeros([len(potential_expressions)])
     for idx in range(len(potential_expressions)):
-
         try:
             mean = drift.mean[idx]
             var = drift.var_s[idx]
+
+            if var == 0.0:
+                precision[idx] = 0
+                continue
 
             def objective(x):
                 val = p_value(mean, var, sample_size, x)

@@ -1,6 +1,6 @@
 {
   "algorithm": "CMA-ES",
-  "normal_form": "trace",
+  "normal_form": "determinant",
   "potential_functions": [
     {
       "latex": "\\log(|m|)",
