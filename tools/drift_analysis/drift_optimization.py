@@ -13,17 +13,10 @@ def int_list(s):
 
 
 parser = argparse.ArgumentParser(description='This script does drift simulation for CMA')
+parser.add_argument('--data', help='The data file name.')
 parser.add_argument('--output_file', help='The output file name.')
-parser.add_argument('--data_file', help='The data file name.')
-parser.add_argument('--data', help='pass data to be written into the result file')
-parser.add_argument('--terms', type=int_list,
-                    help='index of the terms to optimize. index 0 is always included and serves as a norm. usually this is the log(m) term')
-parser.add_argument('--base_term', type=int, default=0,
-                    help='index to serve as a norm. usually this is the log(m) term')
 parser.add_argument('--min_terms', type=int, default=2, help='Minimum number of terms per combination (inclusive)')
 parser.add_argument('--max_terms', type=int, default=None, help='Maximum number of terms per combination (inclusive)')
-parser.add_argument('--exclude_terms', type=int_list, default=[],
-                    help='Optional: comma-separated list of term indices to exclude (in addition to the base term).')
 parser.add_argument('--iterations', type=int, help='number of optimization iterations to perform')
 
 args = parser.parse_args()

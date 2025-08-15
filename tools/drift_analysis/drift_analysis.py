@@ -259,7 +259,7 @@ if __name__ == '__main__':
     # get the end time after the run has finished
     end_time = datetime.now()
 
-    # Save data to a files
+    # Save data to files
     for idx, potential_function in enumerate(potential_functions):
         data = {
             'run_config': run_configs[idx],
