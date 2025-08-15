@@ -5,6 +5,7 @@ import argparse
 import os
 import itertools
 
+
 def int_list(s):
     try:
         return [int(item) for item in s.split(',')]
@@ -12,50 +13,58 @@ def int_list(s):
         raise argparse.ArgumentTypeError("List must be comma-separated integers.")
 
 
+def str_list(s):
+    try:
+        return [str(item) for item in s.split(',')]
+    except ValueError:
+        raise argparse.ArgumentTypeError("List must be comma-separated strings.")
+
+
 parser = argparse.ArgumentParser(description='This script does drift simulation for CMA')
-parser.add_argument('--data', help='The data file name.')
+parser.add_argument('data', type=str_list, help='The data file names.')
+parser.add_argument('--combinations', type=bool, default=False, help='Whether to check all combinations of terms')
 parser.add_argument('--output_file', help='The output file name.')
 parser.add_argument('--min_terms', type=int, default=2, help='Minimum number of terms per combination (inclusive)')
 parser.add_argument('--max_terms', type=int, default=None, help='Maximum number of terms per combination (inclusive)')
-parser.add_argument('--iterations', type=int, help='number of optimization iterations to perform')
+parser.add_argument('--iterations', type=int, default=3, help='number of optimization iterations to perform')
 
 args = parser.parse_args()
 
-base_term = args.base_term
 iterations = args.iterations
 
-if args.data is None:
-    data = {}
-else:
-    data = json.loads(args.data)
-
 # Load drift data
-drift_data_raw = json.load(open(f'./data/{args.data_file}'))
-drift_data = np.array(drift_data_raw["drift"]) + np.array(drift_data_raw["precision"])
+drift_data = []
+for file in args.data:
+    raw_data = json.load(open(f'./data/{file}'))
+    drift_data.append(raw_data["drift"] + raw_data["precision"])
 
-term_count = drift_data.shape[3]
+term_count = len(drift_data)
+drift_data = np.array(drift_data)
+print(drift_data)
 
-if args.terms is None:
-    excluded = set(args.exclude_terms + [base_term])
-    available_terms = [i for i in range(term_count) if i not in excluded]
-    max_l = args.max_terms if args.max_terms is not None else len(available_terms)
-    term_combinations = [
-        list(c) for l in range(args.min_terms, max_l + 1)
-        for c in itertools.combinations(available_terms, l)
-    ]
+if args.combinations:
+    term_combinations = [list(range(1,term_count))]
+    pass
+    # excluded = set(args.exclude_terms + [base_term])
+    # available_terms = [i for i in range(term_count) if i not in excluded]
+    # max_l = args.max_terms if args.max_terms is not None else len(available_terms)
+    # term_combinations = [
+    #     list(c) for l in range(args.min_terms, max_l + 1)
+    #     for c in itertools.combinations(available_terms, l)
+    # ]
+
 else:
-    term_combinations = [args.terms]
+    term_combinations = [list(range(1,term_count))]
+
 
 # Load or initialize output
-if os.path.exists(args.output_file):
-    output_data = json.load(open(args.output_file))
-else:
-    output_data = []
+
+output_data = []
 
 # Reference base drift for output
-base_drift = drift_data[:, :, :, base_term].max()
+base_drift = drift_data[0].max()
 
-print(f"Starting optimization for {len(term_combinations)} term combinations...")
+print(f"Starting optimization for {len(term_combinations)} term combination(s)...")
 
 # Iterate over term combinations only
 for combo_idx, terms in enumerate(term_combinations, 1):
@@ -63,9 +72,9 @@ for combo_idx, terms in enumerate(term_combinations, 1):
 
 
     def c_drift(weights):
-        combined = drift_data[:, :, :, base_term]
+        combined = drift_data[0]
         for idx, term_idx in enumerate(terms):
-            combined += drift_data[:, :, :, term_idx] * weights[idx]
+            combined += drift_data[term_idx] * weights[idx]
         return combined
 
 
@@ -80,7 +89,7 @@ for combo_idx, terms in enumerate(term_combinations, 1):
         print(f"  CMA run {run + 1}/{iterations} ...", end="", flush=True)
 
         # Initial guess for the solution
-        x0 = np.ones([len(terms)]) * -0.5
+        x0 = np.ones([len(terms)])
 
         # Standard deviation for the initial search distribution
         sigma0 = 10  # Example standard deviation
@@ -105,7 +114,6 @@ for combo_idx, terms in enumerate(term_combinations, 1):
 
     # result vector
     result = {
-        **data,
         "terms_used": terms,
         "weights_vector": best_solution.tolist(),
         "smallest_drift": float(best_fitness),
@@ -118,5 +126,8 @@ for combo_idx, terms in enumerate(term_combinations, 1):
 # Sort all results by "smallest_drift" (ascending = most negative drift on top)
 output_data.sort(key=lambda entry: entry["smallest_drift"])
 
-with open(f'./data/{args.output_file}', 'w') as f:
-    json.dump(output_data, f, indent=2, ensure_ascii=False)
+if args.output_file:
+    with open(f'./data/{args.output_file}', 'w') as f:
+        json.dump(output_data, f, indent=2, ensure_ascii=False)
+else:
+    print(output_data)

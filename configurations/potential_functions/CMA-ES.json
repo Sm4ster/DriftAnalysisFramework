@@ -27,6 +27,10 @@
       "code": "log((sigma_raw * tr(C)) / norm_C_12_m(C_rot,m_rot))"
     },
     {
+      "latex": "\\log(\\sigma)",
+      "code": "log(sigma)"
+    },
+    {
       "latex": "Tr(C)",
       "code": "tr(C)"
     },
