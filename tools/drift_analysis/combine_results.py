@@ -2,6 +2,7 @@ import numpy as np
 import argparse
 import json
 import os
+import math
 from pathlib import Path
 
 parser = argparse.ArgumentParser(description='This script computes stable kappa values for CMA.')
@@ -23,6 +24,24 @@ def combine_nan_arrays(arrays):
         result = np.where(np.isnan(result), arr, result)
     return result
 
+
+def sanitize_for_json(x):
+    def _san(v):
+        if isinstance(v, float):
+            return v if math.isfinite(v) else None
+        if isinstance(v, dict):
+            for k, vv in v.items():
+                v[k] = _san(vv)
+            return v
+        if isinstance(v, list):
+            for i, vv in enumerate(v):
+                v[i] = _san(vv)
+            return v
+        if isinstance(v, tuple):
+            return tuple(_san(e) for e in v)
+        return v
+
+    return _san(x)
 
 # Initialisierung
 keys = ['drift', 'standard_deviation', 'potential_after', 'precision']
@@ -62,7 +81,7 @@ for key in final_data["info"].keys():
 # Ergebnis speichern
 output_path = f'./{args.input_dir}/{args.filename}.json'
 with open(output_path, 'w', encoding='utf-8') as f:
-    json.dump(final_data, f, indent=2)
+    json.dump(sanitize_for_json(final_data), f, indent=2)
 
 print(f'Combined result written to: {output_path}')
 

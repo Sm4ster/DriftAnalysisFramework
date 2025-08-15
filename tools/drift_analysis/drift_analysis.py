@@ -141,9 +141,9 @@ if __name__ == '__main__':
             'potential_function': potential_function,
             'samples_size': args.sample_size,
             'grid': [
-                {'name': 'alpha', 'sequence': alpha_sequence.tolist()},
-                {'name': 'kappa', 'sequence': kappa_sequence.tolist()},
-                {'name': 'sigma', 'sequence': sigma_sequence.tolist()}
+                {'name': 'alpha', 'start': args.alpha_start, 'end': args.alpha_end, 'samples': args.alpha_samples},
+                {'name': 'kappa', 'start': args.kappa_start, 'end': args.kappa_end, 'samples': args.kappa_samples},
+                {'name': 'sigma', 'start': args.sigma_start, 'end': args.sigma_end, 'samples': args.sigma_samples},
             ],
         }),
 
@@ -263,16 +263,21 @@ if __name__ == '__main__':
     for idx, potential_function in enumerate(potential_functions):
         data = {
             'run_config': run_configs[idx],
-            'drift': drifts[:, :, :, idx].tolist(),
-            'potential_after': potential_after[:, :, :, idx].tolist(),
-            'precision': precisions[:, :, :, idx].tolist(),
-            'standard_deviation': standard_deviations[:, :, :, idx].tolist(),
             "meta": {
                 'run_started': start_time.strftime("%d.%m.%Y %H:%M:%S"),
                 'run_finished': end_time.strftime("%d.%m.%Y %H:%M:%S"),
                 'batch_size': da.batch_size
             },
             "info": {},
+            'drift': drifts[:, :, :, idx].tolist(),
+            'potential_after': potential_after[:, :, :, idx].tolist(),
+            'precision': precisions[:, :, :, idx].tolist(),
+            'standard_deviation': standard_deviations[:, :, :, idx].tolist(),
+            'grid': [
+                {'name': 'alpha', 'sequence': alpha_sequence.tolist()},
+                {'name': 'kappa', 'sequence': kappa_sequence.tolist()},
+                {'name': 'sigma', 'sequence': sigma_sequence.tolist()}
+            ]
         }
 
         for key, field_info in da.info.fields.items():
