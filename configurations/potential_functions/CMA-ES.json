@@ -10,6 +10,10 @@
       "latex": "\\log(|m| + 2\\sigma)",
       "code": "log(norm(m) + (2 * sigma))"
     },
+     {
+      "latex": "\\kappa",
+      "code": "kappa"
+    },
     {
       "latex": "\\log(\\kappa)",
       "code": "log(kappa)"
@@ -31,16 +35,20 @@
       "code": "log(sigma)"
     },
     {
-      "latex": "Tr(C)",
-      "code": "tr(C)"
+      "latex": "\\log(\\sigma)",
+      "code": "log(sigma/1.2)"
+    },
+    {
+      "latex": "\\log(\\sigma)",
+      "code": "log(sigma/2)"
+    },
+    {
+      "latex": "\\log(\\sigma)",
+      "code": "log(sigma/0.6)"
     },
     {
       "latex": "\\log(\\sigma_{raw} \\cdot Tr(C))",
       "code": "log(sigma_raw * tr(C))"
-    },
-    {
-      "latex": "||C^\\frac12 \\cdot m||",
-      "code": "norm_C_12_m(C_rot,m_rot)"
     }
   ]
 }
