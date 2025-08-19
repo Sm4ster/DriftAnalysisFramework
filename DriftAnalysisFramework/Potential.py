@@ -5,6 +5,7 @@ function_dict = {
     "norm": lambda x: np.linalg.norm(x, axis=1),
     "tr": lambda x: np.trace(x, axis1=-1, axis2=-2),
     "log_plus": lambda x: np.maximum(np.log(x), 0.0),
+    "log_minus": lambda x: np.minimum(np.log(x), 0.0),
     "norm_C_12_m": lambda C_rot, m_rot: np.sqrt(
         C_rot[:, 0, 0] * np.square(m_rot[:, 0]) + C_rot[:, 1, 1] * np.square(m_rot[:, 1])),
 }

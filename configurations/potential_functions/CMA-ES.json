@@ -2,6 +2,14 @@
   "algorithm": "CMA-ES",
   "normal_form": "trace",
   "potential_functions": [
+     {
+      "latex": "\\alpha",
+      "code": "alpha"
+    },
+      {
+      "latex": "\\log(\\alpha)",
+      "code": "log(alpha)"
+    },
     {
       "latex": "\\log(|m|)",
       "code": "log(norm(m))"
@@ -35,20 +43,8 @@
       "code": "log(sigma)"
     },
     {
-      "latex": "\\log(\\sigma)",
-      "code": "log(sigma/1.2)"
-    },
-    {
-      "latex": "\\log(\\sigma)",
-      "code": "log(sigma/2)"
-    },
-    {
-      "latex": "\\log(\\sigma)",
-      "code": "log(sigma/0.6)"
-    },
-    {
       "latex": "\\log(\\sigma_{raw} \\cdot Tr(C))",
-      "code": "log(sigma_raw * tr(C))"
+      "code": "log((sigma_raw * sqrt(tr(C))) / norm(m))"
     }
   ]
 }

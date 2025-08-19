@@ -123,13 +123,38 @@ class OnePlusOne_CMA_ES:
         self.raw_params_success = Welford()
         self.raw_params_no_success = Welford()
 
-    def add_data(self, normal_form, raw, transformation, misc):
-        self.successes += misc["success"].sum()
+    def add_data(self, normal_form, raw_params, transformation_parameters, misc_parameters):
+        self.successes += misc_parameters["success"].sum()
+
+        self.normal_form.add_all(
+            np.array(
+                [
+                    normal_form["alpha"],
+                    normal_form["kappa"],
+                    normal_form["sigma"],
+                ]
+            ).T
+        )
+
+        self.raw_params.add_all(
+            np.array(
+                [
+                    raw_params["m"][:, 0],
+                    raw_params["m"][:, 1],
+                    raw_params["C"][:, 0, 0],
+                    raw_params["C"][:, 0, 1],
+                    raw_params["C"][:, 1, 0],
+                    raw_params["C"][:, 1, 1],
+                    raw_params["sigma"],
+                ]
+            ).T
+        )
+
         # save successful and unsuccessful follow-up state
         # for mean, geometrical mean, variance and geometrical variance.
         # we ignore errors as they come from dealing with the logs
         with np.errstate(divide='ignore', invalid='ignore'):
-            mask = np.array(misc["success"] == 1).T[0]
+            mask = np.array(misc_parameters["success"] == 1).T[0]
             self.normal_form_success.add_all(
                 np.array(
                     [
@@ -140,7 +165,21 @@ class OnePlusOne_CMA_ES:
                 ).T
             )
 
-            mask = np.array(misc["success"] == 0).T[0]
+            self.raw_params_success.add_all(
+                np.array(
+                    [
+                        raw_params["m"][mask][:, 0],
+                        raw_params["m"][mask][:, 1],
+                        raw_params["C"][mask][:, 0, 0],
+                        raw_params["C"][mask][:, 0, 1],
+                        raw_params["C"][mask][:, 1, 0],
+                        raw_params["C"][mask][:, 1, 1],
+                        raw_params["sigma"][mask],
+                    ]
+                ).T
+            )
+
+            mask = np.array(misc_parameters["success"] == 0).T[0]
             self.normal_form_no_success.add_all(
                 np.array(
                     [
@@ -151,9 +190,23 @@ class OnePlusOne_CMA_ES:
                 ).T
             )
 
+            self.raw_params_no_success.add_all(
+                np.array(
+                    [
+                        raw_params["m"][mask][:, 0],
+                        raw_params["m"][mask][:, 1],
+                        raw_params["C"][mask][:, 0, 0],
+                        raw_params["C"][mask][:, 0, 1],
+                        raw_params["C"][mask][:, 1, 0],
+                        raw_params["C"][mask][:, 1, 1],
+                        raw_params["sigma"][mask],
+                    ]
+                ).T
+            )
+
     def get_data(self):
         return {
-            "success_count": self.successes,
+            "success": self.successes,
 
             "alpha": self.normal_form.mean[0],
             "alpha_std": np.sqrt(self.normal_form.var_p[0]),
@@ -164,14 +217,14 @@ class OnePlusOne_CMA_ES:
             "sigma": self.normal_form.mean[2],
             "sigma_std": np.sqrt(self.normal_form.var_p[2]),
 
-            "alpha_success": self.normal_form_success.mean[0],
-            "alpha_success_std": np.sqrt(self.normal_form_success.var_p[0]),
+            "alpha_success": self.normal_form_success.mean[0] if self.successes > 1 else 0,
+            "alpha_success_std": np.sqrt(self.normal_form_success.var_p[0]) if self.successes > 2 else 0,
 
-            "kappa_success": self.normal_form_success.mean[1],
-            "kappa_success_std": np.sqrt(self.normal_form_success.var_p[1]),
+            "kappa_success": self.normal_form_success.mean[1] if self.successes > 1 else 0,
+            "kappa_success_std": np.sqrt(self.normal_form_success.var_p[1]) if self.successes > 2 else 0,
 
-            "sigma_success": self.normal_form_success.mean[2],
-            "sigma_success_std": np.sqrt(self.normal_form_success.var_p[2]),
+            "sigma_success": self.normal_form_success.mean[2] if self.successes > 1 else 0,
+            "sigma_success_std": np.sqrt(self.normal_form_success.var_p[2]) if self.successes > 2 else 0,
 
             "alpha_no_success": self.normal_form_no_success.mean[0],
             "alpha_no_success_std": np.sqrt(self.normal_form_no_success.var_p[0]),
@@ -203,23 +256,35 @@ class OnePlusOne_CMA_ES:
 
             # success
             "m_success": [
-                self.raw_params_success.mean[0],
-                self.raw_params_success.mean[1],
+                self.raw_params_success.mean[0] if self.successes > 1 else 0,
+                self.raw_params_success.mean[1] if self.successes > 1 else 0,
             ],
             "m_success_std": [
-                np.sqrt(self.raw_params_success.var_p[0]),
-                np.sqrt(self.raw_params_success.var_p[1]),
+                np.sqrt(self.raw_params_success.var_p[0]) if self.successes > 2 else 0,
+                np.sqrt(self.raw_params_success.var_p[1]) if self.successes > 2 else 0,
             ],
             "C_success": [
-                [self.raw_params_success.mean[2], self.raw_params_success.mean[3]],
-                [self.raw_params_success.mean[4], self.raw_params_success.mean[5]],
+                [
+                    self.raw_params_success.mean[2] if self.successes > 1 else 0,
+                    self.raw_params_success.mean[3] if self.successes > 1 else 0
+                ],
+                [
+                    self.raw_params_success.mean[4] if self.successes > 1 else 0,
+                    self.raw_params_success.mean[5] if self.successes > 1 else 0
+                ],
             ],
             "C_success_std": [
-                [np.sqrt(self.raw_params_success.var_p[2]), np.sqrt(self.raw_params_success.var_p[3])],
-                [np.sqrt(self.raw_params_success.var_p[4]), np.sqrt(self.raw_params_success.var_p[5])],
+                [
+                    np.sqrt(self.raw_params_success.var_p[2]) if self.successes > 2 else 0,
+                    np.sqrt(self.raw_params_success.var_p[3]) if self.successes > 2 else 0
+                ],
+                [
+                    np.sqrt(self.raw_params_success.var_p[4]) if self.successes > 2 else 0,
+                    np.sqrt(self.raw_params_success.var_p[5]) if self.successes > 2 else 0
+                ],
             ],
-            "sigma_raw_success": self.raw_params_success.mean[6],
-            "sigma_raw_success_std": np.sqrt(self.raw_params_success.var_p[6]),
+            "sigma_raw_success": self.raw_params_success.mean[6] if self.successes > 1 else 0,
+            "sigma_raw_success_std": np.sqrt(self.raw_params_success.var_p[6]) if self.successes > 2 else 0,
 
             # no success
             "m_no_success": [

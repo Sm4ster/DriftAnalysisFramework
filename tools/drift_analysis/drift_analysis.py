@@ -135,7 +135,7 @@ if __name__ == '__main__':
     run_configs = []
     for idx, potential_function in enumerate(potential_functions):
         # create a unique string for this potential function and run
-        run_configs.append({
+        current_run_config = {
             'algorithm': args.algorithm,
             'normal_form': args.normal_form,
             'potential_function': potential_function,
@@ -145,12 +145,13 @@ if __name__ == '__main__':
                 {'name': 'kappa', 'start': args.kappa_start, 'end': args.kappa_end, 'samples': args.kappa_samples},
                 {'name': 'sigma', 'start': args.sigma_start, 'end': args.sigma_end, 'samples': args.sigma_samples},
             ],
-        }),
+        },
 
-        unique_string = json.dumps(run_configs[idx], sort_keys=True)
+        unique_string = json.dumps(current_run_config, sort_keys=True)
         unique_filename = hashlib.sha256(unique_string.encode()).hexdigest()[:10]
 
         if not os.path.exists(f"{args.output_path}/{unique_filename}.json"):
+            run_configs.append(current_run_config)
             filenames.append(unique_filename)
             filtered_potential_functions.append(potential_function)
         else:

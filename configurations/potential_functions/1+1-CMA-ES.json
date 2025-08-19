@@ -1,0 +1,26 @@
+{
+  "algorithm": "1+1-CMA-ES",
+  "normal_form": "trace",
+  "potential_functions": [
+     {
+      "latex": "\\alpha",
+      "code": "alpha"
+    },
+    {
+      "latex": "\\log(|m|)",
+      "code": "log(norm(m))"
+    },
+    {
+      "latex": "\\log(\\kappa)",
+      "code": "log(kappa)"
+    },
+    {
+      "latex": "\\log^+(\\sigma)",
+      "code": "log_plus(sigma)"
+    },
+     {
+      "latex": "\\log^-(1/\\sigma)",
+      "code": "log_minus(1/sigma)"
+    }
+  ]
+}
