@@ -84,7 +84,11 @@ class CMA_ES:
         m_normal[:, 1] = (np.array([1]) - flip) * m_normal[:, 1] + flip * np.array([-1]) * m_normal[:, 1]
 
         # conditional axis swap
-        swap = (C_normal[:, 0, 0] < 1).astype(np.float64)
+        if self.normalization == "determinant":
+            swap = (C_normal[:, 0, 0] < 1).astype(np.float64)
+        if self.normalization == "trace":
+            swap = (C_normal[:, 0, 0] < C_normal[:, 1, 1]).astype(np.float64)
+
 
         # axis swap of C_normal (with condition)
         C_normal[:, 0, 0], C_normal[:, 1, 1] = C_normal[:, 1, 1] * swap + C_normal[:, 0, 0] * (
@@ -94,7 +98,12 @@ class CMA_ES:
         m_normal[:, 0], m_normal[:, 1] = m_normal[:, 1] * swap + m_normal[:, 0] * (
                 np.array([1]) - swap), m_normal[:, 0] * swap + m_normal[:, 1] * (np.array([1]) - swap)
 
-        return np.arccos(m_normal[:, 0]), C_normal[:, 0, 0], sigma_normal, {"scaling_factor": scaling_factor,
+        if self.normalization == "determinant":
+            kappa = C_normal[:, 0, 0]
+        if self.normalization == "trace":
+            kappa = (1 / C_normal[:, 1, 1]) - 1
+
+        return np.arccos(m_normal[:, 0]), kappa, sigma_normal, {"scaling_factor": scaling_factor,
                                                                             "distance_factor": distance_factor,
                                                                             "C_rot": C_rot,
                                                                             "m_rot": m_rot}
