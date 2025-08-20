@@ -38,9 +38,9 @@ class CMA_ES:
             C[:, 0, 0] = kappa
             C[:, 1, 1] = (1 / kappa)
 
-        if self.normalization == "trace":
-            C[:, 0, 0] = kappa / (kappa + 1)
-            C[:, 1, 1] = 1 / (kappa + 1)
+        if self.normalization == "trace": # 2D case
+            C[:, 0, 0] = 2 * kappa / (kappa + 1)
+            C[:, 1, 1] = 2 / (kappa + 1)
 
         return m, C, sigma
 
@@ -63,13 +63,13 @@ class CMA_ES:
         if self.normalization == "determinant":
             scaling_factor = np.sqrt(C_rot[:, 0, 0] * C_rot[:, 1, 1])
         if self.normalization == "trace":
-            scaling_factor = np.einsum('...ii', C_rot)
+            scaling_factor = np.einsum('...ii', C_rot) / 2 # 2D case
 
         C_normal = np.einsum('i,ijk->ijk', 1 / scaling_factor, C_rot)
         sigma_scaled = sigma * np.sqrt(scaling_factor)
 
         # The distance factor sets norm(m) = 1. To keep the proportion between the distance
-        # of the center to the optimum and the spread of the distribution we adjust sigma.
+        # of the center to the optimum and the spread of the distribution, we adjust sigma.
         distance_factor = 1 / np.linalg.norm(m_rot, axis=1)
 
         m_normal = np.einsum('i,ij->ij', distance_factor, m_rot)
@@ -101,7 +101,7 @@ class CMA_ES:
         if self.normalization == "determinant":
             kappa = C_normal[:, 0, 0]
         if self.normalization == "trace":
-            kappa = (1 / C_normal[:, 1, 1]) - 1
+            kappa = C_normal[:, 0, 0] / C_normal[:, 1, 1]
 
         return np.arccos(m_normal[:, 0]), kappa, sigma_normal, {"scaling_factor": scaling_factor,
                                                                             "distance_factor": distance_factor,

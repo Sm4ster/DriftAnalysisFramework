@@ -4,7 +4,7 @@ from DriftAnalysisFramework.Optimization import CMA_ES
 from DriftAnalysisFramework.Fitness import Sphere
 from alive_progress import alive_bar
 
-normalization = "trace"
+normalization = "determinant"
 
 TR = CMA_TR(normalization)
 alg = CMA_ES(
@@ -27,8 +27,8 @@ def transform_to_parameters_unvectorized(alpha, kappa, sigma, normalization):
         C[0, 0] = kappa
         C[1, 1] = (1 / kappa)
     if normalization == "trace":
-        C[0, 0] = kappa / (kappa + 1)
-        C[1, 1] = 1 / (kappa + 1)
+        C[0, 0] = 2 * kappa / (kappa + 1)
+        C[1, 1] = 2 / (kappa + 1)
 
     return m, C, sigma
 
@@ -45,9 +45,11 @@ def transform_to_normal_unvectorized(m, C, sigma, normalization):
     # calculate the scaling factor
     scaling_factor = 1
     if normalization == "determinant":
+        assert(np.isclose(np.linalg.det(C_rot), np.linalg.det(C)))
         scaling_factor = np.sqrt(np.linalg.det(C_rot))
     if normalization == "trace":
-        scaling_factor = np.trace(C_rot)
+        assert(np.isclose(np.trace(C_rot), np.trace(C)))
+        scaling_factor = np.trace(C_rot) / 2
 
     sigma_scaled = sigma * np.sqrt(scaling_factor)
     C_normal = np.dot(C_rot, 1 / scaling_factor)
@@ -57,6 +59,7 @@ def transform_to_normal_unvectorized(m, C, sigma, normalization):
 
     # The distance factor sets norm(m) = 1. To keep the proportion between the distance
     # of the center to the optimum and the spread of the distribution, we adjust sigma.
+    assert(np.isclose(np.linalg.norm(m_rot), np.linalg.norm(m)))
     distance_factor = 1 / np.linalg.norm(m_rot)
 
     m_normal = m_rot * distance_factor
@@ -87,7 +90,7 @@ def transform_to_normal_unvectorized(m, C, sigma, normalization):
     if normalization == "determinant":
         kappa = C_normal[0, 0]
     if normalization == "trace":
-        kappa = (1/C_normal[1, 1]) - 1
+        kappa = C_normal[0, 0] / C_normal[1, 1]
 
     return np.arccos(m_normal[0]), kappa, sigma_normal, {"scaling_factor": scaling_factor,
                                                                   "distance_factor": distance_factor}

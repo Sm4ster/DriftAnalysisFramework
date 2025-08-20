@@ -110,9 +110,9 @@ class CMA_ES:
         new_m = np.einsum("ij,ijk->ik", weights, x)
 
         # \sigma = \sigma * exp(1/2 *
-        #   (2 * \mu_eff \sum w_i z_i) / (\sqrt{2\pi}) - 1)\right)
+        #   (\srt{\mu_eff} \cdot \sum w_i z_i) / (\sqrt{2\pi}) - 1)\right)
         norm_z_w_sum = np.linalg.norm(np.einsum("ij,ijk->ik", weights, z), axis=1)
-        new_sigma = sigma * np.exp(0.5 * (((self.mu_eff * norm_z_w_sum) / np.sqrt(2 * np.pi)) - 1))
+        new_sigma = sigma * np.exp(0.5 * (((np.sqrt(self.mu_eff) * norm_z_w_sum) / np.sqrt(2 * np.pi)) - 1))
 
         # C = (1-c_cov) * C + c_cov \sum w_i * Az_i * (Az_i)^T
         y_outer_product = np.einsum('...i,...j->...ij', y, y)
@@ -125,7 +125,6 @@ class CMA_ES:
     def iterate(self, alpha, kappa, sigma, num=1):
         # Sanitize, transform and expand the parameters
         m, C, sigma = self.transformation.transform_to_parameters(alpha, kappa, sigma, num)
-        raw_state_before = {"m": m, "C": C, "sigma": sigma}
 
         # create the random samples
         z = np.random.randn(m.shape[0], self.lamda, 2)
@@ -188,7 +187,6 @@ class OnePlusOne_CMA_ES:
     def iterate(self, alpha, kappa, sigma, num=1):
         # Sanitize, transform and expand the parameters
         m, C, sigma = self.transformation.transform_to_parameters(alpha, kappa, sigma, num)
-        raw_state_before = {"m": m, "C": C, "sigma": sigma}
 
         # create the random samples
         z = np.array([np.random.standard_normal(m.shape[0]), np.random.standard_normal(m.shape[0])]).T

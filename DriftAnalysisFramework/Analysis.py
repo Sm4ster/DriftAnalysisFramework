@@ -61,7 +61,6 @@ class DriftAnalysis:
         normal_form = {"alpha": alpha, "kappa": kappa, "sigma": sigma_normal}
 
         before_dict = {**normal_form, **raw_state, **transformation_parameters}
-        # before_dict = {"alpha": alpha, "kappa": kappa, "sigma": sigma, "sigma_raw": sigma, "m": m, "C": C}
 
         # evaluate the before potential
         potential = np.zeros([len(self.potential_expr), len(self.states)])
@@ -114,7 +113,10 @@ def eval_drift(alpha, kappa, sigma, potential_expressions, potential_before, alg
 
         # collect base variables (make sure the raw sigma does not get overwritten by the transformed one)
         raw_params["sigma_raw"] = raw_params["sigma"]
-        after_dict = {**normal_form, **raw_params, **transformation_parameters}
+
+        # The order of argument matters here, we want the sigma key of the normal form
+        # to overwrite the sigma key of the raw parameters. DO NOT CHANGE THIS ORDER!!
+        after_dict = {**raw_params, **normal_form, **transformation_parameters}
 
         # evaluate the after potential
         for expr_idx, potential_expr in enumerate(potential_expressions):
