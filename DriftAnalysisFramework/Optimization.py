@@ -99,11 +99,12 @@ class CMA_ES:
         # Compute f(x) by computing the norms of each vector in the middle axis
         norms = np.linalg.norm(x, axis=2)
 
-        # Get sorting indices based on the norms for each subarray in the middle axis
-        indices = np.argsort(norms, axis=1)
+        # Get ranking indices based on the norms for each subarray in the middle axis
+        indices = np.argsort(norms, axis=-1)
+        ranks = np.argsort(indices, axis=-1)
 
         # Apply the weights to the indices
-        weights = np.take(self.weights, indices)
+        weights = np.take(self.weights, ranks)
 
         ## Parameter updates
         # m = \sum w_i * x_i (or m + \sigma * \sum w_i+y_i)
