@@ -67,7 +67,7 @@ class CMA_ES:
 
         weights = []
         for i in range(self.mu):
-            weights.append(np.log(self.mu) - np.log(i + 1))
+            weights.append(np.log(self.mu + 1) - np.log(i + 1))
 
         for i in range(self.lamda - self.mu):
             weights.append(0)
@@ -75,7 +75,7 @@ class CMA_ES:
         self.weights = np.array(weights)
         self.weights = self.weights / np.sum(self.weights)
         self.mu_eff = 1 / np.sum(self.weights ** 2)
-        # print(self.weights)
+        print(self.weights)
         # print("mu_eff:", 1 / np.sum(self.weights ** 2))
 
     def step(self, m, C, sigma, z=None):
