@@ -67,7 +67,7 @@ class CMA_ES:
 
         weights = []
         for i in range(self.mu):
-            weights.append(np.log(self.mu) - np.log(i + 1))
+            weights.append(np.log(self.mu + 1/2) - np.log(i + 1))
 
         for i in range(self.lamda - self.mu):
             weights.append(0)
