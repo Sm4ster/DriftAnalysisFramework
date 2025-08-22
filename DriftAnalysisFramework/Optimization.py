@@ -75,7 +75,8 @@ class CMA_ES:
         self.weights = np.array(weights)
         self.weights = self.weights / np.sum(self.weights)
         self.mu_eff = 1 / np.sum(self.weights ** 2)
-        # print("mu_eff:", 1 / np.sum(self.weights**2))
+        # print(self.weights)
+        # print("mu_eff:", 1 / np.sum(self.weights ** 2))
 
     def step(self, m, C, sigma, z=None):
         if z is None:
@@ -113,7 +114,7 @@ class CMA_ES:
         # \sigma = \sigma * exp(1/2 *
         #   (\srt{\mu_eff} \cdot \sum w_i z_i) / (\sqrt{2\pi}) - 1)\right)
         norm_z_w_sum = np.linalg.norm(np.einsum("ij,ijk->ik", weights, z), axis=1)
-        new_sigma = sigma * np.exp(0.5 * (((np.sqrt(self.mu_eff) * norm_z_w_sum) / np.sqrt(2 * np.pi)) - 1))
+        new_sigma = sigma * np.exp((((np.sqrt(self.mu_eff) * norm_z_w_sum) / np.sqrt(2 * np.pi)) - 1))
 
         # C = (1-c_cov) * C + c_cov \sum w_i * Az_i * (Az_i)^T
         y_outer_product = np.einsum('...i,...j->...ij', y, y)
