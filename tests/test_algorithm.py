@@ -48,7 +48,7 @@ def CMA_ES_uv(m, C, sigma, z):
         z_w_sum += weights[i] * z_sorted[i]
     new_sigma = sigma * np.exp(
         (
-                (np.sqrt(mu_eff) * np.linalg.norm(z_w_sum) / np.sqrt(2 * np.pi)) - 1
+                (np.sqrt(mu_eff) * np.linalg.norm(z_w_sum) / np.sqrt(np.pi/2)) - 1
         )
     )
 

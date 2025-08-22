@@ -67,7 +67,7 @@ class CMA_ES:
 
         weights = []
         for i in range(self.mu):
-            weights.append(np.log(self.mu + 1) - np.log(i + 1))
+            weights.append(np.log(self.mu) - np.log(i + 1))
 
         for i in range(self.lamda - self.mu):
             weights.append(0)
@@ -114,7 +114,7 @@ class CMA_ES:
         # \sigma = \sigma * exp(1/2 *
         #   (\srt{\mu_eff} \cdot \sum w_i z_i) / (\sqrt{2\pi}) - 1)\right)
         norm_z_w_sum = np.linalg.norm(np.einsum("ij,ijk->ik", weights, z), axis=1)
-        new_sigma = sigma * np.exp((((np.sqrt(self.mu_eff) * norm_z_w_sum) / np.sqrt(2 * np.pi)) - 1))
+        new_sigma = sigma * np.exp((((np.sqrt(self.mu_eff) * norm_z_w_sum) / np.sqrt(np.pi/2)) - 1))
 
         # C = (1-c_cov) * C + c_cov \sum w_i * Az_i * (Az_i)^T
         y_outer_product = np.einsum('...i,...j->...ij', y, y)
