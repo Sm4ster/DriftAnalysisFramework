@@ -23,6 +23,14 @@
     "hostname": "cuda03",
     "workers": 32
   },
+   {
+    "hostname": "cuda04",
+    "workers": 12
+  },
+  {
+    "hostname": "cuda05",
+    "workers": 8
+  },
   {
     "hostname": "cuda06",
     "workers": 16

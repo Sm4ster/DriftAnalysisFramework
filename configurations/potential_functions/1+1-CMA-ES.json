@@ -19,8 +19,8 @@
       "code": "log_plus(sigma)"
     },
      {
-      "latex": "\\log^-(1/\\sigma)",
-      "code": "log_minus(1/sigma)"
+      "latex": "\\log^+(1/\\sigma)",
+      "code": "log_plus(1/sigma)"
     }
   ]
 }

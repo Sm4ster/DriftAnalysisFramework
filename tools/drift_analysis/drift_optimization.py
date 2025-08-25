@@ -27,7 +27,7 @@ parser.add_argument('--output_file', help='The output file name.')
 parser.add_argument('--base_terms', type=int, default=2, help='File names of the data that should be used as base terms')
 parser.add_argument('--min_terms', type=int, default=2, help='Minimum number of terms per combination (inclusive)')
 parser.add_argument('--max_terms', type=int, default=None, help='Maximum number of terms per combination (inclusive)')
-parser.add_argument('--iterations', type=int, default=3, help='number of optimization iterations to perform')
+parser.add_argument('--iterations', type=int, default=10, help='number of optimization iterations to perform')
 
 args = parser.parse_args()
 
@@ -126,12 +126,27 @@ for combo_idx, terms in enumerate(term_combinations, 1):
     best_solution = best_solutions[idx_best]
     best_fitness = best_fitnesses[idx_best]
 
+    # Kombinierte Drift der besten Lösung
+    combined_best = c_drift(best_solution)
+
+    # Beste / schlechteste Drift innerhalb dieser kombinierten Kurve
+    drift_min = float(combined_best.min())
+    drift_max = float(combined_best.max())
+    idx_min = int(np.argmin(combined_best))
+    idx_max = int(np.argmax(combined_best))
+    drift_range = float(drift_max - drift_min)
+
     # result vector
     result = {
         "terms_used": terms,
         "weights_vector": best_solution.tolist(),
         "smallest_drift": float(best_fitness),
-        "base_drift": float(base_drift)
+        "base_drift": float(base_drift),
+        "drift_min": drift_min,  # globales Minimum der kombinierten Drift
+        "drift_max": drift_max,  # globales Maximum der kombinierten Drift
+        "drift_range": drift_range,  # max - min
+        "drift_min_at": idx_min,  # Index der besten Stelle
+        "drift_max_at": idx_max
     }
     for vi, val in enumerate(best_solution.tolist()):
         result[f"v_{vi + 1}"] = val
@@ -144,8 +159,21 @@ if args.output_file:
     with open(f'./data/{args.output_file}', 'w') as f:
         json.dump(output_data, f, indent=2, ensure_ascii=False)
 else:
-    print("Best drift: ", output_data[0]["smallest_drift"])
-    print("Base drift: ", output_data[0]["base_drift"])
-    for vi, val in enumerate(output_data[0]["weights_vector"]):
-        print(f"v_{vi + 1}: ", val)
+    # Sorted by "smallest_drift" (minimized maximum): best entry first, worst entry last
+    best_entry = output_data[0]
+    worst_entry = output_data[-1]
 
+    print("=== Summary ===")
+    print(f"Reference base drift: {best_entry['base_drift']}")
+
+    print("\n-- Best found solution (lowest maximum drift) --")
+    print(f"Best (lowest max drift): {best_entry['smallest_drift']}")
+    print(f"Drift min/max within combined curve: "
+          f"{best_entry['drift_min']} / {best_entry['drift_max']}  "
+          f"(Range: {best_entry['drift_range']})")
+    print(f"Indices: min@{best_entry['drift_min_at']}, max@{best_entry['drift_max_at']}")
+    for vi, val in enumerate(best_entry["weights_vector"]):
+        print(f"v_{vi + 1}: {val}")
+
+    print("\n-- Worst found solution (highest maximum drift) --")
+    print(f"Worst (highest max drift): {worst_entry['smallest_drift']}")
