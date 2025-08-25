@@ -2,7 +2,7 @@ import numpy as np
 
 
 class CMA_ES:
-    def __init__(self, normalization="determinant", sigma_scaling=None):
+    def __init__(self, normalization="determinant", sigma_scaling="none"):
         self.normalization = normalization
         self.sigma_scaling = sigma_scaling
 
