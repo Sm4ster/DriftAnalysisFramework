@@ -139,6 +139,7 @@ if __name__ == '__main__':
         current_run_config = {
             'algorithm': args.algorithm,
             'normal_form': args.normal_form,
+            'sigma_scaling': args.sigma_scaling,
             'potential_function': potential_function,
             'samples_size': args.sample_size,
             'grid': [

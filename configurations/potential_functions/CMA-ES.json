@@ -1,15 +1,11 @@
 {
   "algorithm": "CMA-ES",
   "normal_form": "trace",
-  "sigma_scaling": null,
+  "sigma_scaling": "log1sigma_lower_zdl",
   "potential_functions": [
      {
       "latex": "\\alpha",
       "code": "alpha"
-    },
-      {
-      "latex": "\\log(\\alpha)",
-      "code": "log(alpha)"
     },
     {
       "latex": "\\log(|m|)",
@@ -28,18 +24,6 @@
       "code": "log(kappa)"
     },
     {
-      "latex": "\\log(||m||^2 + \\sigma_{raw}^2 \\cdot Tr(C))",
-      "code": "log(norm(m) * norm(m) + sigma_raw*sigma_raw*tr(C))"
-    },
-    {
-      "latex": "\\log(\\frac{\\sigma_{raw} \\cdot Tr(C)}{||m||})",
-      "code": "log((sigma_raw * tr(C)) / norm(m))"
-    },
-    {
-      "latex": "\\log(\\frac{\\sigma_{raw} \\cdot Tr(C)}{||C^\\frac12 \\cdot m||})",
-      "code": "log((sigma_raw * tr(C)) / norm_C_12_m(C_rot,m_rot))"
-    },
-    {
       "latex": "\\log(\\sigma)",
       "code": "log(sigma)"
     },
@@ -50,14 +34,6 @@
     {
       "latex": "\\log^+(1/\\sigma)",
       "code": "log_plus(1/sigma)"
-    },
-    {
-      "latex": "\\log^+(\\sigma^*_l}/\\sigma)",
-      "code": "log_plus(sigma_star_low(alpha,kappa)/sigma)"
-    },
-    {
-      "latex": "\\log^+(\\sigma/\\sigma^*_l})",
-      "code": "log_plus(sigma/sigma_star_low(alpha,kappa))"
     }
   ]
 }
