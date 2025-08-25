@@ -41,6 +41,7 @@ options = [
     '--max_servers', str(args.max_servers),
     '--algorithm', potential_functions["algorithm"],
     '--normal_form', potential_functions["normal_form"],
+    '--sigma_scaling', potential_functions["sigma_scaling"],
     '--potential_functions', json.dumps(potential_functions["potential_functions"]),
     '--workers', str(args.workers),
     '--indexes', args.indexes

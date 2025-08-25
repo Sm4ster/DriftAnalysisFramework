@@ -2,8 +2,9 @@ import numpy as np
 
 
 class CMA_ES:
-    def __init__(self, normalization="determinant"):
+    def __init__(self, normalization="determinant", sigma_scaling=None):
         self.normalization = normalization
+        self.sigma_scaling = sigma_scaling
 
     def transform_to_parameters(self, alpha, kappa, sigma, num=1):
         # Determine which parameters are arrays and their lengths
@@ -41,6 +42,9 @@ class CMA_ES:
         if self.normalization == "trace": # 2D case
             C[:, 0, 0] = 2 * kappa / (kappa + 1)
             C[:, 1, 1] = 2 / (kappa + 1)
+
+        if self.sigma_scaling == "log1sigma_lower_zdl":
+            sigma = sigma * ((1 - 2 * alpha / np.pi) + (2 * alpha / np.pi) * 2 / np.sqrt(kappa + 4))
 
         return m, C, sigma
 
@@ -103,7 +107,10 @@ class CMA_ES:
         if self.normalization == "trace":
             kappa = C_normal[:, 0, 0] / C_normal[:, 1, 1]
 
-        return np.arccos(m_normal[:, 0]), kappa, sigma_normal, {"scaling_factor": scaling_factor,
-                                                                            "distance_factor": distance_factor,
-                                                                            "C_rot": C_rot,
-                                                                            "m_rot": m_rot}
+        alpha = np.arccos(m_normal[:, 0])
+
+        if self.sigma_scaling == "log1sigma_lower_zdl":
+            sigma_normal = sigma_normal / ((1 - 2 * alpha / np.pi) + (2 * alpha / np.pi) * 2 / np.sqrt(kappa + 4))
+
+        return alpha, kappa, sigma_normal, {
+            "scaling_factor": scaling_factor,"distance_factor": distance_factor, "C_rot": C_rot, "m_rot": m_rot}
