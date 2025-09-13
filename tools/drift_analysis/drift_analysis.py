@@ -127,7 +127,7 @@ if __name__ == '__main__':
         exit()
 
     # create states
-    alpha_sequence = np.linspace(args.alpha_start, args.alpha_end, num=args.alpha_samples)
+    alpha_sequence = np.arccos(np.linspace(args.alpha_end, args.alpha_start, num=args.alpha_samples))
     kappa_sequence = np.geomspace(args.kappa_start, args.kappa_end, num=args.kappa_samples)
     sigma_sequence = np.geomspace(args.sigma_start, args.sigma_end, num=args.sigma_samples)
 
