@@ -5,7 +5,22 @@ function_dict = {
     "norm": lambda x: np.linalg.norm(x, axis=1),
     "tr": lambda x: np.trace(x, axis1=-1, axis2=-2),
     "log_plus": lambda x: np.maximum(np.log(x), 0.0),
+    "kappa_star": lambda alpha, sigma: 1.17,
     "log_minus": lambda x: np.minimum(np.log(x), 0.0),
+    "sigma_eff": lambda alpha, kappa, sigma: sigma * np.sqrt(
+        kappa * np.square(np.cos(alpha)) + np.square(np.sin(alpha))),
+    "sigma_eff_2": lambda alpha, kappa, sigma: sigma * (
+            kappa * np.cos(alpha) + np.sin(alpha)),
+    "sigma_eff_3": lambda alpha, kappa, sigma: sigma * np.sqrt(
+        kappa * kappa * np.cos(alpha) + np.sin(alpha)),
+    "sigma_eff_4": lambda alpha, kappa, sigma: sigma * (
+            kappa * np.square(np.cos(alpha)) + np.square(np.sin(alpha))),
+    "sigma_eff_5": lambda alpha, kappa, sigma: sigma * np.sqrt(
+        2 * (kappa * np.square(np.cos(alpha)) + np.square(np.sin(alpha))) / (kappa + 1)),
+    "sigma_eff_6": lambda alpha, kappa, sigma: sigma * np.sqrt(
+        kappa * np.cos(alpha) + np.sin(alpha) / kappa),
+    "sigma_eff_7": lambda alpha, kappa, sigma: sigma * np.sqrt(
+        kappa * kappa * np.cos(alpha) + np.sin(alpha) / (kappa * kappa)),
     "sigma_star_low": lambda alpha, kappa: (1 - 2 * alpha / np.pi) + (2 * alpha / np.pi) * 2 / np.sqrt(kappa + 4),
     "norm_C_12_m": lambda C_rot, m_rot: np.sqrt(
         C_rot[:, 0, 0] * np.square(m_rot[:, 0]) + C_rot[:, 1, 1] * np.square(m_rot[:, 1])),

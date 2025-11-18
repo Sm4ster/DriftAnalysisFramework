@@ -5,8 +5,10 @@ import uuid
 
 
 parser = argparse.ArgumentParser(description='This script does a parallel start for the empirical drift analysis')
+parser.add_argument('algorithm_config_file',
+                    help='The input file containing all configurations of the algorithm for the run.')
 parser.add_argument('potential_function_file', help='The input file containing all potential functions for the run.')
-parser.add_argument('parameter_file', help='The input file containing all options and parameters for the run.')
+parser.add_argument('run_config_file', help='The input file containing all options and parameters for the run.')
 parser.add_argument('--output_dir', default='data', help='The output directory name.')
 parser.add_argument('--compute_resources', default='machines.json', help='A JSON file with all machines used to compute the simulation run.')
 parser.add_argument('--session_name', default='empirical_drift_analysis', help='The name for the tmux session.')
@@ -18,10 +20,11 @@ args = parser.parse_args()
 TMUX_SESSION = "remote_workers"
 
 # Command to run remotely – change this to your actual task
-REMOTE_COMMAND = ("/home/franksyj/DriftAnalysisFramework/py.sh "
-                  "/home/franksyj/DriftAnalysisFramework/tools/drift_analysis/start_experiment.py "
+REMOTE_COMMAND = ("/science/franksyj/DriftAnalysisFramework/py.sh "
+                  "/science/franksyj/DriftAnalysisFramework/tools/drift_analysis/start_experiment.py "
+                  "{algorithm_config_file} "
                   "{potential_function_file} "
-                  "{parameter_file} "
+                  "{run_config_file} "
                   "{output_dir} "
                   "--run_id {run_id} "
                   "--server_id {server_id} "
@@ -80,14 +83,14 @@ def distribute_jobs_by_cores(num_jobs, cores_per_machine):
 
 def main():
     machine_list = json.load(open(f'./{args.compute_resources}'))
-    core_list = []
+    effective_core_list = []
     for idx, entry in enumerate(machine_list):
-        core_list.append(entry["workers"])
+        effective_core_list.append(round(entry.get("efficiency", 1) * entry["workers"]))
 
-    config = json.load(open(f'./configurations/run_parameters/{args.parameter_file}.json'))
+    config = json.load(open(f'./configurations/run_parameters/{args.run_config_file}.json'))
     num_jobs = config['alpha'][2] * config['kappa'][2] * config['sigma'][2]
 
-    index_list = distribute_jobs_by_cores(num_jobs, core_list)
+    index_list = distribute_jobs_by_cores(num_jobs, effective_core_list)
 
     run_id = uuid.uuid4().hex
 
@@ -111,8 +114,9 @@ def main():
 
         # run the command to start the run
         remote_cmd = REMOTE_COMMAND.format(
+            algorithm_config_file=args.algorithm_config_file,
             potential_function_file=args.potential_function_file,
-            parameter_file=args.parameter_file,
+            run_config_file=args.run_config_file,
             output_dir=args.output_dir,
             run_id=run_id,
             server_id=idx,
@@ -122,7 +126,7 @@ def main():
             stop_idx=index_list[idx][1]
         )
         print(f"Starting run... \n {remote_cmd}")
-        run_tmux_command(session_name, hostname, "cd /home/franksyj/DriftAnalysisFramework")
+        run_tmux_command(session_name, hostname, "cd /science/franksyj/DriftAnalysisFramework")
         run_tmux_command(session_name, hostname, remote_cmd)
 
     # remove the first window of the session, as it is not used

@@ -1,39 +1,18 @@
-{
-  "algorithm": "CMA-ES",
-  "normal_form": "trace",
-  "sigma_scaling": "log1sigma_lower_zdl",
-  "potential_functions": [
-     {
-      "latex": "\\alpha",
-      "code": "alpha"
-    },
-    {
-      "latex": "\\log(|m|)",
-      "code": "log(norm(m))"
-    },
-    {
-      "latex": "\\log(|m| + 2\\sigma)",
-      "code": "log(norm(m) + (2 * sigma))"
-    },
-     {
-      "latex": "\\kappa",
-      "code": "kappa"
-    },
-    {
-      "latex": "\\log(\\kappa)",
-      "code": "log(kappa)"
-    },
-    {
-      "latex": "\\log(\\sigma)",
-      "code": "log(sigma)"
-    },
-    {
-      "latex": "\\log^+(\\sigma)",
-      "code": "log_plus(sigma)"
-    },
-    {
-      "latex": "\\log^+(1/\\sigma)",
-      "code": "log_plus(1/sigma)"
-    }
-  ]
-}
+[
+  {
+    "latex": "\\alpha",
+    "code": "alpha"
+  },
+  {
+    "latex": "\\log(|m|)",
+    "code": "log(norm(m))"
+  },
+  {
+    "latex": "\\log(\\kappa)",
+    "code": "log(kappa)"
+  },
+  {
+    "latex": "|\\log(\\sigma)|",
+    "code": "abs(log(sigma))"
+  }
+]

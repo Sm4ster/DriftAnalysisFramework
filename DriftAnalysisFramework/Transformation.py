@@ -44,7 +44,7 @@ class CMA_ES:
             C[:, 1, 1] = 2 / (kappa + 1)
 
         if self.sigma_scaling == "log1sigma_lower_zdl":
-            sigma = sigma * ((1 - 2 * alpha / np.pi) + (2 * alpha / np.pi) * 2 / np.sqrt(kappa + 4))
+            sigma = sigma / np.exp(((1 - 2 * alpha / np.pi) + (2 * alpha / np.pi) * 2 / np.sqrt(kappa + 4)))
 
         return m, C, sigma
 
@@ -110,7 +110,8 @@ class CMA_ES:
         alpha = np.arccos(m_normal[:, 0])
 
         if self.sigma_scaling == "log1sigma_lower_zdl":
-            sigma_normal = sigma_normal / ((1 - 2 * alpha / np.pi) + (2 * alpha / np.pi) * 2 / np.sqrt(kappa + 4))
+            sigma_normal = sigma_normal * np.exp(
+                ((1 - 2 * alpha / np.pi) + (2 * alpha / np.pi) * 2 / np.sqrt(kappa + 4)))
 
         return alpha, kappa, sigma_normal, {
             "scaling_factor": scaling_factor,"distance_factor": distance_factor, "C_rot": C_rot, "m_rot": m_rot}

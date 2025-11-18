@@ -1,19 +1,23 @@
 [
   {
     "hostname": "gpu01",
-    "workers": 64
+    "workers": 64,
+    "efficiency": 0.9
   },
   {
     "hostname": "gpu02",
-    "workers": 64
+    "workers": 64,
+    "efficiency": 0.9
   },
-    {
+  {
     "hostname": "gpu03",
-    "workers": 64
+    "workers": 64,
+    "efficiency": 0.9
   },
   {
     "hostname": "cuda01",
-    "workers": 12
+    "workers": 12,
+    "efficiency": 0.8
   },
   {
     "hostname": "cuda02",
@@ -21,18 +25,33 @@
   },
   {
     "hostname": "cuda03",
-    "workers": 32
+    "workers": 32,
+    "efficiency": 0.7
   },
-   {
+  {
     "hostname": "cuda04",
-    "workers": 12
+    "workers": 12,
+    "efficiency": 0.8
   },
   {
     "hostname": "cuda05",
-    "workers": 8
+    "workers": 8,
+    "efficiency": 2
   },
   {
     "hostname": "cuda06",
+    "workers": 16
+  },
+  {
+    "hostname": "lux05",
+    "workers": 16
+  },
+  {
+    "hostname": "lux20",
+    "workers": 16
+  },
+  {
+    "hostname": "lux38",
     "workers": 16
   }
 ]

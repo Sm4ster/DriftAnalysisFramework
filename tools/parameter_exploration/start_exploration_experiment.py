@@ -7,7 +7,7 @@ import sys
 import os
 
 # Change the working directory
-os.chdir("/home/franksyj/DriftAnalysisFramework/py/")
+os.chdir("/science/franksyj/DriftAnalysisFramework/py/")
 
 parser = argparse.ArgumentParser(description='This script does drift simulation for CMA')
 parser.add_argument('parameter_file', help='The input file containing all options and parameters for the run.')

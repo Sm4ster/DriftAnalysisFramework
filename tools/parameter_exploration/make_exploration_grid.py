@@ -2,7 +2,7 @@ import numpy as np
 import os
 
 # Change the working directory
-os.chdir("/home/franksyj/DriftAnalysisFramework/py/")
+os.chdir("/science/franksyj/DriftAnalysisFramework/py/")
 
 # List of parameter sets for each execution
 factor_1_sequence = np.geomspace(1 / 16, 2, num=6)

@@ -138,6 +138,7 @@ if __name__ == '__main__':
         # create a unique string for this potential function and run
         current_run_config = {
             'algorithm': args.algorithm,
+            'constants': constants,
             'normal_form': args.normal_form,
             'sigma_scaling': args.sigma_scaling,
             'potential_function': potential_function,

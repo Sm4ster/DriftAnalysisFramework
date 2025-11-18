@@ -6,9 +6,9 @@ class Sphere:
         if type(x) == list:
             x = np.array(list)
         if x.ndim == 1:
-            return np.linalg.norm(x)
+            return np.square(np.linalg.norm(x))
         if x.ndim == 2:
-            return np.linalg.norm(x, axis=1, keepdims=keepdims)
+            return np.square(np.linalg.norm(x, axis=1, keepdims=keepdims))
         else:
             raise Exception("Input dimensionality is wrong")
 

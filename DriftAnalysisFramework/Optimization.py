@@ -98,7 +98,7 @@ class CMA_ES:
         x = m_expanded + (sigma.reshape(sigma.shape[0], 1, 1) * y)
 
         # Compute f(x) by computing the norms of each vector in the middle axis
-        norms = np.linalg.norm(x, axis=2)
+        norms = np.square(np.linalg.norm(x, axis=2))
 
         # Get ranking indices based on the norms for each subarray in the middle axis
         indices = np.argsort(norms, axis=-1)
