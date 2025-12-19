@@ -53,7 +53,7 @@ class OnePlusOne_ES:
 class CMA_ES:
     m = None
 
-    def __init__(self, target, transformation, constants):
+    def __init__(self, target, transformation, constants, selection_scheme='normal'):
         # make target function available
         self.target = target
 
@@ -66,14 +66,23 @@ class CMA_ES:
         self.c_mu = constants["c_mu"]
 
         weights = []
-        for i in range(self.mu):
-            weights.append(np.log(self.mu + 1/2) - np.log(i + 1))
 
-        for i in range(self.lamda - self.mu):
-            weights.append(0)
+        if selection_scheme == "simple":
+            # Uniform weights for top μ, zero for rest
+            weights = np.zeros(self.lamda)
+            weights[:self.mu] = 1.0 / self.mu
 
-        self.weights = np.array(weights)
-        self.weights = self.weights / np.sum(self.weights)
+        if selection_scheme == "normal":
+            for i in range(self.mu):
+                weights.append(np.log(self.mu + 1 / 2) - np.log(i + 1))
+
+            for i in range(self.lamda - self.mu):
+                weights.append(0)
+
+            self.weights = np.array(weights)
+            self.weights = self.weights / np.sum(self.weights)
+
+        # calc mu_eff
         self.mu_eff = 1 / np.sum(self.weights ** 2)
         # print(self.weights)
         # print("mu_eff:", 1 / np.sum(self.weights ** 2))

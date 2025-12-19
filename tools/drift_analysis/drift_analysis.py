@@ -58,6 +58,7 @@ if __name__ == '__main__':
     parser.add_argument('--algorithm', type=str, help='[1+1-CMA-ES, CMA-ES]', default="1+1-CMA-ES")
     parser.add_argument('--normal_form', type=str, help='[determinant, trace]', default="determinant")
     parser.add_argument('--sigma_scaling', type=str, help='[none, log1sigma_lower_zdl]', default="none")
+    parser.add_argument('--selection_scheme', type=str, help='[normal, simplified]', default="normal")
     parser.add_argument('--constants', type=str, help='The constants for the run')
     parser.add_argument('--workers', type=int, help='Number of workers running the simulation', default=12)
     parser.add_argument('--indexes', type=str, help='Start and stop indexes for distributed execution', default='all')
@@ -88,8 +89,7 @@ if __name__ == '__main__':
     # constants
     defaults = {
         "CMA-ES": {
-            "c_sigma": 0.2,
-            "c_cov": 0.09182736455463728
+            "c_mu": 0.1  # 0.09182736455463728
         },
         "1+1-CMA-ES": {
             "d": 2,
@@ -117,8 +117,9 @@ if __name__ == '__main__':
             Sphere(),
             CMA_TR(args.normal_form, args.sigma_scaling),
             {
-                "c_mu": constants["c_cov"],
+                "c_mu": constants["c_mu"],
             },
+            args.selection_scheme
         )
         info = CMA_ES_Info()
     else:

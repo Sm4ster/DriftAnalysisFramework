@@ -12,6 +12,14 @@
     "code": "log(kappa)"
   },
   {
+    "latex": "\\log(1/\\sigma)",
+    "code": "log(1/sigma)"
+  },
+  {
+    "latex": "\\log(\\sigma)",
+    "code": "log(sigma)"
+  },
+  {
     "latex": "|\\log(\\sigma)|",
     "code": "abs(log(sigma))"
   }

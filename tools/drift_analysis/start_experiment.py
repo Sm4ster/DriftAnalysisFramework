@@ -56,7 +56,7 @@ if "batch_size" in run_params:
     options.extend(['--batch_size', str(run_params["batch_size"])])
 
 if "constants" in algorithm:
-    options.extend(['--constants', str(algorithm["constants"])])
+    options.extend(['--constants', json.dumps(algorithm["constants"])])
 
 if "alpha" in run_params:
     options.extend(['--alpha_start', str(run_params["alpha"][0])])
