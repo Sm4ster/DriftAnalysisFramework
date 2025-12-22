@@ -1,6 +1,6 @@
 {
   "sample_size": 100000,
-  "batch_size": 100000,
+  "sub_batch_size": 100000,
   "alpha": [
     0,
     1.5707963267948966,

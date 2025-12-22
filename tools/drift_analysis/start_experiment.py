@@ -1,6 +1,5 @@
 import subprocess
 import argparse
-import shutil
 import json
 import sys
 import os
@@ -17,7 +16,6 @@ parser.add_argument('output_dir', help='The output directory name.')
 parser.add_argument('--run_id', type=str, help='The run_id to distinguish runs', default="default")
 parser.add_argument('--server_id', type=int, help='Identifier of this server and process', default=0)
 parser.add_argument('--max_servers', type=int, help='Total number of servers', default=1)
-parser.add_argument('--indexes', type=str, help='Start and stop indexes of the input file', default='all')
 parser.add_argument('--workers', type=str, help='Number of workers running the simulation', default=12)
 args = parser.parse_args()
 
@@ -46,14 +44,13 @@ options = [
     '--sigma_scaling', algorithm["sigma_scaling"],
     '--potential_functions', json.dumps(potential_functions),
     '--workers', str(args.workers),
-    '--indexes', args.indexes
 ]
 
 if "sample_size" in run_params:
     options.extend(['--sample_size', str(run_params["sample_size"])])
 
 if "batch_size" in run_params:
-    options.extend(['--batch_size', str(run_params["batch_size"])])
+    options.extend(['--batch_size', str(run_params["sub_batch_size"])])
 
 if "constants" in algorithm:
     options.extend(['--constants', json.dumps(algorithm["constants"])])

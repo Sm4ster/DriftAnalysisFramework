@@ -4,11 +4,14 @@ import os
 import argparse
 import subprocess
 from datetime import datetime
+from pathlib import Path
 from alive_progress import alive_bar
 from concurrent.futures import ProcessPoolExecutor
 import signal
 import sys
 import hashlib
+import random
+import math
 import glob
 import socket
 
@@ -45,37 +48,13 @@ helper_functions = {
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='This script does drift simulation for CMA')
-    parser.add_argument('output_path', type=str, help='Path to which the files are written', default='data')
-
-    parser.add_argument('--run_id', type=str, help='The run_id to distinguish runs', default="default")
-    parser.add_argument('--server_id', type=int, help='Identifier of this server and process', default=0)
-    parser.add_argument('--max_servers', type=int, help='Total number of servers', default=1)
-
-    parser.add_argument('--potential_functions', type=str, help='JSON String of potential functions')
-    parser.add_argument('--sample_size', type=int, help='Number of samples to test', default=50000)
-    parser.add_argument('--batch_size', type=int, help='Number of samples to test in on iteration', default=25000)
-
-    parser.add_argument('--algorithm', type=str, help='[1+1-CMA-ES, CMA-ES]', default="1+1-CMA-ES")
-    parser.add_argument('--normal_form', type=str, help='[determinant, trace]', default="determinant")
-    parser.add_argument('--sigma_scaling', type=str, help='[none, log1sigma_lower_zdl]', default="none")
-    parser.add_argument('--selection_scheme', type=str, help='[normal, simplified]', default="normal")
-    parser.add_argument('--constants', type=str, help='The constants for the run')
+    parser.add_argument('run_dir', type=str, help='Path to which the files are written', default='data')
     parser.add_argument('--workers', type=int, help='Number of workers running the simulation', default=12)
-    parser.add_argument('--indexes', type=str, help='Start and stop indexes for distributed execution', default='all')
-
-    parser.add_argument('--alpha_start', type=float, help='Stable kappa data file name', default=0)
-    parser.add_argument('--alpha_end', type=float, help='Stable kappa data file name', default=1.5707963267948966)
-    parser.add_argument('--alpha_samples', type=int, help='Stable kappa data file name', default=24)
-
-    parser.add_argument('--kappa_start', type=float, help='Stable kappa data file name', default=1)
-    parser.add_argument('--kappa_end', type=float, help='Stable kappa data file name', default=100)
-    parser.add_argument('--kappa_samples', type=int, help='Stable kappa data file name', default=128)
-
-    parser.add_argument('--sigma_start', type=float, help='Stable kappa data file name', default=0.1)
-    parser.add_argument('--sigma_end', type=float, help='Stable kappa data file name', default=10)
-    parser.add_argument('--sigma_samples', type=int, help='Stable kappa data file name', default=256)
 
     args = parser.parse_args()
+
+    with (Path(args.run_dir) / "config.json").open(encoding="utf-8") as f:
+        config = json.load(f)
 
     # get start time
     start_time = datetime.now()
@@ -83,11 +62,11 @@ if __name__ == '__main__':
     # number of workers
     workers = args.workers
 
-    # potential_expressions
-    potential_functions = json.loads(args.potential_functions)
+    # algorithm config
+    algo_cfg = config.get("algorithm", {})
 
     # constants
-    defaults = {
+    algo_defaults = {
         "CMA-ES": {
             "c_mu": 0.1  # 0.09182736455463728
         },
@@ -97,64 +76,86 @@ if __name__ == '__main__':
             "c_cov": 0.3,
         }
     }
-    config_params = json.loads(args.constants) if args.constants else {}
-    constants = {**defaults[args.algorithm], **config_params}
+
+    experiment_defaults = {
+        "normal_form": "trace",
+        "sigma_scaling": "none",
+        "selection_scheme": "normal",
+    }
+
+    algo_name = algo_cfg.get("algorithm")
+
+    # only these are valid algorithm names
+    if algo_name not in ("CMA-ES", "1+1-CMA-ES"):
+        raise ValueError(f"Unknown algorithm '{algo_name}'. Known: ['CMA-ES', '1+1-CMA-ES']")
+
+    # merge default constants with optional overrides
+    algorithm_params = algo_cfg.get("constants") or {}
+    constants = {**algo_defaults[algo_name], **algorithm_params}
+
+    # experiment-level defaults
+    normal_form = algo_cfg.get("normal_form", experiment_defaults["normal_form"])
+    sigma_scaling = algo_cfg.get("sigma_scaling", experiment_defaults["sigma_scaling"])
+    selection_scheme = algo_cfg.get("selection_scheme", experiment_defaults["selection_scheme"])
 
     # Initialize the target function and optimization algorithm
-    if args.algorithm == "1+1-CMA-ES":
+    if algo_name == "1+1-CMA-ES":
         alg = OnePlusOne_CMA_ES(
             Sphere(),
-            CMA_TR(args.normal_form),
+            CMA_TR(normal_form),
             {
                 "d": constants["d"],
                 "p_target": constants["p_target"],
                 "c_cov": constants["c_cov"],
-            }
+            },
         )
         info = OnePlusOne_CMA_ES_Info()
-    elif args.algorithm == "CMA-ES":
+
+    elif algo_name == "CMA-ES":
         alg = CMA_ES(
             Sphere(),
-            CMA_TR(args.normal_form, args.sigma_scaling),
-            {
-                "c_mu": constants["c_mu"],
-            },
-            args.selection_scheme
+            CMA_TR(normal_form, sigma_scaling),
+            {"c_mu": constants["c_mu"]},
+            selection_scheme,
         )
         info = CMA_ES_Info()
     else:
-        alg = None
-        print("Error: No valid algorithm specified")
-        exit()
+        raise ValueError(f"No valid algorithm specified: {algo_name}")
+
+
 
     # create states
-    alpha_sequence = np.arccos(np.linspace(args.alpha_end, args.alpha_start, num=args.alpha_samples))
-    kappa_sequence = np.geomspace(args.kappa_start, args.kappa_end, num=args.kappa_samples)
-    sigma_sequence = np.geomspace(args.sigma_start, args.sigma_end, num=args.sigma_samples)
+    run_params = config["run_parameters"]
+    alpha_sequence = np.arccos(np.linspace(run_params["alpha"][0], run_params["alpha"][1], num=run_params["alpha"][2]))
+    kappa_sequence = np.geomspace(run_params["kappa"][0], run_params["kappa"][1], num=run_params["kappa"][2])
+    sigma_sequence = np.geomspace(run_params["sigma"][0], run_params["sigma"][1], num=run_params["sigma"][2])
+
 
     filenames = []
     filtered_potential_functions = []
     run_configs = []
-    for idx, potential_function in enumerate(potential_functions):
+    for idx, potential_function in enumerate(config["potential_functions"]):
         # create a unique string for this potential function and run
         current_run_config = {
-            'algorithm': args.algorithm,
+            'algorithm': algo_name,
             'constants': constants,
-            'normal_form': args.normal_form,
-            'sigma_scaling': args.sigma_scaling,
+            'normal_form': normal_form,
             'potential_function': potential_function,
-            'samples_size': args.sample_size,
+            'samples_size': run_params["sample_size"],
             'grid': [
-                {'name': 'alpha', 'start': args.alpha_start, 'end': args.alpha_end, 'samples': args.alpha_samples},
-                {'name': 'kappa', 'start': args.kappa_start, 'end': args.kappa_end, 'samples': args.kappa_samples},
-                {'name': 'sigma', 'start': args.sigma_start, 'end': args.sigma_end, 'samples': args.sigma_samples},
+                {'name': 'alpha', 'start': run_params["alpha"][0], 'end': run_params["alpha"][1],
+                 'samples': run_params["alpha"][2]},
+                {'name': 'kappa', 'start': run_params["kappa"][0], 'end': run_params["kappa"][1],
+                 'samples': run_params["kappa"][2]},
+                {'name': 'sigma', 'start': run_params["sigma"][0], 'end': run_params["sigma"][1],
+                 'samples': run_params["sigma"][2]},
             ],
         },
 
         unique_string = json.dumps(current_run_config, sort_keys=True)
         unique_filename = hashlib.sha256(unique_string.encode()).hexdigest()[:10]
 
-        if not os.path.exists(f"{args.output_path}/{unique_filename}.json"):
+        if not os.path.exists(f"{config["output_dir"]}/{unique_filename}.json"):
             run_configs.append(current_run_config)
             filenames.append(unique_filename)
             filtered_potential_functions.append(potential_function)
@@ -165,13 +166,18 @@ if __name__ == '__main__':
 
     if len(potential_functions) == 0:
         print("[INFO] All potential functions already computed. Nothing to do.")
-        print(f"[INFO] To re-run, delete or move files in ./{args.output_path}/")
+        print(f"[INFO] To re-run, delete or move files in ./{config["output_dir"]}/")
         sys.exit(0)
 
     # Initialize the Drift Analysis class
     da = DriftAnalysis(alg, info)
-    da.sample_size = args.sample_size
-    da.batch_size = args.batch_size
+    da.batch_size = min(run_params["batch_size"], run_params["sub_batch_size"])
+
+    # Number of Batches (rounded up)
+    num_batches = math.ceil(run_params["sample_size"] / da.batch_size)
+
+    # final sample size, which is a multiple of the subbatchsize
+    da.sample_size = da.batch_size * num_batches
 
     # Update the function dict of the potential evaluation
     da.function_dict.update(helper_functions)
@@ -197,136 +203,144 @@ if __name__ == '__main__':
             info_data[key + "_std"] = np.full(
                 [len(alpha_sequence), len(kappa_sequence), len(sigma_sequence), *field_info["shape"]], np.nan)
 
-    start_idx = 0
-    stop_idx = da.states.shape[0]
 
-    if args.indexes != "all":
-        start_idx = int(args.indexes.split("_")[0])
-        stop_idx = int(args.indexes.split("_")[1])
+    def claim_job(queue_dir: Path):
+        jobs = list(queue_dir.glob("*.job"))
+        if not jobs:
+            return None
 
-    print(f"Indexes (start-stop): {start_idx}-{stop_idx}")
-    print(f"Number of grid points (batch/total): {stop_idx - start_idx}/{da.states.shape[0]}")
+        random.shuffle(jobs)
 
-    # make lockfile
-    lock_dir = os.path.join(args.output_path, "locks", str(args.run_id))
-    os.makedirs(lock_dir, exist_ok=True)
-    lockfile = os.path.join(f"{args.output_path}/locks/{args.run_id}",
-                            f"job_{args.server_id}_{socket.gethostname()}.lock")
-    with open(lockfile, "w") as f:
-        f.write("")
+        for job in jobs:
+            processing = job.with_suffix(".processing")
+            try:
+                os.rename(job, processing)  # atomic
+                return processing
+            except FileExistsError:
+                continue
 
-    # For debugging the critical function and performance comparisons
-    if parallel_execution:
-        with alive_bar(stop_idx - start_idx, force_tty=True, title="Evaluating") as bar:
-            def callback(future_):
-                mean, std, precision, potential, info, idx = future_.result()
+        return None
 
-                drifts[idx[0], idx[1], idx[2]] = mean
-                standard_deviations[idx[0], idx[1], idx[2]] = std
-                precisions[idx[0], idx[1], idx[2]] = precision
-                potential_after[idx[0], idx[1], idx[2]] = potential
+    while True:
+        job = claim_job(Path(config["queue_dir"]))
 
-                for key, field_info in da.info.fields.items():
-                    info_data[key][idx[0], idx[1], idx[2]] = info[key]
+        if job is None:
+            # no jobs left right now
+            break  # or time.sleep(...) and continue, see below
 
-                    if field_info["type"] == "mean":
-                        info_data[key + "_std"][idx[0], idx[1], idx[2]] = info[key + "_std"]
+        start_idx, stop_idx = map(int, job.stem.split("_"))
+        batch_size = stop_idx - start_idx
+        total = da.states.shape[0]
+        print(f"[job] {start_idx:>6}–{stop_idx:<6} | batch {batch_size:>4} / total {total}")
 
-                bar()
+        # For debugging the critical function and performance comparisons
+        if parallel_execution:
+            with alive_bar(stop_idx - start_idx, force_tty=True, title="Evaluating") as bar:
+                def callback(future_):
+                    mean, std, precision, potential, info, idx = future_.result()
+
+                    drifts[idx[0], idx[1], idx[2]] = mean
+                    standard_deviations[idx[0], idx[1], idx[2]] = std
+                    precisions[idx[0], idx[1], idx[2]] = precision
+                    potential_after[idx[0], idx[1], idx[2]] = potential
+
+                    for key, field_info in da.info.fields.items():
+                        info_data[key][idx[0], idx[1], idx[2]] = info[key]
+
+                        if field_info["type"] == "mean":
+                            info_data[key + "_std"][idx[0], idx[1], idx[2]] = info[key + "_std"]
+
+                    bar()
 
 
-            with ProcessPoolExecutor(max_workers=workers) as executor:
-                for i in range(start_idx, stop_idx):
-                    future = executor.submit(eval_drift, *da.get_eval_args(i))
-                    future.add_done_callback(callback)
+                with ProcessPoolExecutor(max_workers=workers) as executor:
+                    for i in range(start_idx, stop_idx):
+                        future = executor.submit(eval_drift, *da.get_eval_args(i))
+                        future.add_done_callback(callback)
 
-                executor.shutdown(wait=True)
+                    executor.shutdown(wait=True)
 
 
-    else:
-        with alive_bar(da.states.shape[0], force_tty=True, title="Evaluating") as bar:
-            for i in range(da.states.shape[0]):
-                mean, std, precision, potential, info, idx = eval_drift(*da.get_eval_args(i))
-
-                drifts[idx[0], idx[1], idx[2]] = mean
-                standard_deviations[idx[0], idx[1], idx[2]] = std
-                precisions[idx[0], idx[1], idx[2]] = precision
-                potential_after[idx[0], idx[1], idx[2]] = potential
-
-                for key, field_info in da.info.fields.items():
-                    info_data[key][idx[0], idx[1], idx[2]] = info[key]
-
-                    if field_info["type"] == "mean":
-                        info_data[key + "_std"][idx[0], idx[1], idx[2]] = info[key + "_std"]
-
-                bar()
-
-    # get the end time after the run has finished
-    end_time = datetime.now()
-
-    # Save data to files
-    for idx, potential_function in enumerate(potential_functions):
-        data = {
-            'run_config': run_configs[idx],
-            "meta": {
-                'run_started': start_time.strftime("%d.%m.%Y %H:%M:%S"),
-                'run_finished': end_time.strftime("%d.%m.%Y %H:%M:%S"),
-                'batch_size': da.batch_size
-            },
-            "info": {},
-            'drift': drifts[:, :, :, idx].tolist(),
-            'potential_after': potential_after[:, :, :, idx].tolist(),
-            'precision': precisions[:, :, :, idx].tolist(),
-            'standard_deviation': standard_deviations[:, :, :, idx].tolist(),
-            'grid': [
-                {'name': 'alpha', 'sequence': alpha_sequence.tolist()},
-                {'name': 'kappa', 'sequence': kappa_sequence.tolist()},
-                {'name': 'sigma', 'sequence': sigma_sequence.tolist()}
-            ]
-        }
-
-        for key, field_info in da.info.fields.items():
-            data["info"][key] = info_data[key].tolist()
-
-            if field_info["type"] == "mean":
-                data["info"][key + "_std"] = info_data[key + "_std"].tolist()
-
-        if args.indexes != "all":
-            filename = f'./{args.output_path}/parts/{args.run_id}/{filenames[idx]}_{start_idx}-{stop_idx}.part'
         else:
-            filename = f'./{args.output_path}/{filenames[idx]}.json'
+            with alive_bar(da.states.shape[0], force_tty=True, title="Evaluating") as bar:
+                for i in range(da.states.shape[0]):
+                    mean, std, precision, potential, info, idx = eval_drift(*da.get_eval_args(i))
 
-        with open(filename, 'w') as f:
-            json.dump(data, f)
+                    drifts[idx[0], idx[1], idx[2]] = mean
+                    standard_deviations[idx[0], idx[1], idx[2]] = std
+                    precisions[idx[0], idx[1], idx[2]] = precision
+                    potential_after[idx[0], idx[1], idx[2]] = potential
 
-    # remove lock file and combine if this was the last one
-    try:
-        os.remove(lockfile)
-    except FileNotFoundError:
-        pass
+                    for key, field_info in da.info.fields.items():
+                        info_data[key][idx[0], idx[1], idx[2]] = info[key]
 
-    remaining = glob.glob(os.path.join(lock_dir, "*.lock"))
-    if not remaining:
-        # Combine data to files
-        print("[INFO] Last worker done – calling combine_results.py")
+                        if field_info["type"] == "mean":
+                            info_data[key + "_std"][idx[0], idx[1], idx[2]] = info[key + "_std"]
+
+                    bar()
+
+        # get the end time after the run has finished
+        end_time = datetime.now()
+
+        # Save data to files
         for idx, potential_function in enumerate(potential_functions):
-            subprocess.run([
-                sys.executable,
-                "tools/drift_analysis/combine_results.py",
-                args.output_path,
-                args.run_id,
-                filenames[idx]
-            ])
+            data = {
+                'run_config': run_configs[idx],
+                "meta": {
+                    'run_started': start_time.strftime("%d.%m.%Y %H:%M:%S"),
+                    'run_finished': end_time.strftime("%d.%m.%Y %H:%M:%S"),
+                    'batch_size': da.batch_size
+                },
+                "info": {},
+                'drift': drifts[:, :, :, idx].tolist(),
+                'potential_after': potential_after[:, :, :, idx].tolist(),
+                'precision': precisions[:, :, :, idx].tolist(),
+                'standard_deviation': standard_deviations[:, :, :, idx].tolist(),
+                'grid': [
+                    {'name': 'alpha', 'sequence': alpha_sequence.tolist()},
+                    {'name': 'kappa', 'sequence': kappa_sequence.tolist()},
+                    {'name': 'sigma', 'sequence': sigma_sequence.tolist()}
+                ]
+            }
 
-        # remove lock directory
-        try:
-            os.rmdir(lock_dir)
-        except OSError:
-            pass
+            for key, field_info in da.info.fields.items():
+                data["info"][key] = info_data[key].tolist()
 
-        # remove parent lock directory
-        locks_parent = os.path.dirname(lock_dir)
-        try:
-            os.rmdir(locks_parent)
-        except OSError:
-            pass
+                if field_info["type"] == "mean":
+                    data["info"][key + "_std"] = info_data[key + "_std"].tolist()
+
+            # save file with partial results
+            filename = f'./{config["output_dir"]}/parts/{filenames[idx]}_{start_idx}-{stop_idx}.part'
+            with open(filename, 'w') as f:
+                json.dump(data, f)
+
+        # mark job as done (atomic rename)
+        os.rename(job, job.with_suffix(".done"))
+
+    print("No more jobs... Done!")
+
+    # remaining = glob.glob(os.path.join(lock_dir, "*.lock"))
+    # if not remaining:
+    #     # Combine data to files
+    #     print("[INFO] Last worker done – calling combine_results.py")
+    #     for idx, potential_function in enumerate(potential_functions):
+    #         subprocess.run([
+    #             sys.executable,
+    #             "tools/drift_analysis/combine_results.py",
+    #             args.output_path,
+    #             args.run_id,
+    #             filenames[idx]
+    #         ])
+    #
+    #     # remove lock directory
+    #     try:
+    #         os.rmdir(lock_dir)
+    #     except OSError:
+    #         pass
+    #
+    #     # remove parent lock directory
+    #     locks_parent = os.path.dirname(lock_dir)
+    #     try:
+    #         os.rmdir(locks_parent)
+    #     except OSError:
+    #         pass

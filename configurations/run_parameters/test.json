@@ -1,9 +1,10 @@
 {
+  "batch_size": 128,
   "sample_size": 10000,
-  "batch_size": 5000,
+  "sub_batch_size": 5000,
   "alpha": [
     0,
-    1.5707963267948966,
+    1,
     6
   ],
   "kappa": [
