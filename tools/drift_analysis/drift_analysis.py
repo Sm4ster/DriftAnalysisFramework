@@ -12,8 +12,6 @@ import sys
 import hashlib
 import random
 import math
-import glob
-import socket
 
 
 def handle_sigint(signum, frame):
@@ -171,7 +169,7 @@ if __name__ == '__main__':
 
     # Initialize the Drift Analysis class
     da = DriftAnalysis(alg, info)
-    da.batch_size = min(run_params["batch_size"], run_params["sub_batch_size"])
+    da.batch_size = min(run_params["sample_size"], run_params["sub_batch_size"])
 
     # Number of Batches (rounded up)
     num_batches = math.ceil(run_params["sample_size"] / da.batch_size)
@@ -186,13 +184,13 @@ if __name__ == '__main__':
     da.eval_potential([e["code"] for e in potential_functions], alpha_sequence, kappa_sequence, sigma_sequence)
 
     # Initialize data structures to hold results
-    drifts = np.full([len(alpha_sequence), len(kappa_sequence), len(sigma_sequence), len(da.potential_expr)], np.nan)
-    potential_after = np.full([len(alpha_sequence), len(kappa_sequence), len(sigma_sequence), len(da.potential_expr)],
-                              np.nan)
-    standard_deviations = np.full(
-        [len(alpha_sequence), len(kappa_sequence), len(sigma_sequence), len(da.potential_expr)], np.nan)
-    precisions = np.full([len(alpha_sequence), len(kappa_sequence), len(sigma_sequence), len(da.potential_expr)],
-                         np.nan)
+    raw_dir = Path(config["raw_dir"])
+    grid_shape = (len(alpha_sequence), len(kappa_sequence), len(sigma_sequence), len(da.potential_expr))
+
+    drifts = np.memmap(raw_dir / "drifts.dat", dtype=np.float64, mode="r+", shape=grid_shape)
+    potential_after = np.memmap(raw_dir / "potential_after.dat", dtype=np.float64, mode="r+", shape=grid_shape)
+    standard_deviations = np.memmap(raw_dir / "standard_deviations.dat", dtype=np.float64, mode="r+", shape=grid_shape)
+    precisions = np.memmap(raw_dir / "precisions.dat", dtype=np.float64, mode="r+", shape=grid_shape)
 
     info_data = {}
     for key, field_info in da.info.fields.items():
@@ -283,36 +281,41 @@ if __name__ == '__main__':
         end_time = datetime.now()
 
         # Save data to files
-        for idx, potential_function in enumerate(potential_functions):
-            data = {
-                'run_config': run_configs[idx],
-                "meta": {
-                    'run_started': start_time.strftime("%d.%m.%Y %H:%M:%S"),
-                    'run_finished': end_time.strftime("%d.%m.%Y %H:%M:%S"),
-                    'batch_size': da.batch_size
-                },
-                "info": {},
-                'drift': drifts[:, :, :, idx].tolist(),
-                'potential_after': potential_after[:, :, :, idx].tolist(),
-                'precision': precisions[:, :, :, idx].tolist(),
-                'standard_deviation': standard_deviations[:, :, :, idx].tolist(),
-                'grid': [
-                    {'name': 'alpha', 'sequence': alpha_sequence.tolist()},
-                    {'name': 'kappa', 'sequence': kappa_sequence.tolist()},
-                    {'name': 'sigma', 'sequence': sigma_sequence.tolist()}
-                ]
-            }
+        drifts.flush()
+        potential_after.flush()
+        standard_deviations.flush()
+        precisions.flush()
 
-            for key, field_info in da.info.fields.items():
-                data["info"][key] = info_data[key].tolist()
-
-                if field_info["type"] == "mean":
-                    data["info"][key + "_std"] = info_data[key + "_std"].tolist()
-
-            # save file with partial results
-            filename = f'./{config["output_dir"]}/parts/{filenames[idx]}_{start_idx}-{stop_idx}.part'
-            with open(filename, 'w') as f:
-                json.dump(data, f)
+        # for idx, potential_function in enumerate(potential_functions):
+        #     data = {
+        #         'run_config': run_configs[idx],
+        #         "meta": {
+        #             'run_started': start_time.strftime("%d.%m.%Y %H:%M:%S"),
+        #             'run_finished': end_time.strftime("%d.%m.%Y %H:%M:%S"),
+        #             'batch_size': da.batch_size
+        #         },
+        #         "info": {},
+        #         'drift': drifts[:, :, :, idx].tolist(),
+        #         'potential_after': potential_after[:, :, :, idx].tolist(),
+        #         'precision': precisions[:, :, :, idx].tolist(),
+        #         'standard_deviation': standard_deviations[:, :, :, idx].tolist(),
+        #         'grid': [
+        #             {'name': 'alpha', 'sequence': alpha_sequence.tolist()},
+        #             {'name': 'kappa', 'sequence': kappa_sequence.tolist()},
+        #             {'name': 'sigma', 'sequence': sigma_sequence.tolist()}
+        #         ]
+        #     }
+        #
+        #     for key, field_info in da.info.fields.items():
+        #         data["info"][key] = info_data[key].tolist()
+        #
+        #         if field_info["type"] == "mean":
+        #             data["info"][key + "_std"] = info_data[key + "_std"].tolist()
+        #
+        #     # save file with partial results
+        #     filename = f'./{config["output_dir"]}/parts/{filenames[idx]}_{start_idx}-{stop_idx}.part'
+        #     with open(filename, 'w') as f:
+        #         json.dump(data, f)
 
         # mark job as done (atomic rename)
         os.rename(job, job.with_suffix(".done"))

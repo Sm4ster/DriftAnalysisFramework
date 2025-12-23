@@ -3,6 +3,7 @@ import argparse
 import subprocess
 import uuid
 import os
+import numpy as np
 from pathlib import Path
 
 # limit number of queue files to keep filesystem overhead manageable
@@ -72,11 +73,11 @@ def main() -> None:
     # directory layout for this run
     run_dir = Path(args.output_dir) / run_id
     queue_dir = run_dir / "queue"  # job files live here: *.job / *.processing / *.done / ...
-    parts_dir = run_dir / "parts"  # intermediate result shards live here, bundled at the end
+    raw_dir = run_dir / "raw"  # intermediate result shards live here, bundled at the end
 
     run_dir.mkdir(parents=True, exist_ok=True)
     queue_dir.mkdir(parents=True, exist_ok=True)
-    parts_dir.mkdir(parents=True, exist_ok=True)
+    raw_dir.mkdir(parents=True, exist_ok=True)
 
     # --- read config files --------------------------------------------------------
 
@@ -104,7 +105,7 @@ def main() -> None:
         "run_id": run_id,
         "output_dir": str(run_dir),
         "queue_dir": str(queue_dir),
-        "parts_dir": str(parts_dir),
+        "raw_dir": str(raw_dir),
         "run_parameters": run_parameters,
         "algorithm": algorithm,
         "potential_functions": potential_functions,
@@ -140,6 +141,16 @@ def main() -> None:
             os.close(fd)
         except FileExistsError:
             pass
+
+    # --- create raw data files ---------------------------------------------------
+
+    grid_shape = (run_parameters["alpha"][2], run_parameters["kappa"][2], run_parameters["sigma"][2],
+                  len(potential_functions))
+
+    np.memmap(raw_dir / "drifts.dat", dtype=np.float64, mode="w+", shape=grid_shape)[:] = np.nan
+    np.memmap(raw_dir / "standard_deviations.dat", dtype=np.float64, mode="w+", shape=grid_shape)[:] = np.nan
+    np.memmap(raw_dir / "precisions.dat", dtype=np.float64, mode="w+", shape=grid_shape)[:] = np.nan
+    np.memmap(raw_dir / "potential_after.dat", dtype=np.float64, mode="w+", shape=grid_shape)[:] = np.nan
 
     # --- start remote workers via tmux -------------------------------------------
 
