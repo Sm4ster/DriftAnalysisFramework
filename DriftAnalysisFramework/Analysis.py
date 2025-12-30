@@ -74,7 +74,8 @@ class DriftAnalysis:
         assert self.states[i, 1] == self.kappa_sequence[self.states_idx[i, 1]]
         assert self.states[i, 2] == self.sigma_sequence[self.states_idx[i, 2]]
 
-        return self.states[i, 0], \
+        return i, \
+            self.states[i, 0], \
             self.states[i, 1], \
             self.states[i, 2], \
             self.potential_expr, \
@@ -90,7 +91,8 @@ class DriftAnalysis:
         eval_drift(self.get_eval_args(i))
 
 
-def eval_drift(alpha, kappa, sigma, potential_expressions, potential_before, alg, info, sample_size, batch_size,
+def eval_drift(raw_idx, alpha, kappa, sigma, potential_expressions, potential_before, alg, info, sample_size,
+               batch_size,
                target_p_value, position):
     # init result data structures
     drift = Welford()
@@ -173,4 +175,4 @@ def eval_drift(alpha, kappa, sigma, potential_expressions, potential_before, alg
             print("  sample_size =", sample_size)
             precision[idx] = 0
 
-    return drift.mean, np.sqrt(drift.var_p), precision, potential.mean, info.get_data(), position
+    return drift.mean, np.sqrt(drift.var_p), precision, potential.mean, info.get_data(), position, raw_idx

@@ -1,6 +1,7 @@
 import numpy as np
 import json
-import os
+import socket, os
+import threading
 import argparse
 import subprocess
 from datetime import datetime
@@ -53,6 +54,9 @@ if __name__ == '__main__':
 
     with (Path(args.run_dir) / "config.json").open(encoding="utf-8") as f:
         config = json.load(f)
+
+    # make chunk dir available
+    chunk_dir = Path(config["chunk_dir"])
 
     # get start time
     start_time = datetime.now()
@@ -120,14 +124,11 @@ if __name__ == '__main__':
     else:
         raise ValueError(f"No valid algorithm specified: {algo_name}")
 
-
-
     # create states
     run_params = config["run_parameters"]
     alpha_sequence = np.arccos(np.linspace(run_params["alpha"][0], run_params["alpha"][1], num=run_params["alpha"][2]))
     kappa_sequence = np.geomspace(run_params["kappa"][0], run_params["kappa"][1], num=run_params["kappa"][2])
     sigma_sequence = np.geomspace(run_params["sigma"][0], run_params["sigma"][1], num=run_params["sigma"][2])
-
 
     filenames = []
     filtered_potential_functions = []
@@ -183,24 +184,6 @@ if __name__ == '__main__':
     # Evaluate the before potential to set up the class
     da.eval_potential([e["code"] for e in potential_functions], alpha_sequence, kappa_sequence, sigma_sequence)
 
-    # Initialize data structures to hold results
-    raw_dir = Path(config["raw_dir"])
-    grid_shape = (len(alpha_sequence), len(kappa_sequence), len(sigma_sequence), len(da.potential_expr))
-
-    drifts = np.memmap(raw_dir / "drifts.dat", dtype=np.float64, mode="r+", shape=grid_shape)
-    potential_after = np.memmap(raw_dir / "potential_after.dat", dtype=np.float64, mode="r+", shape=grid_shape)
-    standard_deviations = np.memmap(raw_dir / "standard_deviations.dat", dtype=np.float64, mode="r+", shape=grid_shape)
-    precisions = np.memmap(raw_dir / "precisions.dat", dtype=np.float64, mode="r+", shape=grid_shape)
-
-    info_data = {}
-    for key, field_info in da.info.fields.items():
-        info_data[key] = np.full(
-            [len(alpha_sequence), len(kappa_sequence), len(sigma_sequence), *field_info["shape"]], np.nan)
-
-        if field_info["type"] == "mean":
-            info_data[key + "_std"] = np.full(
-                [len(alpha_sequence), len(kappa_sequence), len(sigma_sequence), *field_info["shape"]], np.nan)
-
 
     def claim_job(queue_dir: Path):
         jobs = list(queue_dir.glob("*.job"))
@@ -219,6 +202,7 @@ if __name__ == '__main__':
 
         return None
 
+
     while True:
         job = claim_job(Path(config["queue_dir"]))
 
@@ -231,119 +215,151 @@ if __name__ == '__main__':
         total = da.states.shape[0]
         print(f"[job] {start_idx:>6}–{stop_idx:<6} | batch {batch_size:>4} / total {total}")
 
-        # For debugging the critical function and performance comparisons
-        if parallel_execution:
-            with alive_bar(stop_idx - start_idx, force_tty=True, title="Evaluating") as bar:
-                def callback(future_):
-                    mean, std, precision, potential, info, idx = future_.result()
+        # Initialize data structures to hold results
+        true_idxs = np.empty((batch_size, 3), dtype=np.int32)
+        drifts = np.empty((batch_size, len(da.potential_expr)), dtype=np.float64)
+        standard_deviations = np.empty((batch_size, len(da.potential_expr)), dtype=np.float64)
+        precisions = np.empty((batch_size, len(da.potential_expr)), dtype=np.float64)
+        potential_after = np.empty((batch_size, len(da.potential_expr)), dtype=np.float64)
 
-                    drifts[idx[0], idx[1], idx[2]] = mean
-                    standard_deviations[idx[0], idx[1], idx[2]] = std
-                    precisions[idx[0], idx[1], idx[2]] = precision
-                    potential_after[idx[0], idx[1], idx[2]] = potential
+        info_data = {}
+        for key, field_info in da.info.fields.items():
+            info_data[key] = np.empty((batch_size, *field_info["shape"]), dtype=np.float64)
 
-                    for key, field_info in da.info.fields.items():
-                        info_data[key][idx[0], idx[1], idx[2]] = info[key]
+            if field_info["type"] == "mean":
+                info_data[key + "_std"] = np.empty((batch_size, *field_info["shape"]), dtype=np.float64)
 
-                        if field_info["type"] == "mean":
-                            info_data[key + "_std"][idx[0], idx[1], idx[2]] = info[key + "_std"]
+        bar_lock = threading.Lock()
+        with alive_bar(stop_idx - start_idx, force_tty=True, title="Evaluating") as bar:
+            def callback(future_):
+                mean, std, precision, potential, info, idx, i = future_.result()
 
+                local_idx = i - start_idx
+                true_idxs[local_idx] = (idx[0], idx[1], idx[2])
+                drifts[local_idx] = mean
+                standard_deviations[local_idx] = std
+                precisions[local_idx] = precision
+                potential_after[local_idx] = potential
+
+                for key, field_info in da.info.fields.items():
+                    info_data[key][local_idx] = info[key]
+
+                    if field_info["type"] == "mean":
+                        info_data[key + "_std"][local_idx] = info[key + "_std"]
+
+                with bar_lock:
                     bar()
 
 
-                with ProcessPoolExecutor(max_workers=workers) as executor:
-                    for i in range(start_idx, stop_idx):
-                        future = executor.submit(eval_drift, *da.get_eval_args(i))
-                        future.add_done_callback(callback)
+            with ProcessPoolExecutor(max_workers=workers) as executor:
+                for i in range(start_idx, stop_idx):
+                    future = executor.submit(eval_drift, *da.get_eval_args(i))
+                    future.add_done_callback(callback)
 
-                    executor.shutdown(wait=True)
-
-
-        else:
-            with alive_bar(da.states.shape[0], force_tty=True, title="Evaluating") as bar:
-                for i in range(da.states.shape[0]):
-                    mean, std, precision, potential, info, idx = eval_drift(*da.get_eval_args(i))
-
-                    drifts[idx[0], idx[1], idx[2]] = mean
-                    standard_deviations[idx[0], idx[1], idx[2]] = std
-                    precisions[idx[0], idx[1], idx[2]] = precision
-                    potential_after[idx[0], idx[1], idx[2]] = potential
-
-                    for key, field_info in da.info.fields.items():
-                        info_data[key][idx[0], idx[1], idx[2]] = info[key]
-
-                        if field_info["type"] == "mean":
-                            info_data[key + "_std"][idx[0], idx[1], idx[2]] = info[key + "_std"]
-
-                    bar()
-
-        # get the end time after the run has finished
-        end_time = datetime.now()
+                executor.shutdown(wait=True)
 
         # Save data to files
-        drifts.flush()
-        potential_after.flush()
-        standard_deviations.flush()
-        precisions.flush()
+        chunk_results = {
+            "idxs": true_idxs,
+            "drifts": drifts,
+            "potential_after": potential_after,
+            "standard_deviations": standard_deviations,
+            "precisions": precisions,
+        }
 
-        # for idx, potential_function in enumerate(potential_functions):
-        #     data = {
-        #         'run_config': run_configs[idx],
-        #         "meta": {
-        #             'run_started': start_time.strftime("%d.%m.%Y %H:%M:%S"),
-        #             'run_finished': end_time.strftime("%d.%m.%Y %H:%M:%S"),
-        #             'batch_size': da.batch_size
-        #         },
-        #         "info": {},
-        #         'drift': drifts[:, :, :, idx].tolist(),
-        #         'potential_after': potential_after[:, :, :, idx].tolist(),
-        #         'precision': precisions[:, :, :, idx].tolist(),
-        #         'standard_deviation': standard_deviations[:, :, :, idx].tolist(),
-        #         'grid': [
-        #             {'name': 'alpha', 'sequence': alpha_sequence.tolist()},
-        #             {'name': 'kappa', 'sequence': kappa_sequence.tolist()},
-        #             {'name': 'sigma', 'sequence': sigma_sequence.tolist()}
-        #         ]
-        #     }
-        #
-        #     for key, field_info in da.info.fields.items():
-        #         data["info"][key] = info_data[key].tolist()
-        #
-        #         if field_info["type"] == "mean":
-        #             data["info"][key + "_std"] = info_data[key + "_std"].tolist()
-        #
-        #     # save file with partial results
-        #     filename = f'./{config["output_dir"]}/parts/{filenames[idx]}_{start_idx}-{stop_idx}.part'
-        #     with open(filename, 'w') as f:
-        #         json.dump(data, f)
+        for key, field_info in da.info.fields.items():
+            chunk_results[key] = info_data[key]
+
+            if field_info["type"] == "mean":
+                chunk_results[key + "_std"] = info_data[key + "_std"]
+
+        chunk_final = chunk_dir / f"job_{start_idx}_{stop_idx}.npz"
+        chunk_tmp = chunk_dir / f"job_{start_idx}_{stop_idx}.npz.tmp"
+
+        with open(chunk_tmp, "wb") as f:
+            np.savez_compressed(f, **chunk_results)
+        os.replace(chunk_tmp, chunk_final)
 
         # mark job as done (atomic rename)
         os.rename(job, job.with_suffix(".done"))
 
     print("No more jobs... Done!")
 
-    # remaining = glob.glob(os.path.join(lock_dir, "*.lock"))
-    # if not remaining:
-    #     # Combine data to files
-    #     print("[INFO] Last worker done – calling combine_results.py")
-    #     for idx, potential_function in enumerate(potential_functions):
-    #         subprocess.run([
-    #             sys.executable,
-    #             "tools/drift_analysis/combine_results.py",
-    #             args.output_path,
-    #             args.run_id,
-    #             filenames[idx]
-    #         ])
-    #
-    #     # remove lock directory
-    #     try:
-    #         os.rmdir(lock_dir)
-    #     except OSError:
-    #         pass
-    #
-    #     # remove parent lock directory
-    #     locks_parent = os.path.dirname(lock_dir)
-    #     try:
-    #         os.rmdir(locks_parent)
-    #     except OSError:
-    #         pass
+
+    def is_last_worker(queue_dir: Path) -> bool:
+        """Return True, wenn keine Jobs und keine laufenden Jobs mehr existieren."""
+        jobs = list(queue_dir.glob("*.job"))
+        processing = list(queue_dir.glob("*.processing"))
+        return len(jobs) == 0 and len(processing) == 0
+
+
+    if is_last_worker(Path(config["queue_dir"])):
+        print("Last worker, merging files...")
+
+        chunks = sorted(chunk_dir.glob("job_*.npz"))
+
+        grid_shape = (len(alpha_sequence), len(kappa_sequence), len(sigma_sequence), len(da.potential_expr))
+        full_drifts = np.empty(grid_shape)
+        full_potential_after = np.empty(grid_shape)
+        full_precisions = np.empty(grid_shape)
+        full_standard_deviations = np.empty(grid_shape)
+
+        full_info_data = {}
+        for key, field_info in da.info.fields.items():
+            full_info_data[key] = np.empty(
+                (len(alpha_sequence), len(kappa_sequence), len(sigma_sequence), *field_info["shape"]), dtype=np.float64)
+
+            if field_info["type"] == "mean":
+                full_info_data[key + "_std"] = np.empty(
+                    (len(alpha_sequence), len(kappa_sequence), len(sigma_sequence), *field_info["shape"]),
+                    dtype=np.float64)
+
+        for c in chunks:
+            d = np.load(c, allow_pickle=False)
+
+            for t in range(d["idxs"].shape[0]):
+                alpha_idx = d["idxs"][t, 0]
+                kappa_idx = d["idxs"][t, 1]
+                sigma_idx = d["idxs"][t, 2]
+
+                full_drifts[alpha_idx, kappa_idx, sigma_idx, :] = d["drifts"][t, :]
+                full_potential_after[alpha_idx, kappa_idx, sigma_idx, :] = d["potential_after"][t, :]
+                full_precisions[alpha_idx, kappa_idx, sigma_idx, :] = d["precisions"][t, :]
+                full_standard_deviations[alpha_idx, kappa_idx, sigma_idx, :] = d["standard_deviations"][t, :]
+
+                for key, field_info in da.info.fields.items():
+                    full_info_data[key][alpha_idx, kappa_idx, sigma_idx, :] = d[key][t, :]
+                    if field_info["type"] == "mean":
+                        full_info_data[key + "_std"][alpha_idx, kappa_idx, sigma_idx, :] = d[key + "_std"][t, :]
+
+        # get the end time after the run has finished
+        end_time = datetime.now()
+
+        for idx, potential_function in enumerate(potential_functions):
+            data = {
+                'run_config': run_configs[idx],
+                'run_finished': end_time.strftime("%d.%m.%Y %H:%M:%S"),
+                "info": {},
+                'drift': full_drifts[:, :, :, idx].tolist(),
+                'potential_after': full_potential_after[:, :, :, idx].tolist(),
+                'precision': full_precisions[:, :, :, idx].tolist(),
+                'standard_deviation': full_standard_deviations[:, :, :, idx].tolist(),
+                'grid': [
+                    {'name': 'alpha', 'sequence': alpha_sequence.tolist()},
+                    {'name': 'kappa', 'sequence': kappa_sequence.tolist()},
+                    {'name': 'sigma', 'sequence': sigma_sequence.tolist()}
+                ]
+            }
+
+            for key, field_info in da.info.fields.items():
+                data["info"][key] = full_info_data[key].tolist()
+
+                if field_info["type"] == "mean":
+                    data["info"][key + "_std"] = full_info_data[key + "_std"].tolist()
+
+            # save file with partial results
+            output_dir = Path(config["output_dir"])
+            filename = output_dir / f"{filenames[idx]}.json"
+            print(f"Saving {filename}")
+            with open(filename, 'w') as f:
+                json.dump(data, f)
