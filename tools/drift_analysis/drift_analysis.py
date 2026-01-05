@@ -82,7 +82,7 @@ if __name__ == '__main__':
     experiment_defaults = {
         "normal_form": "trace",
         "sigma_scaling": "none",
-        "selection_scheme": "normal",
+        "selection_scheme": "default",
     }
 
     algo_name = algo_cfg.get("algorithm")
@@ -293,6 +293,25 @@ if __name__ == '__main__':
         return len(jobs) == 0 and len(processing) == 0
 
 
+    def sanitize_for_json(x):
+        def _san(v):
+            if isinstance(v, float):
+                return v if math.isfinite(v) else None
+            if isinstance(v, dict):
+                for k, vv in v.items():
+                    v[k] = _san(vv)
+                return v
+            if isinstance(v, list):
+                for i, vv in enumerate(v):
+                    v[i] = _san(vv)
+                return v
+            if isinstance(v, tuple):
+                return tuple(_san(e) for e in v)
+            return v
+
+        return _san(x)
+
+
     if is_last_worker(Path(config["queue_dir"])):
         print("Last worker, merging files...")
 
@@ -336,30 +355,38 @@ if __name__ == '__main__':
         end_time = datetime.now()
 
         for idx, potential_function in enumerate(potential_functions):
-            data = {
-                'run_config': run_configs[idx],
-                'run_finished': end_time.strftime("%d.%m.%Y %H:%M:%S"),
-                "info": {},
-                'drift': full_drifts[:, :, :, idx].tolist(),
-                'potential_after': full_potential_after[:, :, :, idx].tolist(),
-                'precision': full_precisions[:, :, :, idx].tolist(),
-                'standard_deviation': full_standard_deviations[:, :, :, idx].tolist(),
-                'grid': [
-                    {'name': 'alpha', 'sequence': alpha_sequence.tolist()},
-                    {'name': 'kappa', 'sequence': kappa_sequence.tolist()},
-                    {'name': 'sigma', 'sequence': sigma_sequence.tolist()}
-                ]
+            arrays = {
+                "drift": full_drifts[:, :, :, idx].astype(np.float32),
+                "potential_after": full_potential_after[:, :, :, idx].astype(np.float32),
+                "precision": full_precisions[:, :, :, idx].astype(np.float32),
+                "standard_deviation": full_standard_deviations[:, :, :, idx].astype(np.float32),
+                "grid_alpha": alpha_sequence,
+                "grid_kappa": kappa_sequence,
+                "grid_sigma": sigma_sequence
             }
 
             for key, field_info in da.info.fields.items():
-                data["info"][key] = full_info_data[key].tolist()
+                arrays[f"info_{key}"] = np.asarray(full_info_data[key])  # dtype beibehalten oder casten
 
                 if field_info["type"] == "mean":
-                    data["info"][key + "_std"] = full_info_data[key + "_std"].tolist()
+                    arrays[f"info_{key}_std"] = np.asarray(full_info_data[key + "_std"])
 
-            # save file with partial results
+            meta = {
+                "run_config": run_configs[idx],
+                "run_finished": end_time.strftime("%d.%m.%Y %H:%M:%S"),
+                "info_keys": list(info_data.keys()),
+            }
+
+            # save file
             output_dir = Path(config["output_dir"])
-            filename = output_dir / f"{filenames[idx]}.json"
-            print(f"Saving {filename}")
-            with open(filename, 'w') as f:
-                json.dump(data, f)
+            output_dir.mkdir(parents=True, exist_ok=True)
+
+            out_path = output_dir / f"{filenames[idx]}.npz"
+
+            meta_u8 = np.frombuffer(
+                json.dumps(meta, ensure_ascii=False).encode("utf-8"),
+                dtype=np.uint8
+            )
+            arrays["meta_json"] = meta_u8
+
+            np.savez_compressed(out_path, **arrays)

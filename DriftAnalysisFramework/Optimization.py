@@ -67,12 +67,13 @@ class CMA_ES:
 
         weights = []
 
-        if selection_scheme == "simple":
+        if selection_scheme == "uniform":
             # Uniform weights for top μ, zero for rest
             weights = np.zeros(self.lamda)
             weights[:self.mu] = 1.0 / self.mu
+            self.weights = np.array(weights)
 
-        if selection_scheme == "normal":
+        if selection_scheme == "default":
             for i in range(self.mu):
                 weights.append(np.log(self.mu + 1 / 2) - np.log(i + 1))
 
