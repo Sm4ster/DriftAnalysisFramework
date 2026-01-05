@@ -1,9 +1,5 @@
 {
   "algorithm": "CMA-ES",
   "normal_form": "trace",
-  "selection": "simple",
-  "sigma_scaling": "none",
-  "constants": {
-    "c_mu": 0.001
-  }
+  "selection_scheme": "uniform"
 }
