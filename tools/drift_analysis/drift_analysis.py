@@ -126,7 +126,8 @@ if __name__ == '__main__':
 
     # create states
     run_params = config["run_parameters"]
-    alpha_sequence = np.arccos(np.linspace(run_params["alpha"][0], run_params["alpha"][1], num=run_params["alpha"][2]))
+    alpha_sequence = np.arccos(np.linspace(run_params["alpha"][0], run_params["alpha"][1], num=run_params["alpha"][2]))[
+        ::-1]
     kappa_sequence = np.geomspace(run_params["kappa"][0], run_params["kappa"][1], num=run_params["kappa"][2])
     sigma_sequence = np.geomspace(run_params["sigma"][0], run_params["sigma"][1], num=run_params["sigma"][2])
 
