@@ -103,8 +103,8 @@ for idx, param_set in enumerate(param_sets):
     if "batch_size" in config:
         options.extend(['--batch_size', str(config["batch_size"])])
 
-    if "sub_batch_size" in config:
-        options.extend(['--sub_batch_size', str(config["sub_batch_size"])])
+    if "batch_size" in config:
+        options.extend(['--batch_size', str(config["batch_size"])])
 
     if "alpha" in config:
         options.extend(['--alpha_start', str(config["alpha"][0])])

@@ -1,17 +1,17 @@
 [
   {
     "hostname": "gpu01",
-    "workers": 56,
+    "workers": 40,
     "efficiency": 0.9
   },
   {
     "hostname": "gpu02",
-    "workers": 56,
+    "workers": 40,
     "efficiency": 0.9
   },
   {
     "hostname": "gpu03",
-    "workers": 56,
+    "workers": 40,
     "efficiency": 0.9
   },
   {

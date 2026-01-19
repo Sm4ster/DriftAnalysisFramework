@@ -1,7 +1,0 @@
-{
-  "algorithm": "CMA-ES",
-  "normal_form": "trace",
-  "constants": {
-    "c_mu": 0.001
-  }
-}

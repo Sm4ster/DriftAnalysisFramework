@@ -1,7 +1,7 @@
 {
-  "batch_size": 128,
+  "chunk_size": 128,
   "sample_size": 10000,
-  "sub_batch_size": 5000,
+  "batch_size": 5000,
   "alpha": [
     0,
     1,

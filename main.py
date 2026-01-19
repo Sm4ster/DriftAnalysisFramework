@@ -55,14 +55,14 @@ def get_unique_session_name(base_name: str) -> str:
         counter += 1
 
 
-def build_job_ranges(num_jobs: int, batch_size: int = 1) -> list[tuple[int, int]]:
+def build_job_ranges(num_jobs: int, chunk_size: int = 1) -> list[tuple[int, int]]:
     """
     Returns a list of (start, end) tuples with half-open intervals [start, end).
     """
-    if batch_size <= 0:
-        raise ValueError("batch_size must be >= 1")
+    if chunk_size <= 0:
+        raise ValueError("chunk_size must be >= 1")
 
-    return [(start, min(start + batch_size, num_jobs)) for start in range(0, num_jobs, batch_size)]
+    return [(start, min(start + chunk_size, num_jobs)) for start in range(0, num_jobs, chunk_size)]
 
 
 def main() -> None:
@@ -118,14 +118,14 @@ def main() -> None:
     # --- create queue files -------------------------------------------------------
 
     num_jobs = run_parameters["alpha"][2] * run_parameters["kappa"][2] * run_parameters["sigma"][2]
-    batch_size = run_parameters.get("batch_size", 1024)
+    chunk_size = run_parameters.get("chunk_size", 1024)
 
     # avoid creating too many files (filesystem overhead)
-    num_files = (num_jobs + batch_size - 1) // batch_size
+    num_files = (num_jobs + chunk_size - 1) // chunk_size
     if num_files > HARD_LIMIT:
         raise RuntimeError(
             f"Refusing to create {num_files} job files (hard limit={HARD_LIMIT}). "
-            f"Increase batch_size (currently {batch_size})."
+            f"Increase chunk_size (currently {chunk_size})."
         )
 
     if num_files > WARN_LIMIT:
@@ -133,7 +133,7 @@ def main() -> None:
 
     print(f"[queue] checks passed — creating {num_files} job files")
 
-    for start, end in build_job_ranges(num_jobs, batch_size):
+    for start, end in build_job_ranges(num_jobs, chunk_size):
         job_path = queue_dir / f"{start}_{end}.job"
 
         try:

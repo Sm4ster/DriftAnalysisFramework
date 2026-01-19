@@ -1,5 +1,0 @@
-{
-  "algorithm": "CMA-ES",
-  "normal_form": "trace",
-  "selection_scheme": "uniform"
-}

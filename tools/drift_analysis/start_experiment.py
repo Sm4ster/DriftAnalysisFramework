@@ -50,7 +50,7 @@ if "sample_size" in run_params:
     options.extend(['--sample_size', str(run_params["sample_size"])])
 
 if "batch_size" in run_params:
-    options.extend(['--batch_size', str(run_params["sub_batch_size"])])
+    options.extend(['--batch_size', str(run_params["batch_size"])])
 
 if "constants" in algorithm:
     options.extend(['--constants', json.dumps(algorithm["constants"])])

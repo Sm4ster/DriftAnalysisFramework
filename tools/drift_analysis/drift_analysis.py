@@ -1,6 +1,6 @@
 import numpy as np
 import json
-import socket, os
+import os
 import threading
 import argparse
 import subprocess
@@ -13,6 +13,8 @@ import sys
 import hashlib
 import random
 import math
+
+debug = False
 
 
 def handle_sigint(signum, frame):
@@ -27,11 +29,9 @@ signal.signal(signal.SIGINT, handle_sigint)
 from DriftAnalysisFramework.Optimization import OnePlusOne_CMA_ES, CMA_ES
 from DriftAnalysisFramework.Info import OnePlusOne_CMA_ES as OnePlusOne_CMA_ES_Info, CMA_ES as CMA_ES_Info
 from DriftAnalysisFramework.Transformation import CMA_ES as CMA_TR
-from DriftAnalysisFramework.Fitness import Sphere
+from DriftAnalysisFramework.Fitness import Sphere, LinearizedSphere2D
 from DriftAnalysisFramework.Analysis import DriftAnalysis, eval_drift
 from DriftAnalysisFramework.Filter import gaussian_filter, spline_filter
-
-parallel_execution = True
 
 helper_functions = {
     "f": lambda x: gaussian_filter(x, 0.2, 0.01, 1) * x,
@@ -70,6 +70,8 @@ if __name__ == '__main__':
     # constants
     algo_defaults = {
         "CMA-ES": {
+            "lamda": 6,
+            "mu": 3,
             "c_mu": 0.1  # 0.09182736455463728
         },
         "1+1-CMA-ES": {
@@ -83,6 +85,7 @@ if __name__ == '__main__':
         "normal_form": "trace",
         "sigma_scaling": "none",
         "selection_scheme": "default",
+        "fitness_function": "sphere",
     }
 
     algo_name = algo_cfg.get("algorithm")
@@ -99,11 +102,17 @@ if __name__ == '__main__':
     normal_form = algo_cfg.get("normal_form", experiment_defaults["normal_form"])
     sigma_scaling = algo_cfg.get("sigma_scaling", experiment_defaults["sigma_scaling"])
     selection_scheme = algo_cfg.get("selection_scheme", experiment_defaults["selection_scheme"])
+    fitness_function = algo_cfg.get("fitness_function", experiment_defaults["fitness_function"])
 
     # Initialize the target function and optimization algorithm
+    if fitness_function == "sphere":
+        f = Sphere()
+    if fitness_function == "linear_sphere":
+        f = LinearizedSphere2D()
+
     if algo_name == "1+1-CMA-ES":
         alg = OnePlusOne_CMA_ES(
-            Sphere(),
+            f,
             CMA_TR(normal_form),
             {
                 "d": constants["d"],
@@ -115,9 +124,13 @@ if __name__ == '__main__':
 
     elif algo_name == "CMA-ES":
         alg = CMA_ES(
-            Sphere(),
+            f,
             CMA_TR(normal_form, sigma_scaling),
-            {"c_mu": constants["c_mu"]},
+            {
+                "c_mu": constants["c_mu"],
+                "lamda": constants["lamda"],
+                "mu": constants["mu"],
+            },
             selection_scheme,
         )
         info = CMA_ES_Info()
@@ -127,12 +140,11 @@ if __name__ == '__main__':
     # create states
     run_params = config["run_parameters"]
     alpha_sequence = np.arccos(np.linspace(run_params["alpha"][0], run_params["alpha"][1], num=run_params["alpha"][2]))[
-        ::-1]
+                     ::-1]
     kappa_sequence = np.geomspace(run_params["kappa"][0], run_params["kappa"][1], num=run_params["kappa"][2])
     sigma_sequence = np.geomspace(run_params["sigma"][0], run_params["sigma"][1], num=run_params["sigma"][2])
 
     filenames = []
-    filtered_potential_functions = []
     run_configs = []
     for idx, potential_function in enumerate(config["potential_functions"]):
         # create a unique string for this potential function and run
@@ -155,23 +167,13 @@ if __name__ == '__main__':
         unique_string = json.dumps(current_run_config, sort_keys=True)
         unique_filename = hashlib.sha256(unique_string.encode()).hexdigest()[:10]
 
-        if not os.path.exists(f"{config["output_dir"]}/{unique_filename}.json"):
-            run_configs.append(current_run_config)
-            filenames.append(unique_filename)
-            filtered_potential_functions.append(potential_function)
-        else:
-            print(f"[SKIP] Already exists: {unique_filename}.json")
+        run_configs.append(current_run_config)
+        filenames.append(unique_filename)
 
-    potential_functions = filtered_potential_functions
-
-    if len(potential_functions) == 0:
-        print("[INFO] All potential functions already computed. Nothing to do.")
-        print(f"[INFO] To re-run, delete or move files in ./{config["output_dir"]}/")
-        sys.exit(0)
 
     # Initialize the Drift Analysis class
     da = DriftAnalysis(alg, info)
-    da.batch_size = min(run_params["sample_size"], run_params["sub_batch_size"])
+    da.batch_size = min(run_params["sample_size"], run_params["batch_size"])
 
     # Number of Batches (rounded up)
     num_batches = math.ceil(run_params["sample_size"] / da.batch_size)
@@ -183,7 +185,8 @@ if __name__ == '__main__':
     da.function_dict.update(helper_functions)
 
     # Evaluate the before potential to set up the class
-    da.eval_potential([e["code"] for e in potential_functions], alpha_sequence, kappa_sequence, sigma_sequence)
+    da.eval_potential([e["code"] for e in config["potential_functions"]], alpha_sequence, kappa_sequence,
+                      sigma_sequence)
 
 
     def claim_job(queue_dir: Path):
@@ -196,7 +199,8 @@ if __name__ == '__main__':
         for job in jobs:
             processing = job.with_suffix(".processing")
             try:
-                os.rename(job, processing)  # atomic
+                if not debug:
+                    os.rename(job, processing)  # atomic
                 return processing
             except FileExistsError:
                 continue
@@ -252,12 +256,16 @@ if __name__ == '__main__':
                     bar()
 
 
-            with ProcessPoolExecutor(max_workers=workers) as executor:
+            if debug:
                 for i in range(start_idx, stop_idx):
-                    future = executor.submit(eval_drift, *da.get_eval_args(i))
-                    future.add_done_callback(callback)
+                    callback(eval_drift(*da.get_eval_args(i)))
+            else:
+                with ProcessPoolExecutor(max_workers=workers) as executor:
+                    for i in range(start_idx, stop_idx):
+                        future = executor.submit(eval_drift, *da.get_eval_args(i))
+                        future.add_done_callback(callback)
 
-                executor.shutdown(wait=True)
+                    executor.shutdown(wait=True)
 
         # Save data to files
         chunk_results = {
@@ -355,7 +363,7 @@ if __name__ == '__main__':
         # get the end time after the run has finished
         end_time = datetime.now()
 
-        for idx, potential_function in enumerate(potential_functions):
+        for idx, potential_function in enumerate(config["potential_functions"]):
             arrays = {
                 "drift": full_drifts[:, :, :, idx].astype(np.float32),
                 "potential_after": full_potential_after[:, :, :, idx].astype(np.float32),
@@ -375,7 +383,7 @@ if __name__ == '__main__':
             meta = {
                 "run_config": run_configs[idx],
                 "run_finished": end_time.strftime("%d.%m.%Y %H:%M:%S"),
-                "info_keys": list(info_data.keys()),
+                "info_keys": list(da.info.fields.keys()),
             }
 
             # save file
@@ -391,3 +399,13 @@ if __name__ == '__main__':
             arrays["meta_json"] = meta_u8
 
             np.savez_compressed(out_path, **arrays)
+
+            # save filename in config file
+            config["potential_functions"][idx] = {
+                **potential_function,
+                "filename": f"{filenames[idx]}.npz"
+            }
+
+        # save config file with filenames
+        with (Path(args.run_dir) / "config.json").open("w", encoding="utf-8") as f:
+            json.dump(config, f, ensure_ascii=False, indent=2)

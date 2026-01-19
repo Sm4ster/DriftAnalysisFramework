@@ -1,4 +1,10 @@
 {
   "algorithm": "CMA-ES",
-  "normal_form": "trace"
+  "normal_form": "trace",
+  "selection_scheme": "uniform",
+  "constants": {
+    "c_mu": 0.1,
+    "lamda": 60,
+    "mu": 16
+  }
 }

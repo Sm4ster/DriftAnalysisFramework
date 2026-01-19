@@ -60,8 +60,8 @@ class CMA_ES:
         self.transformation = transformation
 
         # constants
-        self.lamda = 6
-        self.mu = 3
+        self.lamda = constants["lamda"]
+        self.mu = constants["mu"]
 
         self.c_mu = constants["c_mu"]
 
@@ -107,8 +107,8 @@ class CMA_ES:
         # x = m + sigma Az
         x = m_expanded + (sigma.reshape(sigma.shape[0], 1, 1) * y)
 
-        # Compute f(x) by computing the norms of each vector in the middle axis
-        norms = np.square(np.linalg.norm(x, axis=2))
+        # Compute f(x)
+        norms = self.target.eval(x)
 
         # Get ranking indices based on the norms for each subarray in the middle axis
         indices = np.argsort(norms, axis=-1)
@@ -125,7 +125,7 @@ class CMA_ES:
         #   \frac{\sqrt{\mu_{\text{eff}}} * \|\sum^{\mu}_{i=1} w_i z_i\|} {\sqrt{\pi/2}}- 1
         # )
         norm_z_w_sum = np.linalg.norm(np.einsum("ij,ijk->ik", weights, z), axis=1)
-        new_sigma = sigma * np.exp((((np.sqrt(self.mu_eff) * norm_z_w_sum) / np.sqrt(np.pi/2)) - 1))
+        new_sigma = sigma * np.exp((((np.sqrt(self.mu_eff) * norm_z_w_sum) / np.sqrt(np.pi / 2)) - 1))
 
         # C = (1-c_cov) * C + c_cov \sum w_i * Az_i * (Az_i)^T
         y_outer_product = np.einsum('...i,...j->...ij', y, y)
@@ -141,6 +141,9 @@ class CMA_ES:
 
         # create the random samples
         z = np.random.randn(m.shape[0], self.lamda, 2)
+
+        # set target
+        self.target.set(alpha, kappa, sigma)
 
         # vectorized step
         m, C, sigma, info = self.step(m, C, sigma, z)
@@ -182,11 +185,11 @@ class OnePlusOne_CMA_ES:
         x = m + z * sigma_A
 
         # evaluate samples
-        fx = self.target.eval(x, keepdims=True)
+        fx = self.target.eval(x)
         success = (fx <= 1).astype(np.float64)  # This works because on the sphere in the normal form f(m)=1
 
         # calculate new m, new sigma and new C
-        new_m = success * x + (1 - success) * m
+        new_m = np.where(success[:, None], x, m)
         new_sigma = sigma * np.exp((1 / self.d) * ((success - self.p_target) / (1 - self.p_target))).reshape(
             sigma.shape[0])
         unsuccessful = ((1 - success.reshape(success.shape[0])[:, np.newaxis, np.newaxis]) * C)
