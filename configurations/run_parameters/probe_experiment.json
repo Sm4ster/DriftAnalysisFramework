@@ -1,7 +1,7 @@
 {
-  "sample_size": 250000,
-  "batch_size": 250000,
-  "chunk_size": 256,
+  "sample_size": 25000,
+  "batch_size": 25000,
+  "chunk_size": 512,
   "alpha": [
     0,
     1,
@@ -9,8 +9,8 @@
   ],
   "kappa": [
     1,
-    1.4,
-    12
+    2,
+    24
   ],
   "sigma": [
     0.001,

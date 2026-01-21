@@ -60,7 +60,7 @@ class CMA_ES:
         self.transformation = transformation
 
         # constants
-        self.lamda = constants["lamda"]
+        self.lamda = constants["lambda"]
         self.mu = constants["mu"]
 
         self.c_mu = constants["c_mu"]

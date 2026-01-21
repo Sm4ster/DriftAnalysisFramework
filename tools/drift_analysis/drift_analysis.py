@@ -70,7 +70,7 @@ if __name__ == '__main__':
     # constants
     algo_defaults = {
         "CMA-ES": {
-            "lamda": 6,
+            "lambda": 6,
             "mu": 3,
             "c_mu": 0.1  # 0.09182736455463728
         },
@@ -128,7 +128,7 @@ if __name__ == '__main__':
             CMA_TR(normal_form, sigma_scaling),
             {
                 "c_mu": constants["c_mu"],
-                "lamda": constants["lamda"],
+                "lambda": constants["lambda"],
                 "mu": constants["mu"],
             },
             selection_scheme,
